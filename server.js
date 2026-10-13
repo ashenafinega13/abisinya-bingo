@@ -25,20 +25,41 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ============ MongoDB ============
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB connected'))
   .catch(e => console.error('❌ Mongo error:', e.message));
 
-// ============ In-memory live game ============
-const liveGames = new Map(); // gameId -> { state }
+// =============================================================
+//                   ROUND ENGINE STATE
+// =============================================================
+const SELECTION_SECONDS = 30;
+const CALL_INTERVAL_MS  = 4000;
+const BETWEEN_ROUNDS_MS = 8000;
+const CARTELA_COUNT     = 200;
+const ENTRY_FEE         = 10;
+const PRIZE_PERCENT     = 0.8;
+
+const state = {
+  roundId: 0,
+  phase: 'selection',
+  selectionEndsAt: 0,
+  calledNumbers: [],
+  currentCall: null,
+  players: new Map(),
+  takenCartelas: new Set(),
+  prizePool: 0,
+  winner: null,
+  cartelas: [],
+  callTimer: null,
+  phaseTimer: null,
+  roundHistory: []
+};
 
 function generateCartela(cartelaId) {
   const cols = [];
   for (let c = 0; c < 5; c++) {
     const min = c * 15 + 1;
     const pool = Array.from({ length: 15 }, (_, i) => min + i);
-    // Fisher-Yates
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -51,316 +72,261 @@ function generateCartela(cartelaId) {
     for (let c = 0; c < 5; c++) row.push(cols[c][r]);
     grid.push(row);
   }
-  grid[2][2] = 0; // FREE space
-  return { cartelaId, grid };
+  grid[2][2] = 0;
+  return { id: cartelaId, grid };
 }
 
-// ============ Bot ↔ Server Auth Middleware ============
+for (let id = 1; id <= CARTELA_COUNT; id++) state.cartelas.push(generateCartela(id));
+
+function publicState() {
+  return {
+    roundId: state.roundId,
+    phase: state.phase,
+    selectionEndsAt: state.selectionEndsAt,
+    entryFee: ENTRY_FEE,
+    currentCall: state.currentCall,
+    calledNumbers: state.calledNumbers,
+    prizePool: state.prizePool,
+    playerCount: state.players.size,
+    takenCartelas: [...state.takenCartelas],
+    winner: state.winner,
+    roundHistory: state.roundHistory.slice(-5)
+  };
+}
+function broadcastState() { io.emit('game-state', publicState()); }
+
+function startSelectionPhase() {
+  state.phase = 'selection';
+  state.selectionEndsAt = Date.now() + SELECTION_SECONDS * 1000;
+  state.calledNumbers = [];
+  state.currentCall = null;
+  state.players = new Map();
+  state.takenCartelas = new Set();
+  state.prizePool = 0;
+  state.winner = null;
+  state.roundId++;
+  clearTimeout(state.phaseTimer);
+  clearInterval(state.callTimer);
+  console.log(`🟢 Round ${state.roundId}: selection (${SELECTION_SECONDS}s)`);
+  broadcastState();
+  state.phaseTimer = setTimeout(startRunningPhase, SELECTION_SECONDS * 1000);
+}
+
+function startRunningPhase() {
+  if (state.players.size === 0) {
+    console.log('⚠️ No players, restarting selection');
+    return startSelectionPhase();
+  }
+  state.phase = 'running';
+  broadcastState();
+  console.log(`▶️ Round ${state.roundId}: running`);
+  state.callTimer = setInterval(callNextNumber, CALL_INTERVAL_MS);
+  setTimeout(callNextNumber, 1000);
+}
+
+function callNextNumber() {
+  if (state.phase !== 'running') return;
+  if (state.calledNumbers.length >= 75) return finishRound(null);
+  let n;
+  do { n = Math.floor(Math.random() * 75) + 1; } while (state.calledNumbers.includes(n));
+  state.calledNumbers.push(n);
+  state.currentCall = n;
+  io.emit('number-called', { number: n, all: state.calledNumbers });
+  broadcastState();
+  console.log(`📞 ${n}`);
+}
+
+function checkWinner(cartelaId) {
+  const cartela = state.cartelas.find(c => c.id === cartelaId);
+  if (!cartela) return false;
+  const called = new Set(state.calledNumbers); called.add(0);
+  const corners = [
+    cartela.grid[0][0], cartela.grid[0][4],
+    cartela.grid[4][0], cartela.grid[4][4]
+  ];
+  return corners.every(x => called.has(x));
+}
+
+async function finishRound(winnerInfo) {
+  state.phase = 'finished';
+  clearInterval(state.callTimer);
+  clearTimeout(state.phaseTimer);
+
+  if (winnerInfo) {
+    const prize = Math.floor(state.prizePool * PRIZE_PERCENT);
+    const winner = { ...winnerInfo, prize };
+    state.winner = winner;
+    state.roundHistory.push({ roundId: state.roundId, ...winner });
+    try {
+      await User.updateOne({ telegramId: winner.userId }, { $inc: { winBalance: prize } });
+      await Transaction.create({
+        userId: winner.userId, type: 'win', amount: prize,
+        status: 'approved', method: 'game', sms: `Round ${state.roundId}`
+      });
+    } catch (e) { console.error(e.message); }
+    io.emit('round-finished', winner);
+    if (BOT_CALLBACK_URL) {
+      axios.post(`${BOT_CALLBACK_URL}/winner`, winner,
+        { headers: { 'x-bot-secret': BOT_API_SECRET } }).catch(() => {});
+    }
+    console.log(`🏆 ${winner.firstName} won ${prize} on cartela ${winner.cartelaId}`);
+  } else {
+    io.emit('round-finished', null);
+    console.log('😐 No winner');
+  }
+  broadcastState();
+  state.phaseTimer = setTimeout(startSelectionPhase, BETWEEN_ROUNDS_MS);
+}
+
+startSelectionPhase();
+
+// =============================================================
+//                   AUTH MIDDLEWARE
+// =============================================================
 function botAuth(req, res, next) {
-  const secret = req.headers['x-bot-secret'];
-  if (secret !== BOT_API_SECRET) return res.status(403).json({ error: 'forbidden' });
+  if (req.headers['x-bot-secret'] !== BOT_API_SECRET) return res.status(403).json({ error: 'forbidden' });
   next();
 }
-
-// ============ REST: Bot endpoints ============
-
-// Register / sync user from bot
-app.post('/api/bot/user', botAuth, async (req, res) => {
-  const { telegramId, username, firstName, phone } = req.body;
-  const u = await User.findOneAndUpdate(
-    { telegramId },
-    { $set: { username, firstName, phone } },
-    { new: true, upsert: true }
-  );
-  res.json({ success: true, user: u });
-});
-
-// Get user wallet
-app.get('/api/bot/user/:id', botAuth, async (req, res) => {
-  const u = await User.findOne({ telegramId: Number(req.params.id) });
-  res.json({ success: true, user: u });
-});
-
-// Adjust balance (called by bot when approving tx)
-app.post('/api/bot/user/:id/adjust', botAuth, async (req, res) => {
-  const { field, delta } = req.body; // field: balance | winBalance
-  const u = await User.findOneAndUpdate(
-    { telegramId: Number(req.params.id) },
-    { $inc: { [field]: delta } },
-    { new: true }
-  );
-  res.json({ success: true, user: u });
-});
-
-// Log a transaction
-app.post('/api/bot/transaction', botAuth, async (req, res) => {
-  const tx = await Transaction.create(req.body);
-  res.json({ success: true, tx });
-});
-
-// Update transaction status
-app.post('/api/bot/transaction/:id/status', botAuth, async (req, res) => {
-  const tx = await Transaction.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
-  res.json({ success: true, tx });
-});
-
-// List pending transactions
-app.get('/api/bot/transactions/pending', botAuth, async (req, res) => {
-  const txs = await Transaction.find({ status: 'pending' }).sort({ createdAt: -1 });
-  res.json({ success: true, txs });
-});
-
-// Get a specific transaction
-app.get('/api/bot/transaction/:id', botAuth, async (req, res) => {
-  const tx = await Transaction.findById(req.params.id);
-  res.json({ success: true, tx });
-});
-
-// ============ REST: Admin endpoints ============
 function adminAuth(req, res, next) {
   if (req.headers['x-admin-pass'] !== ADMIN_PASSWORD) return res.status(403).json({ error: 'forbidden' });
   next();
 }
 
+// =============================================================
+//                   REDIRECT + PUBLIC
+// =============================================================
+app.get('/game', (req, res) => {
+  const q = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
+  res.redirect('/bingo.html' + q);
+});
+app.get('/api/game', (req, res) => res.json({ success: true, ...publicState() }));
+app.get('/api/health', (req, res) => res.json({ status: 'ok', round: state.roundId }));
+app.get('/api/my-cartelas/:userId', (req, res) => {
+  const p = state.players.get(Number(req.params.userId));
+  if (!p) return res.json({ success: true, cartelas: [] });
+  const grids = state.cartelas.filter(c => p.cartelas.includes(c.id));
+  res.json({ success: true, cartelas: grids, player: p });
+});
+
+// =============================================================
+//                   PLAYER ROUTES
+// =============================================================
+app.post('/api/player/join', async (req, res) => {
+  const { userId, firstName, cartelaIds } = req.body;
+  if (state.phase !== 'selection')
+    return res.status(400).json({ error: 'selection closed, wait for next round' });
+  if (!Array.isArray(cartelaIds) || cartelaIds.length < 1 || cartelaIds.length > 4)
+    return res.status(400).json({ error: 'choose 1 to 4 cartelas' });
+  for (const id of cartelaIds) {
+    if (id < 1 || id > CARTELA_COUNT) return res.status(400).json({ error: 'invalid cartela' });
+    if (state.takenCartelas.has(id)) return res.status(400).json({ error: `cartela ${id} taken` });
+  }
+  const total = ENTRY_FEE * cartelaIds.length;
+  const u = await User.findOne({ telegramId: userId });
+  if (!u) return res.status(404).json({ error: 'user not found' });
+  if (u.balance < total) return res.status(400).json({ error: `need ${total} ETB` });
+  u.balance -= total;
+  await u.save();
+  await Transaction.create({ userId, type: 'bet', amount: total, status: 'approved', method: 'game' });
+  state.prizePool += total;
+  state.players.set(userId, { firstName, cartelas: cartelaIds });
+  cartelaIds.forEach(id => state.takenCartelas.add(id));
+  const grids = state.cartelas.filter(c => cartelaIds.includes(c.id));
+  broadcastState();
+  res.json({ success: true, cartelas: grids, balance: u.balance, prizePool: state.prizePool });
+});
+
+app.post('/api/player/bingo', async (req, res) => {
+  const { userId, cartelaId } = req.body;
+  if (state.phase !== 'running') return res.status(400).json({ error: 'game not running' });
+  const player = state.players.get(userId);
+  if (!player || !player.cartelas.includes(cartelaId))
+    return res.status(400).json({ error: 'not your cartela' });
+  if (!checkWinner(cartelaId))
+    return res.status(400).json({ error: 'invalid bingo claim' });
+  await finishRound({ userId, firstName: player.firstName, cartelaId, pattern: '4-corners' });
+  res.json({ success: true, prize: state.winner.prize });
+});
+
+// =============================================================
+//                   BOT ENDPOINTS
+// =============================================================
+app.post('/api/bot/user', botAuth, async (req, res) => {
+  const { telegramId, username, firstName, phone } = req.body;
+  const update = { username, firstName };
+  if (phone) update.phone = phone;
+  const u = await User.findOneAndUpdate({ telegramId }, { $set: update }, { new: true, upsert: true });
+  res.json({ success: true, user: u });
+});
+app.get('/api/bot/user/:id', botAuth, async (req, res) => {
+  res.json({ success: true, user: await User.findOne({ telegramId: Number(req.params.id) }) });
+});
+app.post('/api/bot/user/:id/adjust', botAuth, async (req, res) => {
+  const u = await User.findOneAndUpdate({ telegramId: Number(req.params.id) },
+    { $inc: { [req.body.field]: req.body.delta } }, { new: true });
+  res.json({ success: true, user: u });
+});
+app.get('/api/bot/all-users', botAuth, async (req, res) => {
+  res.json({ success: true, users: await User.find({}, { telegramId: 1 }) });
+});
+app.post('/api/bot/transaction', botAuth, async (req, res) => {
+  res.json({ success: true, tx: await Transaction.create(req.body) });
+});
+app.get('/api/bot/transaction/:id', botAuth, async (req, res) => {
+  res.json({ success: true, tx: await Transaction.findById(req.params.id) });
+});
+app.post('/api/bot/transaction/:id/status', botAuth, async (req, res) => {
+  res.json({ success: true, tx: await Transaction.findByIdAndUpdate(req.params.id,
+    { status: req.body.status }, { new: true }) });
+});
+
+// =============================================================
+//                   ADMIN
+// =============================================================
 app.get('/api/admin/stats', adminAuth, async (req, res) => {
-  const [users, pendingTx, runningGames] = await Promise.all([
-    User.countDocuments(),
-    Transaction.countDocuments({ status: 'pending' }),
-    Game.countDocuments({ status: 'running' })
-  ]);
-  res.json({ success: true, users, pendingTx, runningGames });
+  res.json({ success: true,
+    users: await User.countDocuments(),
+    pendingTx: await Transaction.countDocuments({ status: 'pending' }),
+    round: state.roundId, phase: state.phase });
 });
-
 app.get('/api/admin/users', adminAuth, async (req, res) => {
-  const users = await User.find().sort({ createdAt: -1 }).limit(200);
-  res.json({ success: true, users });
+  res.json({ success: true, users: await User.find().sort({ createdAt: -1 }).limit(200) });
 });
-
 app.get('/api/admin/transactions', adminAuth, async (req, res) => {
-  const txs = await Transaction.find().sort({ createdAt: -1 }).limit(200);
-  res.json({ success: true, txs });
+  res.json({ success: true, txs: await Transaction.find().sort({ createdAt: -1 }).limit(200) });
 });
-
 app.post('/api/admin/transaction/:id', adminAuth, async (req, res) => {
-  const { action } = req.body; // approve | reject
   const tx = await Transaction.findById(req.params.id);
-  if (!tx || tx.status !== 'pending') return res.status(400).json({ error: 'invalid tx' });
-
-  if (action === 'approve') {
-    if (tx.type === 'deposit') {
-      await User.updateOne({ telegramId: tx.userId }, { $inc: { balance: tx.amount } });
-    } else if (tx.type === 'withdraw') {
-      await User.updateOne({ telegramId: tx.userId }, { $inc: { winBalance: -tx.amount } });
-    }
+  if (!tx || tx.status !== 'pending') return res.status(400).json({ error: 'invalid' });
+  if (req.body.action === 'approve') {
+    if (tx.type === 'deposit') await User.updateOne({ telegramId: tx.userId }, { $inc: { balance: tx.amount } });
+    if (tx.type === 'withdraw') await User.updateOne({ telegramId: tx.userId }, { $inc: { winBalance: -tx.amount } });
     tx.status = 'approved';
-  } else {
-    tx.status = 'rejected';
-  }
+  } else tx.status = 'rejected';
   await tx.save();
-
-  // Notify bot to message user
-  if (BOT_CALLBACK_URL) {
-    axios.post(`${BOT_CALLBACK_URL}/notify-tx`, {
-      telegramId: tx.userId,
-      type: tx.type,
-      amount: tx.amount,
-      status: tx.status
-    }, { headers: { 'x-bot-secret': BOT_API_SECRET } }).catch(() => {});
-  }
+  if (BOT_CALLBACK_URL)
+    axios.post(`${BOT_CALLBACK_URL}/notify-tx`,
+      { telegramId: tx.userId, type: tx.type, amount: tx.amount, status: tx.status },
+      { headers: { 'x-bot-secret': BOT_API_SECRET } }).catch(() => {});
   res.json({ success: true, tx });
 });
-
-// Broadcast to all running games
-app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
-  const { message } = req.body;
-  io.emit('broadcast', { message, ts: Date.now() });
-  // Also notify bot
-  if (BOT_CALLBACK_URL) {
-    axios.post(`${BOT_CALLBACK_URL}/broadcast`, { message },
+app.post('/api/admin/broadcast', adminAuth, (req, res) => {
+  io.emit('broadcast', { message: req.body.message });
+  if (BOT_CALLBACK_URL)
+    axios.post(`${BOT_CALLBACK_URL}/broadcast`, { message: req.body.message },
       { headers: { 'x-bot-secret': BOT_API_SECRET } }).catch(() => {});
-  }
+  res.json({ success: true });
+});
+app.post('/api/admin/force-new-round', adminAuth, (req, res) => {
+  clearInterval(state.callTimer); clearTimeout(state.phaseTimer); startSelectionPhase();
   res.json({ success: true });
 });
 
-// ============ Game Management ============
-
-app.post('/api/admin/game/start', adminAuth, async (req, res) => {
-  const { gameId, entryFee = 10 } = req.body;
-  if (liveGames.has(gameId)) return res.status(400).json({ error: 'game exists' });
-
-  // Create/prepare cartelas
-  const COUNT = Number(req.body.cartelaCount || 200);
-  let cartelas = await Cartela.find({ gameId });
-  if (cartelas.length === 0) {
-    const docs = [];
-    for (let i = 1; i <= COUNT; i++) docs.push(generateCartela(i));
-    await Cartela.insertMany(docs.map(d => ({ ...d, gameId })));
-    cartelas = await Cartela.find({ gameId });
-  }
-
-  const state = {
-    gameId,
-    status: 'waiting',
-    entryFee,
-    calledNumbers: [],
-    currentCall: null,
-    cartelas: cartelas.map(c => ({ id: c.cartelaId, grid: c.grid })),
-    assignments: new Map(),  // userId -> [cartelaIds]
-    players: new Map(),      // userId -> { firstName, cartelas }
-    winners: [],
-    prizePool: 0
-  };
-  liveGames.set(gameId, state);
-  io.emit('game-state', publicState(state));
-  res.json({ success: true, gameId });
-});
-
-app.post('/api/admin/game/:gameId/call', adminAuth, async (req, res) => {
-  const state = liveGames.get(req.params.gameId);
-  if (!state || state.status !== 'running') return res.status(400).json({ error: 'game not running' });
-  if (state.calledNumbers.length >= 75) return res.status(400).json({ error: 'all called' });
-
-  let num;
-  do { num = Math.floor(Math.random() * 75) + 1; } while (state.calledNumbers.includes(num));
-  state.calledNumbers.push(num);
-  state.currentCall = num;
-
-  io.to(req.params.gameId).emit('number-called', { number: num, all: state.calledNumbers });
-  io.emit('game-state', publicState(state));
-  res.json({ success: true, number: num });
-});
-
-app.post('/api/admin/game/:gameId/status', adminAuth, async (req, res) => {
-  const state = liveGames.get(req.params.gameId);
-  if (!state) return res.status(404).json({ error: 'not found' });
-  state.status = req.body.status;
-  io.emit('game-state', publicState(state));
-  if (state.status === 'finished') {
-    await Game.findOneAndUpdate({ gameId: state.gameId },
-      { status: 'finished', endedAt: new Date(), winners: state.winners, calledNumbers: state.calledNumbers },
-      { upsert: true });
-  }
-  res.json({ success: true });
-});
-
-app.get('/api/admin/game/:gameId/state', adminAuth, (req, res) => {
-  const state = liveGames.get(req.params.gameId);
-  if (!state) return res.status(404).json({ error: 'not found' });
-  res.json(publicState(state));
-});
-
-app.get('/api/admin/games', adminAuth, (req, res) => {
-  const list = [...liveGames.values()].map(publicState);
-  res.json({ success: true, games: list });
-});
-
-function publicState(s) {
-  return {
-    gameId: s.gameId,
-    status: s.status,
-    entryFee: s.entryFee,
-    currentCall: s.currentCall,
-    calledNumbers: s.calledNumbers,
-    prizePool: s.prizePool,
-    playerCount: s.players.size,
-    winners: s.winners
-  };
-}
-
-// ============ Player joins game ============
-app.post('/api/player/join', async (req, res) => {
-  const { userId, firstName, gameId, cartelaIds } = req.body;
-  const state = liveGames.get(gameId);
-  if (!state) return res.status(404).json({ error: 'game not found' });
-  if (state.status === 'finished') return res.status(400).json({ error: 'game finished' });
-  if (!Array.isArray(cartelaIds) || cartelaIds.length < 1 || cartelaIds.length > 4)
-    return res.status(400).json({ error: 'cartela count must be 1-4' });
-
-  // Validate cartelas exist and are unowned
-  const allTaken = new Set();
-  for (const [, p] of state.players) p.cartelas.forEach(c => allTaken.add(c));
-  for (const id of cartelaIds) {
-    if (id < 1 || id > state.cartelas.length) return res.status(400).json({ error: 'invalid cartela id' });
-    if (allTaken.has(id)) return res.status(400).json({ error: `cartela ${id} already taken` });
-  }
-
-  // Deduct entry fee (cartelas * fee)
-  const totalFee = state.entryFee * cartelaIds.length;
-  const u = await User.findOne({ telegramId: userId });
-  if (!u || u.balance < totalFee) return res.status(400).json({ error: 'insufficient balance' });
-  u.balance -= totalFee;
-  await u.save();
-
-  state.prizePool += totalFee;
-  state.players.set(userId, { firstName, cartelas: cartelaIds });
-
-  // Send cartela grids to player via socket
-  const grids = state.cartelas.filter(c => cartelaIds.includes(c.id));
-  res.json({
-    success: true,
-    cartelas: grids,
-    balance: u.balance,
-    prizePool: state.prizePool,
-    playerCount: state.players.size
-  });
-
-  io.emit('game-state', publicState(state));
-});
-
-// ============ BINGO claim ============
-app.post('/api/player/bingo', async (req, res) => {
-  const { userId, gameId, cartelaId } = req.body;
-  const state = liveGames.get(gameId);
-  if (!state || state.status !== 'running') return res.status(400).json({ error: 'not running' });
-
-  const player = state.players.get(userId);
-  if (!player || !player.cartelas.includes(cartelaId)) return res.status(400).json({ error: 'not your cartela' });
-
-  const cartela = state.cartelas.find(c => c.id === cartelaId);
-  const called = new Set(state.calledNumbers);
-  called.add(0); // FREE space
-
-  // Only 4-corners pattern (you can extend)
-  const corners = [cartela.grid[0][0], cartela.grid[0][4], cartela.grid[4][0], cartela.grid[4][4]];
-  const allMarked = corners.every(n => called.has(n));
-
-  if (!allMarked) return res.status(400).json({ error: 'invalid bingo claim' });
-
-  const prize = Math.floor(state.prizePool * 0.8);
-  const winner = { userId, firstName: player.firstName, cartelaId, prize, pattern: '4-corners' };
-  state.winners.push(winner);
-  state.status = 'finished';
-
-  // Credit winnings
-  await User.updateOne({ telegramId: userId }, { $inc: { winBalance: prize } });
-
-  // Record tx
-  await Transaction.create({ userId, type: 'win', amount: prize, status: 'approved', method: 'game' });
-
-  io.emit('bingo-claimed', winner);
-  io.emit('game-state', publicState(state));
-
-  // Notify bot
-  if (BOT_CALLBACK_URL) {
-    axios.post(`${BOT_CALLBACK_URL}/winner`, { ...winner, gameId },
-      { headers: { 'x-bot-secret': BOT_API_SECRET } }).catch(() => {});
-  }
-
-  res.json({ success: true, prize });
-});
-
-// ============ Socket.IO ============
+// =============================================================
+//                   SOCKET.IO
+// =============================================================
 io.on('connection', socket => {
-  socket.on('join-room', gameId => {
-    socket.join(gameId);
-    const state = liveGames.get(gameId);
-    if (state) socket.emit('game-state', publicState(state));
-  });
+  socket.emit('game-state', publicState());
 });
 
 server.listen(PORT, () => console.log(`🚀 Server on ${PORT}`));
-
-app.get('/api/bot/all-users', botAuth, async (req, res) => {
-  const users = await User.find({}, { telegramId: 1 });
-  res.json({ success: true, users });
-});
