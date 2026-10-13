@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: abisinya-bingo-server
+    env: node
+    plan: free
+    branch: main
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: BOT_API_SECRET
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: BOT_CALLBACK_URL
+        sync: false      # set to the bot's public URL
+
+  - type: web
+    name: abisinya-bingo-bot
+    env: python
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: ADMIN_ID
+        sync: false
+      - key: SERVER_URL
+        sync: false      # URL of the Node service
+      - key: WEBAPP_URL
+        sync: false      # same as SERVER_URL
+      - key: BOT_API_SECRET
+        sync: false
+      - key: BOT_CALLBACK_URL
+        sync: false      # URL of the Python service
+      - key: BOT_USERNAME
+        value: AbisinyaBingo_Bot

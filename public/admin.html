@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<title>Admin Dashboard</title>
+<style>
+  body { background:#0d1117; color:#fff; font-family:sans-serif; margin:0; padding:14px; }
+  .row { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+  .card { background:#131b2e; border:1px solid #1f2a3f; border-radius:10px; padding:14px; margin-bottom:14px; }
+  h3 { margin:0 0 10px; color:#ffd700; }
+  input, button { padding:8px; border-radius:6px; border:1px solid #1f2a3f;
+                  background:#0d1117; color:#fff; font-size:14px; }
+  button { background:#0077b6; cursor:pointer; font-weight:bold; border:none; }
+  button.danger { background:#e63946; }
+  button.ok { background:#2a9d8f; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th, td { padding:6px; border-bottom:1px solid #1f2a3f; text-align:left; }
+  .pill { padding:2px 8px; border-radius:20px; font-size:11px; }
+  .pending { background:#f77f00; }
+  .approved { background:#2a9d8f; }
+  .rejected { background:#e63946; }
+  .called { display:flex; gap:4px; flex-wrap:wrap; max-height:120px; overflow:auto; }
+  .called span { background:#1f2a3f; padding:4px 8px; border-radius:6px; font-size:12px; }

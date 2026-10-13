@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Abisinya Bingo</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; background:#0d1117; color:#fff; font-family:'Segoe UI',sans-serif; padding:12px; }
+  .container { max-width: 900px; margin: auto; }
+  .topbar { display:flex; justify-content:space-between; align-items:center; background:#131b2e;
+            padding:10px 14px; border-radius:10px; border:1px solid #ffd700; margin-bottom:10px; }
+  .call { font-size:32px; font-weight:bold; color:#ffd700; }
+  .info { font-size:13px; color:#8b9bb4; }
+  .cartelas { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:10px; }
+  .cartela { background:#131b2e; border:1px solid #1f2a3f; border-radius:10px; padding:8px; }
+  .cartela.claimed { border-color:#ffd700; box-shadow:0 0 15px rgba(255,215,0,.6); }
+  .grid { display:grid; grid-template-columns:repeat(5,1fr); gap:3px; }
+  .hdr { padding:5px; text-align:center; font-weight:bold; font-size:12px; border-radius:4px; }
+  .hdr.b{background:#0077b6}.hdr.i{background:#0096c7}.hdr.n{background:#03045e}
+  .hdr.g{background:#f77f00}.hdr.o{background:#d62828}
+  .cell { padding:6px 0; text-align:center; font-weight:bold; font-size:14px; border-radius:4px;
+          background:#1f2a3f; color:#e0e0e0; min-height:30px; }
+  .cell.free { background:#2a9d8f; font-size:10px; }
+  .cell.marked { background:#2a9d8f; color:#fff; }
+  .cell.win { background:#ffd700; color:#000; border:2px solid #fff; }
+  .bingo-btn { width:100%; margin-top:6px; padding:8px; border:none; border-radius:6px;
+               background:#e63946; color:#fff; font-weight:bold; cursor:pointer; }
+  .bingo-btn:disabled { background:#555; cursor:not-allowed; }
+  .select-screen { text-align:center; padding:30px 10px; }
+  .cartela-picker { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:16px 0; }
+  .pick { padding:10px 14px; background:#1f2a3f; border:2px solid #1f2a3f; border-radius:8px;
+          cursor:pointer; font-weight:bold; }
+  .pick.sel { border-color:#ffd700; background:#2a2a1a; }
+  .btn { padding:12px 24px; background:#0077b6; border:none; color:#fff; font-weight:bold;
+         border-radius:8px; cursor:pointer; font-size:16px; }
+  .btn:disabled { background:#444; cursor:not-allowed; }
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+           background:#131b2e; border:1px solid #ffd700; color:#fff; padding:10px 20px;
+           border-radius:8px; z-index:99; }
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- Screen 1: select cartelas -->
+  <div id="selectScreen" class="select-screen">
+    <h2>🎯 Abisinya Bingo</h2>
+    <div class="info">Entry: <b id="feeLabel">10</b> ETB per cartela · Prize pool grows with players</div>
+    <div class="cartela-picker" id="picker"></div>
+    <button class="btn" id="joinBtn" disabled>Join Game</button>
+    <p class="info" id="selectMsg"></p>
+  </div>
+
+  <!-- Screen 2: game -->
+  <div id="gameScreen" style="display:none">
+    <div class="topbar">
+      <div>
+        <div class="info">Balance</div>
+        <div><b id="balanceLabel">0</b> ETB</div>
+      </div>
+      <div style="text-align:center">
+        <div class="info">Current Call</div>
+        <div class="call" id="currentCall">--</div>
+      </div>
+      <div style="text-align:right">
+        <div class="info">Prize Pool</div>
+        <div><b id="prizePool">0</b> ETB</div>
+      </div>
+    </div>
+    <div class="cartelas" id="cartelas"></div>
+    <div id="statusMsg" class="info" style="text-align:center; margin-top:10px"></div>
+  </div>
+</div>
+<script>
+// ===== Parse TG user & game from query =====
+const params = new URLSearchParams(location.search);
+const userId = Number(params.get('uid')) || 0;
+const firstName = params.get('name') || 'Player';
+const gameId = params.get('game') || 'default';
+
+const socket = io();
+
+let availableCartelas = 1;      // will be updated from server
+let selected = [];
+let myCartelas = [];            // [{ id, grid }]
+let calledNumbers = [];
+let fee = 10;
+let gameStatus = 'waiting';
+
+// ---- Fetch available cartela count ----
+async function loadGameInfo() {
+  const r = await fetch(`/api/game-info/${gameId}`).then(x => x.json()).catch(()=>null);
+  if (r && r.success) {
+    availableCartelas = r.cartelaCount;
+    fee = r.entryFee;
+    document.getElementById('feeLabel').innerText = fee;
+  } else {
+    availableCartelas = 200;
+  }
+  renderPicker();
+}
+
+function renderPicker() {
+  const p = document.getElementById('picker');
+  p.innerHTML = '';
+  for (let i = 1; i <= Math.min(availableCartelas, 40); i++) {  // show first 40
+    const d = document.createElement('div');
+    d.className = 'pick' + (selected.includes(i) ? ' sel' : '');
+    d.innerText = i;
+    d.onclick = () => {
+      const idx = selected.indexOf(i);
+      if (idx >= 0) selected.splice(idx, 1);
+      else if (selected.length < 4) selected.push(i);
+      document.getElementById('joinBtn').disabled = selected.length === 0;
+      renderPicker();
+    };
+    p.appendChild(d);
+  }
+}
+
+document.getElementById('joinBtn').onclick = async () => {
+  document.getElementById('selectMsg').innerText = 'Joining...';
+  const r = await fetch('/api/player/join', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, firstName, gameId, cartelaIds: selected })
+  }).then(x => x.json());
+  if (!r.success) {
+    document.getElementById('selectMsg').innerText = '❌ ' + r.error;
+    return;
+  }
+  myCartelas = r.cartelas;
+  document.getElementById('balanceLabel').innerText = r.balance.toFixed(2);
+  document.getElementById('prizePool').innerText = r.prizePool;
+  document.getElementById('selectScreen').style.display = 'none';
+  document.getElementById('gameScreen').style.display = 'block';
+  renderCartelas();
+  socket.emit('join-room', gameId);
+};
+
+function renderCartelas() {
+  const wrap = document.getElementById('cartelas');
+  wrap.innerHTML = '';
+  myCartelas.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'cartela';
+    card.id = `cartela-${c.id}`;
+    const headers = ['B','I','N','G','O'].map((h,i) => `<div class="hdr ${h.toLowerCase()}">${h}</div>`).join('');
+    let cells = '';
+    for (let r = 0; r < 5; r++) {
+      for (let col = 0; col < 5; col++) {
+        const n = c.grid[r][col];
+        if (n === 0) cells += `<div class="cell free" data-n="0">FREE</div>`;
+        else cells += `<div class="cell" data-n="${n}">${n}</div>`;
+      }
+    }
+    card.innerHTML = `<div class="grid">${headers}${cells}</div>
+      <button class="bingo-btn" disabled data-cartela="${c.id}">BINGO!</button>`;
+    wrap.appendChild(card);
+    card.querySelector('button').onclick = () => claimBingo(c.id);
+  });
+  markAll();
+}
+
+function markAll() {
+  const set = new Set(calledNumbers); set.add(0);
+  document.querySelectorAll('.cell[data-n]').forEach(el => {
+    const n = Number(el.dataset.n);
+    if (set.has(n) && !el.classList.contains('marked')) el.classList.add('marked');
+  });
+  // Enable BINGO button only if 4 corners marked
+  document.querySelectorAll('.cartela').forEach(card => {
+    const grid = card.querySelectorAll('.cell');
+    const corners = [grid[0], grid[4], grid[20], grid[24]];
+    const ok = corners.every(c => c.classList.contains('marked'));
+    card.querySelector('.bingo-btn').disabled = !ok || gameStatus === 'finished';
+  });
+}
+
+async function claimBingo(cartelaId) {
+  const r = await fetch('/api/player/bingo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, gameId, cartelaId })
+  }).then(x => x.json());
+  if (!r.success) return toast('❌ ' + r.error);
+  toast('🎉 BINGO! You won ' + r.prize + ' ETB');
+}
+
+// ===== Sockets =====
+socket.on('connect', () => socket.emit('join-room', gameId));
+
+socket.on('game-state', s => {
+  gameStatus = s.status;
+  if (s.currentCall) document.getElementById('currentCall').innerText = s.currentCall;
+  document.getElementById('prizePool').innerText = s.prizePool;
+  document.getElementById('statusMsg').innerText =
+    `Players: ${s.playerCount} · Status: ${s.status}`;
+  if (s.calledNumbers) { calledNumbers = s.calledNumbers; markAll(); }
+});
+
+socket.on('number-called', ({ number, all }) => {
+  calledNumbers = all;
+  document.getElementById('currentCall').innerText = number;
+  markAll();
+});
+
+socket.on('bingo-claimed', w => {
+  toast(`🏆 ${w.firstName} won ${w.prize} ETB!`);
+  document.querySelectorAll('.bingo-btn').forEach(b => b.disabled = true);
+});
+
+socket.on('broadcast', ({ message }) => toast('📢 ' + message));
+
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerText = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+loadGameInfo();
+</script>
+</body>
+</html>
