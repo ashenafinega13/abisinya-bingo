@@ -19,11 +19,10 @@
       radial-gradient(1200px 600px at 50% -100px, rgba(168,85,247,.18), transparent 60%),
       linear-gradient(160deg,var(--bg-0) 0%,var(--bg-1) 40%,var(--bg-2) 100%);
     background-attachment:fixed;
-    color:var(--ink);
-    min-height:100vh;
+    color:var(--ink); min-height:100vh;
     padding:12px;
     padding-top:calc(env(safe-area-inset-top) + 12px);
-    padding-bottom:calc(env(safe-area-inset-bottom) + 12px);
+    padding-bottom:calc(env(safe-area-inset-bottom) + 20px);
   }
   .card{
     background:linear-gradient(180deg,rgba(139,92,246,.12),rgba(139,92,246,.04));
@@ -36,9 +35,7 @@
     padding:10px 12px;border-radius:10px;font-weight:700;font-size:13px;
     background:rgba(139,92,246,.10);
     border:1px solid var(--border);
-    color:var(--muted);
-    cursor:pointer;flex:1;
-    transition:all .2s;
+    color:var(--muted);cursor:pointer;flex:1;transition:all .2s;
   }
   .tab-btn.active{
     background:linear-gradient(135deg,var(--accent),var(--neon-pink));
@@ -46,19 +43,14 @@
     box-shadow:0 4px 16px rgba(168,85,247,.4);
   }
   .tx-row{
-    display:grid;
-    grid-template-columns:auto 1fr auto;
-    gap:10px;align-items:center;
-    padding:10px 4px;
-    border-bottom:1px solid rgba(167,139,250,.10);
-    font-size:13px;
+    display:grid;grid-template-columns:auto 1fr auto;
+    gap:10px;align-items:center;padding:10px 4px;
+    border-bottom:1px solid rgba(167,139,250,.10);font-size:13px;
   }
   .tx-row:last-child{border-bottom:none}
   .badge{
-    display:inline-block;
-    padding:2px 8px;border-radius:6px;
-    font-size:10px;font-weight:900;letter-spacing:.5px;
-    text-transform:uppercase;
+    display:inline-block;padding:2px 8px;border-radius:6px;
+    font-size:10px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;
   }
   .badge.approved{background:rgba(34,197,94,.18);color:#22c55e}
   .badge.pending{background:rgba(251,146,60,.18);color:#fb923c}
@@ -67,7 +59,6 @@
   .badge.deposit{background:rgba(34,211,238,.18);color:#22d3ee}
   .badge.withdraw{background:rgba(168,85,247,.20);color:#a855f7}
   .badge.bet{background:rgba(139,92,246,.18);color:#a78bfa}
-
   .lb-row{
     display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;
     padding:10px 6px;border-bottom:1px solid rgba(167,139,250,.10);
@@ -83,18 +74,26 @@
   .rank.silver{background:linear-gradient(135deg,#cbd5e1,#94a3b8);color:#1a0a2e}
   .rank.bronze{background:linear-gradient(135deg,#fb923c,#b45309);color:#fff}
   .tabs{display:flex;gap:6px;margin-bottom:12px}
+  .back-pill{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:6px 12px;border-radius:20px;
+    background:rgba(139,92,246,.12);
+    border:1px solid var(--border);
+    color:var(--muted);font-size:12px;font-weight:700;
+    cursor:pointer;text-decoration:none;
+  }
+  .back-pill:active{transform:scale(.96)}
 </style>
 </head>
 <body>
 
 <div class="container max-w-2xl mx-auto">
 
-  <!-- Back to game -->
-  <button onclick="backToGame()" class="text-sm mb-3" style="color:var(--muted)">← Back to game</button>
+  <a class="back-pill mb-3" id="backBtn">← Back to Game</a>
 
   <!-- WALLET -->
   <div class="card mb-3">
-    <div class="text-xs uppercase tracking-wider mb-2" style="color:var(--muted);font-weight:800">MY WALLET</div>
+    <div class="text-xs uppercase tracking-wider mb-2" style="color:var(--muted);font-weight:800">💼 MY WALLET</div>
     <div class="flex items-center justify-between mb-4">
       <div>
         <div class="text-3xl font-black" id="balanceLbl">--</div>
@@ -117,7 +116,7 @@
     </div>
   </div>
 
-  <!-- STATS STRIP -->
+  <!-- STATS -->
   <div class="card mb-3">
     <div class="grid grid-cols-3 gap-3 text-center">
       <div>
@@ -130,7 +129,7 @@
       </div>
       <div>
         <div class="text-2xl font-black" style="color:var(--neon-gold)" id="earnLbl">0</div>
-        <div class="text-xs" style="color:var(--muted)">Earned</div>
+        <div class="text-xs" style="color:var(--muted)">Earned (ETB)</div>
       </div>
     </div>
   </div>
@@ -141,13 +140,13 @@
     <button class="tab-btn" data-tab="leader" onclick="switchTab('leader')">🏆 Leaderboard</button>
   </div>
 
-  <!-- HISTORY PANEL -->
+  <!-- HISTORY -->
   <div class="card" id="historyPanel">
     <div id="txList"></div>
     <div class="flex justify-between mt-3" id="pager"></div>
   </div>
 
-  <!-- LEADERBOARD PANEL -->
+  <!-- LEADERBOARD -->
   <div class="card hidden" id="leaderPanel">
     <div class="tabs" style="margin-bottom:10px">
       <button class="tab-btn active" data-range="day" onclick="switchRange('day')">Today</button>
@@ -159,9 +158,7 @@
 </div>
 
 <script>
-// =========================================================
 // Telegram WebApp init
-// =========================================================
 if (window.Telegram && window.Telegram.WebApp) {
   const tw = window.Telegram.WebApp;
   tw.expand();
@@ -171,16 +168,15 @@ if (window.Telegram && window.Telegram.WebApp) {
 
 const p = new URLSearchParams(location.search);
 const userId = Number(p.get('uid')) || 0;
+const initialTab = p.get('tab') || 'history';
 let page = 1;
 
-function backToGame(){
+document.getElementById('backBtn').onclick = () => {
   location.href = '/game?uid=' + userId;
-}
+};
 
 function openBot(action){
-  // Deep-link back to the Telegram bot (works inside WebApp)
-  const botUsername = 'AbyssinaBingobot';
-  const url = `https://t.me/${botUsername}?start=${action}`;
+  const url = `https://t.me/AbyssinaBingobot?start=${action}`;
   if (window.Telegram && window.Telegram.WebApp) {
     window.Telegram.WebApp.openTelegramLink(url);
   } else {
@@ -188,9 +184,6 @@ function openBot(action){
   }
 }
 
-// =========================================================
-// PROFILE LOAD
-// =========================================================
 async function loadProfile(){
   try {
     const r = await fetch('/api/profile/' + userId).then(x=>x.json());
@@ -200,44 +193,35 @@ async function loadProfile(){
     document.getElementById('winLbl').innerText = u.winBalance.toFixed(2) + ' ETB';
     document.getElementById('gamesLbl').innerText = u.totalGames || 0;
     document.getElementById('winsLbl').innerText = u.totalWins || 0;
-    document.getElementById('earnLbl').innerText = (u.totalEarnings || 0).toFixed(0) + ' ETB';
+    document.getElementById('earnLbl').innerText = (u.totalEarnings || 0).toFixed(0);
   } catch(e){ console.error(e); }
 }
 
-// =========================================================
-// HISTORY
-// =========================================================
-async function loadHistory(pg = 1){
+async function loadHistory(pg=1){
   page = pg;
   try {
     const r = await fetch(`/api/history/${userId}?page=${pg}`).then(x=>x.json());
     if (!r.success) return;
     const el = document.getElementById('txList');
-    if (!r.txs.length) {
+    if (!r.txs.length){
       el.innerHTML = '<div class="text-center py-6 text-sm" style="color:var(--muted)">No transactions yet</div>';
-      document.getElementById('pager').innerHTML = '';
-      return;
+      document.getElementById('pager').innerHTML = ''; return;
     }
     el.innerHTML = r.txs.map(tx => {
       const when = new Date(tx.createdAt).toLocaleString();
-      const sign = (tx.type === 'deposit' || tx.type === 'win') ? '+' : '-';
-      const color = (tx.type === 'deposit' || tx.type === 'win') ? 'var(--neon-green)' : 'var(--neon-pink)';
-      const methodLabel = tx.method ? ` · ${tx.method}` : '';
+      const isIn = (tx.type === 'deposit' || tx.type === 'win');
+      const sign = isIn ? '+' : '-';
       const gameTag = tx.gameId ? ` · Game #${tx.gameId}` : '';
+      const methodLabel = tx.method ? ` · ${tx.method}` : '';
       return `
         <div class="tx-row">
+          <div><span class="badge ${tx.type}">${tx.type}</span></div>
           <div>
-            <span class="badge ${tx.type}">${tx.type}</span>
-          </div>
-          <div>
-            <div style="font-weight:700">${sign}${tx.amount.toFixed(2)} ETB</div>
+            <div style="font-weight:700;color:${isIn?'var(--neon-green)':'var(--neon-pink)'}">${sign}${tx.amount.toFixed(2)} ETB</div>
             <div style="color:var(--muted);font-size:11px">${when}${methodLabel}${gameTag}</div>
           </div>
-          <div style="text-align:right">
-            <span class="badge ${tx.status}">${tx.status}</span>
-          </div>
-        </div>
-      `;
+          <div style="text-align:right"><span class="badge ${tx.status}">${tx.status}</span></div>
+        </div>`;
     }).join('');
     document.getElementById('pager').innerHTML = `
       <button ${page<=1?'disabled':''} onclick="loadHistory(${page-1})"
@@ -249,10 +233,7 @@ async function loadHistory(pg = 1){
   } catch(e){ console.error(e); }
 }
 
-// =========================================================
-// LEADERBOARD
-// =========================================================
-async function loadLeaderboard(range = 'all'){
+async function loadLeaderboard(range='all'){
   try {
     const r = await fetch('/api/leaderboard?range=' + range).then(x=>x.json());
     if (!r.success) return;
@@ -261,7 +242,7 @@ async function loadLeaderboard(range = 'all'){
       el.innerHTML = '<div class="text-center py-6 text-sm" style="color:var(--muted)">No winners yet</div>';
       return;
     }
-    el.innerHTML = r.list.map((u, i) => {
+    el.innerHTML = r.list.map((u,i) => {
       const rankCls = i===0?'gold':i===1?'silver':i===2?'bronze':'';
       const name = u.firstName || u.username || ('User ' + u.telegramId);
       const isMe = u.telegramId === userId;
@@ -275,15 +256,11 @@ async function loadLeaderboard(range = 'all'){
           <div style="text-align:right;font-weight:900;color:var(--neon-gold)">
             ${(u.totalEarnings||0).toFixed(0)} ETB
           </div>
-        </div>
-      `;
+        </div>`;
     }).join('');
   } catch(e){ console.error(e); }
 }
 
-// =========================================================
-// UI
-// =========================================================
 function switchTab(name){
   document.querySelectorAll('.tabs .tab-btn').forEach(b => {
     if (b.dataset.tab) b.classList.toggle('active', b.dataset.tab === name);
@@ -299,11 +276,9 @@ function switchRange(range){
   loadLeaderboard(range);
 }
 
-// =========================================================
-// START
-// =========================================================
 loadProfile();
 loadHistory(1);
+if (initialTab === 'leader') switchTab('leader');
 </script>
 </body>
 </html>
