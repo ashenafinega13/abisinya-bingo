@@ -2,9 +2,17 @@
 <html lang="am">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>Abisinya Bingo</title>
-<script src="/socket.io/socket.io.js"></script>
+<script src="/socket.io/socket.io.js">
+// Tell Telegram to expand to full screen
+if (window.Telegram && window.Telegram.WebApp) {
+  window.Telegram.WebApp.expand();
+  window.Telegram.WebApp.disableVerticalSwipes?.();
+  window.Telegram.WebApp.setHeaderColor?.('#0a0f1c');
+  window.Telegram.WebApp.setBackgroundColor?.('#0a0f1c');
+}
+</script>
 <style>
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   body{margin:0;background:#0a0f1c;color:#fff;font-family:'Segoe UI',sans-serif;padding:10px;overflow-x:hidden}

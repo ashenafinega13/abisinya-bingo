@@ -17,7 +17,7 @@ ADMIN_ID          = int(os.getenv("ADMIN_ID", "0"))
 SERVER_URL        = os.getenv("SERVER_URL")           # e.g. https://abisinya-bingo-server.onrender.com
 WEBAPP_URL        = os.getenv("WEBAPP_URL")           # same as SERVER_URL (or your custom domain)
 BOT_API_SECRET    = os.getenv("BOT_API_SECRET", "change-me")
-BOT_PORT          = int(os.getenv("BOT_PORT", "8080"))
+BOT_PORT          = int(os.getenv("PORT", os.getenv("BOT_PORT", "8080")))
 BOT_USERNAME      = os.getenv("BOT_USERNAME", "AbisinyaBingo_Bot")
 
 H = {"x-bot-secret": BOT_API_SECRET, "Content-Type": "application/json"}

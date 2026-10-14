@@ -114,12 +114,16 @@ function startSelectionPhase() {
 
 function startRunningPhase() {
   if (state.players.size === 0) {
-    console.log('⚠️ No players, restarting selection');
-    return startSelectionPhase();
+    // No players yet — extend the selection window by another 30 seconds
+    // instead of restarting the whole round (which would reset the roundId)
+    console.log('⏳ No players yet — extending selection window');
+    state.selectionEndsAt = Date.now() + SELECTION_SECONDS * 1000;
+    broadcastState();
+    state.phaseTimer = setTimeout(startRunningPhase, SELECTION_SECONDS * 1000);
+    return;
   }
   state.phase = 'running';
   broadcastState();
-  console.log(`▶️ Round ${state.roundId}: running`);
   state.callTimer = setInterval(callNextNumber, CALL_INTERVAL_MS);
   setTimeout(callNextNumber, 1000);
 }
