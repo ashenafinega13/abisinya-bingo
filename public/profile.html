@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>My Profile — Abisinya Bingo</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{
+    --bg-0:#0b0616; --bg-1:#130c26; --bg-2:#1a1035; --bg-3:#241649;
+    --ink:#f5f3ff; --muted:#a78bfa; --accent:#8b5cf6; --accent-2:#a855f7;
+    --neon-pink:#ec4899; --neon-cyan:#22d3ee; --neon-green:#22c55e; --neon-gold:#facc15;
+    --border:rgba(167,139,250,.18);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+  body{
+    font-family:'Inter','Segoe UI',sans-serif;
+    background:
+      radial-gradient(1200px 600px at 50% -100px, rgba(168,85,247,.18), transparent 60%),
+      linear-gradient(160deg,var(--bg-0) 0%,var(--bg-1) 40%,var(--bg-2) 100%);
+    background-attachment:fixed;
+    color:var(--ink);
+    min-height:100vh;
+    padding:12px;
+    padding-top:calc(env(safe-area-inset-top) + 12px);
+    padding-bottom:calc(env(safe-area-inset-bottom) + 12px);
+  }
+  .card{
+    background:linear-gradient(180deg,rgba(139,92,246,.12),rgba(139,92,246,.04));
+    border:1px solid var(--border);
+    border-radius:16px;
+    backdrop-filter:blur(10px);
+    padding:16px;
+  }
+  .tab-btn{
+    padding:10px 12px;border-radius:10px;font-weight:700;font-size:13px;
+    background:rgba(139,92,246,.10);
+    border:1px solid var(--border);
+    color:var(--muted);
+    cursor:pointer;flex:1;
+    transition:all .2s;
+  }
+  .tab-btn.active{
+    background:linear-gradient(135deg,var(--accent),var(--neon-pink));
+    color:#fff;border-color:transparent;
+    box-shadow:0 4px 16px rgba(168,85,247,.4);
+  }
+  .tx-row{
+    display:grid;
+    grid-template-columns:auto 1fr auto;
+    gap:10px;align-items:center;
+    padding:10px 4px;
+    border-bottom:1px solid rgba(167,139,250,.10);
+    font-size:13px;
+  }
+  .tx-row:last-child{border-bottom:none}
+  .badge{
+    display:inline-block;
+    padding:2px 8px;border-radius:6px;
+    font-size:10px;font-weight:900;letter-spacing:.5px;
+    text-transform:uppercase;
+  }
+  .badge.approved{background:rgba(34,197,94,.18);color:#22c55e}
+  .badge.pending{background:rgba(251,146,60,.18);color:#fb923c}
+  .badge.rejected{background:rgba(236,72,153,.18);color:#ec4899}
+  .badge.win{background:rgba(250,204,21,.18);color:#facc15}
+  .badge.deposit{background:rgba(34,211,238,.18);color:#22d3ee}
+  .badge.withdraw{background:rgba(168,85,247,.20);color:#a855f7}
+  .badge.bet{background:rgba(139,92,246,.18);color:#a78bfa}
+
+  .lb-row{
+    display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;
+    padding:10px 6px;border-bottom:1px solid rgba(167,139,250,.10);
+  }
+  .lb-row:last-child{border-bottom:none}
+  .rank{
+    width:32px;height:32px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:900;font-size:13px;
+    background:rgba(139,92,246,.18);color:var(--muted);
+  }
+  .rank.gold{background:linear-gradient(135deg,#facc15,#eab308);color:#1a0a2e;box-shadow:0 0 14px rgba(250,204,21,.5)}
+  .rank.silver{background:linear-gradient(135deg,#cbd5e1,#94a3b8);color:#1a0a2e}
+  .rank.bronze{background:linear-gradient(135deg,#fb923c,#b45309);color:#fff}
+  .tabs{display:flex;gap:6px;margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<div class="container max-w-2xl mx-auto">
+
+  <!-- Back to game -->
+  <button onclick="backToGame()" class="text-sm mb-3" style="color:var(--muted)">← Back to game</button>
+
+  <!-- WALLET -->
+  <div class="card mb-3">
+    <div class="text-xs uppercase tracking-wider mb-2" style="color:var(--muted);font-weight:800">MY WALLET</div>
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <div class="text-3xl font-black" id="balanceLbl">--</div>
+        <div class="text-xs" style="color:var(--muted)">Playable balance (ETB)</div>
+      </div>
+      <div class="text-right">
+        <div class="text-xl font-black" style="color:var(--neon-gold)" id="winLbl">--</div>
+        <div class="text-xs" style="color:var(--muted)">Winnings</div>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-2">
+      <button onclick="openBot('deposit')" class="py-3 rounded-xl font-bold text-white text-sm"
+        style="background:linear-gradient(135deg,#22d3ee,#0891b2);box-shadow:0 4px 16px rgba(34,211,238,.4)">
+        💰 DEPOSIT
+      </button>
+      <button onclick="openBot('withdraw')" class="py-3 rounded-xl font-bold text-white text-sm"
+        style="background:linear-gradient(135deg,#a855f7,#7e22ce);box-shadow:0 4px 16px rgba(168,85,247,.4)">
+        📤 WITHDRAW
+      </button>
+    </div>
+  </div>
+
+  <!-- STATS STRIP -->
+  <div class="card mb-3">
+    <div class="grid grid-cols-3 gap-3 text-center">
+      <div>
+        <div class="text-2xl font-black" id="gamesLbl">0</div>
+        <div class="text-xs" style="color:var(--muted)">Games</div>
+      </div>
+      <div>
+        <div class="text-2xl font-black" style="color:var(--neon-pink)" id="winsLbl">0</div>
+        <div class="text-xs" style="color:var(--muted)">Wins</div>
+      </div>
+      <div>
+        <div class="text-2xl font-black" style="color:var(--neon-gold)" id="earnLbl">0</div>
+        <div class="text-xs" style="color:var(--muted)">Earned</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="history" onclick="switchTab('history')">📋 History</button>
+    <button class="tab-btn" data-tab="leader" onclick="switchTab('leader')">🏆 Leaderboard</button>
+  </div>
+
+  <!-- HISTORY PANEL -->
+  <div class="card" id="historyPanel">
+    <div id="txList"></div>
+    <div class="flex justify-between mt-3" id="pager"></div>
+  </div>
+
+  <!-- LEADERBOARD PANEL -->
+  <div class="card hidden" id="leaderPanel">
+    <div class="tabs" style="margin-bottom:10px">
+      <button class="tab-btn active" data-range="day" onclick="switchRange('day')">Today</button>
+      <button class="tab-btn" data-range="week" onclick="switchRange('week')">Week</button>
+      <button class="tab-btn" data-range="all" onclick="switchRange('all')">All Time</button>
+    </div>
+    <div id="lbList"></div>
+  </div>
+</div>
+
+<script>
+// =========================================================
+// Telegram WebApp init
+// =========================================================
+if (window.Telegram && window.Telegram.WebApp) {
+  const tw = window.Telegram.WebApp;
+  tw.expand();
+  tw.setHeaderColor?.('#0b0616');
+  tw.setBackgroundColor?.('#0b0616');
+}
+
+const p = new URLSearchParams(location.search);
+const userId = Number(p.get('uid')) || 0;
+let page = 1;
+
+function backToGame(){
+  location.href = '/game?uid=' + userId;
+}
+
+function openBot(action){
+  // Deep-link back to the Telegram bot (works inside WebApp)
+  const botUsername = 'AbyssinaBingobot';
+  const url = `https://t.me/${botUsername}?start=${action}`;
+  if (window.Telegram && window.Telegram.WebApp) {
+    window.Telegram.WebApp.openTelegramLink(url);
+  } else {
+    window.open(url, '_blank');
+  }
+}
+
+// =========================================================
+// PROFILE LOAD
+// =========================================================
+async function loadProfile(){
+  try {
+    const r = await fetch('/api/profile/' + userId).then(x=>x.json());
+    if (!r.success) return;
+    const u = r.user;
+    document.getElementById('balanceLbl').innerText = u.balance.toFixed(2) + ' ETB';
+    document.getElementById('winLbl').innerText = u.winBalance.toFixed(2) + ' ETB';
+    document.getElementById('gamesLbl').innerText = u.totalGames || 0;
+    document.getElementById('winsLbl').innerText = u.totalWins || 0;
+    document.getElementById('earnLbl').innerText = (u.totalEarnings || 0).toFixed(0) + ' ETB';
+  } catch(e){ console.error(e); }
+}
+
+// =========================================================
+// HISTORY
+// =========================================================
+async function loadHistory(pg = 1){
+  page = pg;
+  try {
+    const r = await fetch(`/api/history/${userId}?page=${pg}`).then(x=>x.json());
+    if (!r.success) return;
+    const el = document.getElementById('txList');
+    if (!r.txs.length) {
+      el.innerHTML = '<div class="text-center py-6 text-sm" style="color:var(--muted)">No transactions yet</div>';
+      document.getElementById('pager').innerHTML = '';
+      return;
+    }
+    el.innerHTML = r.txs.map(tx => {
+      const when = new Date(tx.createdAt).toLocaleString();
+      const sign = (tx.type === 'deposit' || tx.type === 'win') ? '+' : '-';
+      const color = (tx.type === 'deposit' || tx.type === 'win') ? 'var(--neon-green)' : 'var(--neon-pink)';
+      const methodLabel = tx.method ? ` · ${tx.method}` : '';
+      const gameTag = tx.gameId ? ` · Game #${tx.gameId}` : '';
+      return `
+        <div class="tx-row">
+          <div>
+            <span class="badge ${tx.type}">${tx.type}</span>
+          </div>
+          <div>
+            <div style="font-weight:700">${sign}${tx.amount.toFixed(2)} ETB</div>
+            <div style="color:var(--muted);font-size:11px">${when}${methodLabel}${gameTag}</div>
+          </div>
+          <div style="text-align:right">
+            <span class="badge ${tx.status}">${tx.status}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+    document.getElementById('pager').innerHTML = `
+      <button ${page<=1?'disabled':''} onclick="loadHistory(${page-1})"
+        class="tab-btn" style="max-width:120px;${page<=1?'opacity:.4':''}">← Prev</button>
+      <span class="text-xs self-center" style="color:var(--muted)">Page ${page} / ${r.totalPages}</span>
+      <button ${page>=r.totalPages?'disabled':''} onclick="loadHistory(${page+1})"
+        class="tab-btn" style="max-width:120px;${page>=r.totalPages?'opacity:.4':''}">Next →</button>
+    `;
+  } catch(e){ console.error(e); }
+}
+
+// =========================================================
+// LEADERBOARD
+// =========================================================
+async function loadLeaderboard(range = 'all'){
+  try {
+    const r = await fetch('/api/leaderboard?range=' + range).then(x=>x.json());
+    if (!r.success) return;
+    const el = document.getElementById('lbList');
+    if (!r.list.length){
+      el.innerHTML = '<div class="text-center py-6 text-sm" style="color:var(--muted)">No winners yet</div>';
+      return;
+    }
+    el.innerHTML = r.list.map((u, i) => {
+      const rankCls = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+      const name = u.firstName || u.username || ('User ' + u.telegramId);
+      const isMe = u.telegramId === userId;
+      return `
+        <div class="lb-row" style="${isMe?'background:rgba(236,72,153,.08);border-radius:8px':''}">
+          <div class="rank ${rankCls}">${i+1}</div>
+          <div>
+            <div style="font-weight:800">${name}${isMe?' <span style="font-size:10px;color:var(--neon-pink)">• YOU</span>':''}</div>
+            <div style="color:var(--muted);font-size:11px">${u.totalWins} wins</div>
+          </div>
+          <div style="text-align:right;font-weight:900;color:var(--neon-gold)">
+            ${(u.totalEarnings||0).toFixed(0)} ETB
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch(e){ console.error(e); }
+}
+
+// =========================================================
+// UI
+// =========================================================
+function switchTab(name){
+  document.querySelectorAll('.tabs .tab-btn').forEach(b => {
+    if (b.dataset.tab) b.classList.toggle('active', b.dataset.tab === name);
+  });
+  document.getElementById('historyPanel').classList.toggle('hidden', name !== 'history');
+  document.getElementById('leaderPanel').classList.toggle('hidden', name !== 'leader');
+  if (name === 'leader') loadLeaderboard('all');
+}
+function switchRange(range){
+  document.querySelectorAll('#leaderPanel .tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.range === range);
+  });
+  loadLeaderboard(range);
+}
+
+// =========================================================
+// START
+// =========================================================
+loadProfile();
+loadHistory(1);
+</script>
+</body>
+</html>

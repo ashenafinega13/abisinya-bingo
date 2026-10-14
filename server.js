@@ -25,37 +25,31 @@ const BOT_API_SECRET = process.env.BOT_API_SECRET || 'change-me';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const BOT_CALLBACK_URL = process.env.BOT_CALLBACK_URL || '';
 
-// =============================================================
-// Middleware
-// =============================================================
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// =============================================================
-// MongoDB
-// =============================================================
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB connected'))
   .catch(e => console.error('❌ Mongo error:', e.message));
 
 // =============================================================
-//                       ROUND ENGINE
+//                    GAME STATE
 // =============================================================
-const SELECTION_SECONDS = 30;    // cartela pick window
-const CALL_INTERVAL_MS  = 4000;  // 4s between numbers
-const BETWEEN_ROUNDS_MS = 8000;  // pause showing winner
-const CARTELA_COUNT     = 200;
+const SELECTION_SECONDS = 30;
+const CALL_INTERVAL_MS  = 4000;
+const BETWEEN_ROUNDS_MS = 8000;
+const CARTELA_COUNT     = 600;   // ⬅️ increased from 200
 const ENTRY_FEE         = 10;
 const PRIZE_PERCENT     = 0.8;
 
 const state = {
   roundId: 0,
-  phase: 'selection',           // selection | running | finished
+  phase: 'selection',
   selectionEndsAt: 0,
   calledNumbers: [],
   currentCall: null,
-  players: new Map(),           // userId -> { firstName, cartelas:[id] }
+  players: new Map(),
   takenCartelas: new Set(),
   prizePool: 0,
   winner: null,
@@ -65,13 +59,12 @@ const state = {
   roundHistory: []
 };
 
-// ---------- Cartela generator ----------
+// ---------- generate 600 unique cartelas ----------
 function generateCartela(cartelaId) {
   const cols = [];
   for (let c = 0; c < 5; c++) {
     const min = c * 15 + 1;
     const pool = Array.from({ length: 15 }, (_, i) => min + i);
-    // Fisher–Yates shuffle
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -84,15 +77,17 @@ function generateCartela(cartelaId) {
     for (let c = 0; c < 5; c++) row.push(cols[c][r]);
     grid.push(row);
   }
-  grid[2][2] = 0;               // FREE space
+  grid[2][2] = 0;
   return { id: cartelaId, grid };
 }
 
+console.log('🎴 Generating cartelas…');
 for (let id = 1; id <= CARTELA_COUNT; id++) {
   state.cartelas.push(generateCartela(id));
 }
+console.log(`✅ ${CARTELA_COUNT} cartelas ready`);
 
-// ---------- Public state (sent to clients) ----------
+// ---------- public state ----------
 function publicState() {
   return {
     roundId: state.roundId,
@@ -105,15 +100,12 @@ function publicState() {
     playerCount: state.players.size,
     takenCartelas: [...state.takenCartelas],
     winner: state.winner,
-    roundHistory: state.roundHistory.slice(-5)
+    roundHistory: state.roundHistory.slice(-5),
+    cartelaCount: CARTELA_COUNT
   };
 }
+function broadcastState() { io.emit('game-state', publicState()); }
 
-function broadcastState() {
-  io.emit('game-state', publicState());
-}
-
-// ---------- Phase: selection ----------
 function startSelectionPhase() {
   state.phase = 'selection';
   state.selectionEndsAt = Date.now() + SELECTION_SECONDS * 1000;
@@ -124,21 +116,16 @@ function startSelectionPhase() {
   state.prizePool = 0;
   state.winner = null;
   state.roundId++;
-
   clearTimeout(state.phaseTimer);
   clearInterval(state.callTimer);
-
   console.log(`🟢 Round ${state.roundId}: selection (${SELECTION_SECONDS}s)`);
   broadcastState();
-
   state.phaseTimer = setTimeout(startRunningPhase, SELECTION_SECONDS * 1000);
 }
 
-// ---------- Phase: running ----------
 function startRunningPhase() {
   if (state.players.size === 0) {
-    // No players yet — extend the selection window instead of restarting
-    console.log('⏳ No players — extending selection window');
+    console.log('⏳ No players — extending selection');
     state.selectionEndsAt = Date.now() + SELECTION_SECONDS * 1000;
     broadcastState();
     state.phaseTimer = setTimeout(startRunningPhase, SELECTION_SECONDS * 1000);
@@ -147,29 +134,31 @@ function startRunningPhase() {
   state.phase = 'running';
   broadcastState();
   console.log(`▶️ Round ${state.roundId}: running with ${state.players.size} players`);
-
   state.callTimer = setInterval(callNextNumber, CALL_INTERVAL_MS);
   setTimeout(callNextNumber, 1000);
 }
 
-// ---------- Call next number ----------
 function callNextNumber() {
   if (state.phase !== 'running') return;
   if (state.calledNumbers.length >= 75) return finishRound(null);
-
   let n;
   do { n = Math.floor(Math.random() * 75) + 1; }
   while (state.calledNumbers.includes(n));
-
   state.calledNumbers.push(n);
   state.currentCall = n;
-
   io.emit('number-called', { number: n, all: state.calledNumbers });
   broadcastState();
-  console.log(`📞 ${n}`);
+  console.log(`📞 ${letterOf(n)}-${n}`);
 }
 
-// ---------- Winner check ----------
+function letterOf(n) {
+  if (n <= 15) return 'B';
+  if (n <= 30) return 'I';
+  if (n <= 45) return 'N';
+  if (n <= 60) return 'G';
+  return 'O';
+}
+
 function checkWinner(cartelaId) {
   const cartela = state.cartelas.find(c => c.id === cartelaId);
   if (!cartela) return false;
@@ -182,7 +171,6 @@ function checkWinner(cartelaId) {
   return corners.every(x => called.has(x));
 }
 
-// ---------- Finish round ----------
 async function finishRound(winnerInfo) {
   state.phase = 'finished';
   clearInterval(state.callTimer);
@@ -197,7 +185,13 @@ async function finishRound(winnerInfo) {
     try {
       await User.updateOne(
         { telegramId: winner.userId },
-        { $inc: { winBalance: prize } }
+        {
+          $inc: {
+            winBalance: prize,
+            totalWins: 1,
+            totalEarnings: prize
+          }
+        }
       );
       await Transaction.create({
         userId: winner.userId,
@@ -205,91 +199,71 @@ async function finishRound(winnerInfo) {
         amount: prize,
         status: 'approved',
         method: 'game',
-        sms: `Round ${state.roundId}`
+        gameId: state.roundId,
+        cartelas: [winner.cartelaId],
+        pattern: winner.pattern
       });
     } catch (e) {
       console.error('winner credit error:', e.message);
     }
 
-    // Include cartela grid for the winner modal
     const wc = state.cartelas.find(c => c.id === winner.cartelaId);
-    const winnerPayload = {
-      ...winner,
-      cartelaGrid: wc ? wc.grid : null
-    };
+    const winnerPayload = { ...winner, cartelaGrid: wc ? wc.grid : null };
 
     io.emit('round-finished', winnerPayload);
 
     if (BOT_CALLBACK_URL) {
-      axios.post(
-        `${BOT_CALLBACK_URL}/winner`,
-        winner,
-        { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 }
-      ).catch(() => {});
+      axios.post(`${BOT_CALLBACK_URL}/winner`, winner,
+        { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 })
+        .catch(() => {});
     }
-
-    console.log(
-      `🏆 ${winner.firstName} won ${prize} ETB on cartela #${winner.cartelaId}`
-    );
+    console.log(`🏆 ${winner.firstName} won ${prize} on cartela #${winner.cartelaId}`);
   } else {
     io.emit('round-finished', null);
-    console.log('😐 No winner — all 75 numbers called');
   }
-
   broadcastState();
-
-  // Queue next round
   state.phaseTimer = setTimeout(startSelectionPhase, BETWEEN_ROUNDS_MS);
 }
 
-// Kick off the first round
 startSelectionPhase();
 
 // =============================================================
-//                       AUTH MIDDLEWARE
+//                    AUTH
 // =============================================================
 function botAuth(req, res, next) {
-  if (req.headers['x-bot-secret'] !== BOT_API_SECRET) {
+  if (req.headers['x-bot-secret'] !== BOT_API_SECRET)
     return res.status(403).json({ error: 'forbidden' });
-  }
   next();
 }
 function adminAuth(req, res, next) {
-  if (req.headers['x-admin-pass'] !== ADMIN_PASSWORD) {
+  if (req.headers['x-admin-pass'] !== ADMIN_PASSWORD)
     return res.status(403).json({ error: 'forbidden' });
-  }
   next();
 }
 
 // =============================================================
-//                       PUBLIC / GAME ROUTES
+//                    PUBLIC / GAME
 // =============================================================
-
-// Redirect from /game → /bingo.html (keeps query params)
 app.get('/game', (req, res) => {
-  const q = req.url.includes('?')
-    ? req.url.substring(req.url.indexOf('?'))
-    : '';
+  const q = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
   res.redirect('/bingo.html' + q);
 });
 
-// Health check
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     round: state.roundId,
     phase: state.phase,
     players: state.players.size,
+    cartelaCount: CARTELA_COUNT,
     uptime: process.uptime()
   });
 });
 
-// Full public state
 app.get('/api/game', (req, res) => {
   res.json({ success: true, ...publicState() });
 });
 
-// Player names in current round (for the ticker)
 app.get('/api/game-players', (req, res) => {
   const names = [...state.players.values()]
     .map(p => p.firstName)
@@ -298,7 +272,6 @@ app.get('/api/game-players', (req, res) => {
   res.json({ success: true, names });
 });
 
-// Player's current cartelas
 app.get('/api/my-cartelas/:userId', (req, res) => {
   const p = state.players.get(Number(req.params.userId));
   if (!p) return res.json({ success: true, cartelas: [] });
@@ -306,38 +279,31 @@ app.get('/api/my-cartelas/:userId', (req, res) => {
   res.json({ success: true, cartelas: grids, player: p });
 });
 
-// ---------- Player joins a round ----------
 app.post('/api/player/join', async (req, res) => {
   try {
     const { userId, firstName, cartelaIds } = req.body;
-
-    if (state.phase !== 'selection') {
-      return res.status(400).json({ error: 'selection closed, wait for next round' });
-    }
-    if (!Array.isArray(cartelaIds) || cartelaIds.length < 1 || cartelaIds.length > 4) {
-      return res.status(400).json({ error: 'choose 1 to 4 cartelas' });
-    }
-    if (state.players.has(userId)) {
-      return res.status(400).json({ error: 'already joined this round' });
-    }
+    if (state.phase !== 'selection')
+      return res.status(400).json({ error: 'Selection closed — wait for next round' });
+    if (!Array.isArray(cartelaIds) || cartelaIds.length < 1 || cartelaIds.length > 4)
+      return res.status(400).json({ error: 'Choose 1 to 4 cartelas' });
+    if (state.players.has(userId))
+      return res.status(400).json({ error: 'Already joined this round' });
 
     for (const id of cartelaIds) {
-      if (!Number.isInteger(id) || id < 1 || id > CARTELA_COUNT) {
-        return res.status(400).json({ error: `invalid cartela ${id}` });
-      }
-      if (state.takenCartelas.has(id)) {
-        return res.status(400).json({ error: `cartela ${id} already taken` });
-      }
+      if (!Number.isInteger(id) || id < 1 || id > CARTELA_COUNT)
+        return res.status(400).json({ error: `Invalid cartela ${id}` });
+      if (state.takenCartelas.has(id))
+        return res.status(400).json({ error: `Cartela ${id} already taken` });
     }
 
     const total = ENTRY_FEE * cartelaIds.length;
     const u = await User.findOne({ telegramId: userId });
-    if (!u) return res.status(404).json({ error: 'user not found' });
-    if (u.balance < total) {
-      return res.status(400).json({ error: `need ${total} ETB (you have ${u.balance.toFixed(2)})` });
-    }
+    if (!u) return res.status(404).json({ error: 'User not found — send /start to bot' });
+    if (u.balance < total)
+      return res.status(400).json({ error: `Need ${total} ETB (you have ${u.balance.toFixed(2)})` });
 
     u.balance -= total;
+    u.totalGames += 1;
     await u.save();
 
     await Transaction.create({
@@ -346,7 +312,8 @@ app.post('/api/player/join', async (req, res) => {
       amount: total,
       status: 'approved',
       method: 'game',
-      sms: `Round ${state.roundId} · cartelas ${cartelaIds.join(',')}`
+      gameId: state.roundId,
+      cartelas: cartelaIds
     });
 
     state.prizePool += total;
@@ -354,53 +321,146 @@ app.post('/api/player/join', async (req, res) => {
     cartelaIds.forEach(id => state.takenCartelas.add(id));
 
     const grids = state.cartelas.filter(c => cartelaIds.includes(c.id));
-
     broadcastState();
-
-    res.json({
-      success: true,
-      cartelas: grids,
-      balance: u.balance,
-      prizePool: state.prizePool
-    });
+    res.json({ success: true, cartelas: grids, balance: u.balance, prizePool: state.prizePool });
   } catch (e) {
     console.error('join error:', e.message);
-    res.status(500).json({ error: 'server error' });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
-// ---------- Player claims BINGO ----------
 app.post('/api/player/bingo', async (req, res) => {
   try {
     const { userId, cartelaId } = req.body;
-
-    if (state.phase !== 'running') {
-      return res.status(400).json({ error: 'game not running' });
-    }
+    if (state.phase !== 'running')
+      return res.status(400).json({ error: 'Game not running' });
     const player = state.players.get(userId);
-    if (!player || !player.cartelas.includes(cartelaId)) {
-      return res.status(400).json({ error: 'not your cartela' });
-    }
-    if (!checkWinner(cartelaId)) {
-      return res.status(400).json({ error: 'invalid bingo claim' });
-    }
-
+    if (!player || !player.cartelas.includes(cartelaId))
+      return res.status(400).json({ error: 'Not your cartela' });
+    if (!checkWinner(cartelaId))
+      return res.status(400).json({ error: 'Invalid bingo claim' });
     await finishRound({
       userId,
       firstName: player.firstName,
       cartelaId,
       pattern: '4-corners'
     });
-
     res.json({ success: true, prize: state.winner ? state.winner.prize : 0 });
   } catch (e) {
-    console.error('bingo error:', e.message);
-    res.status(500).json({ error: 'server error' });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
 // =============================================================
-//                       BOT ENDPOINTS
+//                    PROFILE / WALLET / HISTORY
+// =============================================================
+app.get('/api/profile/:userId', async (req, res) => {
+  try {
+    const uid = Number(req.params.userId);
+    const u = await User.findOne({ telegramId: uid });
+    if (!u) return res.status(404).json({ error: 'not found' });
+    res.json({
+      success: true,
+      user: {
+        telegramId: u.telegramId,
+        firstName: u.firstName,
+        username: u.username,
+        balance: u.balance,
+        winBalance: u.winBalance,
+        totalWins: u.totalWins || 0,
+        totalEarnings: u.totalEarnings || 0,
+        totalGames: u.totalGames || 0
+      }
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/history/:userId', async (req, res) => {
+  try {
+    const uid = Number(req.params.userId);
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = 20;
+    const skip = (page - 1) * limit;
+
+    const [txs, total] = await Promise.all([
+      Transaction.find({ userId: uid })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Transaction.countDocuments({ userId: uid })
+    ]);
+
+    res.json({
+      success: true,
+      page,
+      totalPages: Math.ceil(total / limit),
+      total,
+      txs
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// =============================================================
+//                    LEADERBOARD
+// =============================================================
+app.get('/api/leaderboard', async (req, res) => {
+  try {
+    const range = req.query.range || 'all'; // day | week | all
+    let since = null;
+    const now = new Date();
+    if (range === 'day') since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    else if (range === 'week') since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    let list;
+    if (range === 'all') {
+      list = await User.find({ totalWins: { $gt: 0 } })
+        .sort({ totalEarnings: -1 })
+        .limit(50)
+        .select('firstName username totalWins totalEarnings')
+        .lean();
+    } else {
+      // aggregate from transactions
+      list = await Transaction.aggregate([
+        { $match: { type: 'win', status: 'approved', createdAt: { $gte: since } } },
+        { $group: {
+            _id: '$userId',
+            totalEarnings: { $sum: '$amount' },
+            totalWins: { $sum: 1 }
+        }},
+        { $sort: { totalEarnings: -1 } },
+        { $limit: 50 },
+        { $lookup: {
+            from: 'users',
+            localField: '_id',
+            foreignField: 'telegramId',
+            as: 'u'
+        }},
+        { $unwind: { path: '$u', preserveNullAndEmptyArrays: true } },
+        { $project: {
+            _id: 0,
+            telegramId: '$_id',
+            firstName: '$u.firstName',
+            username: '$u.username',
+            totalEarnings: 1,
+            totalWins: 1
+        }}
+      ]);
+    }
+
+    res.json({ success: true, range, list });
+  } catch (e) {
+    console.error('leaderboard:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// =============================================================
+//                    BOT ENDPOINTS
 // =============================================================
 app.post('/api/bot/user', botAuth, async (req, res) => {
   try {
@@ -426,9 +486,8 @@ app.get('/api/bot/user/:id', botAuth, async (req, res) => {
 app.post('/api/bot/user/:id/adjust', botAuth, async (req, res) => {
   try {
     const { field, delta } = req.body;
-    if (!['balance', 'winBalance'].includes(field)) {
+    if (!['balance', 'winBalance'].includes(field))
       return res.status(400).json({ error: 'invalid field' });
-    }
     const u = await User.findOneAndUpdate(
       { telegramId: Number(req.params.id) },
       { $inc: { [field]: delta } },
@@ -465,7 +524,7 @@ app.post('/api/bot/transaction/:id/status', botAuth, async (req, res) => {
 });
 
 // =============================================================
-//                       ADMIN ENDPOINTS
+//                    ADMIN
 // =============================================================
 app.get('/api/admin/stats', adminAuth, async (req, res) => {
   res.json({
@@ -475,7 +534,8 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
     round: state.roundId,
     phase: state.phase,
     players: state.players.size,
-    prizePool: state.prizePool
+    prizePool: state.prizePool,
+    cartelaCount: CARTELA_COUNT
   });
 });
 
@@ -493,21 +553,14 @@ app.post('/api/admin/transaction/:id', adminAuth, async (req, res) => {
   try {
     const { action } = req.body;
     const tx = await Transaction.findById(req.params.id);
-    if (!tx || tx.status !== 'pending') {
+    if (!tx || tx.status !== 'pending')
       return res.status(400).json({ error: 'invalid tx' });
-    }
 
     if (action === 'approve') {
       if (tx.type === 'deposit') {
-        await User.updateOne(
-          { telegramId: tx.userId },
-          { $inc: { balance: tx.amount } }
-        );
+        await User.updateOne({ telegramId: tx.userId }, { $inc: { balance: tx.amount } });
       } else if (tx.type === 'withdraw') {
-        await User.updateOne(
-          { telegramId: tx.userId },
-          { $inc: { winBalance: -tx.amount } }
-        );
+        await User.updateOne({ telegramId: tx.userId }, { $inc: { winBalance: -tx.amount } });
       }
       tx.status = 'approved';
     } else {
@@ -516,18 +569,11 @@ app.post('/api/admin/transaction/:id', adminAuth, async (req, res) => {
     await tx.save();
 
     if (BOT_CALLBACK_URL) {
-      axios.post(
-        `${BOT_CALLBACK_URL}/notify-tx`,
-        {
-          telegramId: tx.userId,
-          type: tx.type,
-          amount: tx.amount,
-          status: tx.status
-        },
-        { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 }
-      ).catch(() => {});
+      axios.post(`${BOT_CALLBACK_URL}/notify-tx`, {
+        telegramId: tx.userId, type: tx.type, amount: tx.amount, status: tx.status
+      }, { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 })
+        .catch(() => {});
     }
-
     res.json({ success: true, tx });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -539,16 +585,13 @@ app.post('/api/admin/broadcast', adminAuth, (req, res) => {
   if (!message) return res.status(400).json({ error: 'empty message' });
   io.emit('broadcast', { message });
   if (BOT_CALLBACK_URL) {
-    axios.post(
-      `${BOT_CALLBACK_URL}/broadcast`,
-      { message },
-      { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 }
-    ).catch(() => {});
+    axios.post(`${BOT_CALLBACK_URL}/broadcast`, { message },
+      { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 })
+      .catch(() => {});
   }
   res.json({ success: true });
 });
 
-// Force next round right now
 app.post('/api/admin/force-new-round', adminAuth, (req, res) => {
   clearInterval(state.callTimer);
   clearTimeout(state.phaseTimer);
@@ -556,7 +599,6 @@ app.post('/api/admin/force-new-round', adminAuth, (req, res) => {
   res.json({ success: true });
 });
 
-// Force start running (skip waiting for selection to end)
 app.post('/api/admin/force-start', adminAuth, (req, res) => {
   if (state.phase === 'selection') {
     clearTimeout(state.phaseTimer);
@@ -565,35 +607,23 @@ app.post('/api/admin/force-start', adminAuth, (req, res) => {
   res.json({ success: true });
 });
 
-// Games list (for admin table)
-app.get('/api/admin/games', adminAuth, (req, res) => {
-  res.json({ success: true, games: [publicState()] });
-});
-
 // =============================================================
-//                       SOCKET.IO
+//                    SOCKET.IO
 // =============================================================
 io.on('connection', socket => {
-  console.log(`🔌 socket connected: ${socket.id}`);
-  // Send current state immediately
   socket.emit('game-state', publicState());
 
   socket.on('join-room', () => {
-    // Nothing extra to do — every client already receives broadcasts.
     socket.emit('game-state', publicState());
   });
 
-  socket.on('disconnect', () => {
-    console.log(`🔌 socket disconnected: ${socket.id}`);
-  });
+  socket.on('disconnect', () => {});
 });
 
-// =============================================================
-//                       START SERVER
-// =============================================================
 server.listen(PORT, () => {
   console.log(`🚀 Server on port ${PORT}`);
-  console.log(`📍 http://localhost:${PORT}`);
-  console.log(`🎮 Game URL: http://localhost:${PORT}/game?uid=123&name=Test`);
-  console.log(`👑 Admin:    http://localhost:${PORT}/admin.html`);
+  console.log(`🎮 ${CARTELA_COUNT} cartelas ready`);
+  console.log(`📍 Game:  http://localhost:${PORT}/game?uid=123&name=Test`);
+  console.log(`👤 Profile: http://localhost:${PORT}/profile.html?uid=123`);
+  console.log(`👑 Admin:   http://localhost:${PORT}/admin.html`);
 });
