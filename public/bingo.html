@@ -12,7 +12,6 @@
     --ink:#f5f3ff; --muted:#a78bfa; --accent:#8b5cf6; --accent-2:#a855f7;
     --neon-pink:#ec4899; --neon-cyan:#22d3ee; --neon-green:#22c55e;
     --neon-orange:#fb923c; --neon-gold:#facc15; --border:rgba(167,139,250,.18);
-    --colB:#f97316; --colI:#10b981; --colN:#3b82f6; --colG:#ef4444; --colO:#a855f7;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
   html,body{height:100%;overflow:hidden;overscroll-behavior:none}
@@ -57,21 +56,15 @@
     50%{transform:scale(1.1) rotate(10deg)}
   }
   .splash-title{
-    font-size:26px;font-weight:900;letter-spacing:1px;
+    font-size:24px;font-weight:900;letter-spacing:1px;
     background:linear-gradient(135deg,var(--neon-gold),var(--neon-pink),var(--neon-cyan));
     -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-    background-clip:text;
-    text-align:center;line-height:1.2;
+    background-clip:text;text-align:center;line-height:1.25;
   }
-  .splash-sub{
-    font-size:13px;color:var(--muted);max-width:280px;
-  }
-  .splash-loader{
-    display:flex;gap:6px;margin-top:10px;
-  }
+  .splash-sub{font-size:12px;color:var(--muted);max-width:280px}
+  .splash-loader{display:flex;gap:6px;margin-top:10px}
   .splash-loader span{
-    width:10px;height:10px;border-radius:50%;
-    background:var(--accent);
+    width:10px;height:10px;border-radius:50%;background:var(--accent);
     animation:dot-bounce 1.4s infinite ease-in-out both;
   }
   .splash-loader span:nth-child(1){animation-delay:-0.32s;background:var(--neon-pink)}
@@ -81,273 +74,305 @@
     0%,80%,100%{transform:scale(.5);opacity:.5}
     40%{transform:scale(1.2);opacity:1}
   }
-  .splash-status{
-    font-size:11px;color:var(--muted);margin-top:6px;
-    font-family:monospace;letter-spacing:.5px;
-  }
+  .splash-status{font-size:11px;color:var(--muted);margin-top:6px;
+                 font-family:monospace;letter-spacing:.5px}
 
   /* ============ MAIN CONTAINER ============ */
   .container{
-    width:100%; max-width:1200px; margin:0 auto;
+    width:100%; max-width:520px; margin:0 auto;
     display:flex; flex-direction:column;
-    height:100%; overflow:hidden; gap:6px;
+    height:100%; overflow:hidden; gap:5px;
   }
 
-  /* TOP BAR */
+  /* ============ TOP BAR — 5 NARROW STATS ============ */
   .topbar{
-    display:grid;grid-template-columns:repeat(5,1fr);gap:4px;flex-shrink:0;
+    display:grid;grid-template-columns:repeat(5,1fr);gap:3px;flex-shrink:0;
   }
   .stat{
     background:linear-gradient(180deg,rgba(139,92,246,.14),rgba(139,92,246,.05));
     border:1px solid var(--border);border-radius:8px;
     padding:5px 2px;text-align:center;
+    display:flex;flex-direction:column;justify-content:center;
+    min-height:44px;
   }
-  .stat small{font-size:8px;color:var(--muted);font-weight:800;
-              letter-spacing:.4px;text-transform:uppercase;display:block}
-  .stat b{font-size:13px;color:var(--ink);font-weight:800;display:block}
+  .stat small{
+    font-size:7px;color:var(--muted);font-weight:800;
+    letter-spacing:.3px;text-transform:uppercase;display:block;
+    line-height:1;
+  }
+  .stat b{
+    font-size:12px;color:var(--ink);font-weight:900;display:block;
+    margin-top:3px;line-height:1;
+  }
   .stat.purple b{color:var(--neon-pink)}
 
-  /* MAIN GRID — BOARD + SIDE PANEL */
-  .main-grid{
-    flex:1 1 auto; min-height:0;
+  /* ============ MAIN SPLIT — 2 COLUMNS ============ */
+  .main-split{
+    flex:1 1 auto;min-height:0;
     display:grid;
-    grid-template-columns: 1fr 320px;
-    gap:8px;
+    grid-template-columns: 40% 1fr;
+    gap:5px;
     overflow:hidden;
   }
-  @media (max-width: 720px){
-    .main-grid{grid-template-columns:1fr;grid-template-rows:auto 1fr}
-  }
 
-  /* ============ LEFT: B-I-N-G-O BOARD ============ */
-  .board-panel{
-    background:linear-gradient(180deg,rgba(30,20,60,.45),rgba(20,12,40,.45));
-    border:1px solid var(--border);
-    border-radius:12px;
-    padding:8px;
-    display:flex; flex-direction:column;
-    gap:6px; overflow:hidden; min-height:0;
+  /* ============ LEFT — BINGO BOARD 1-75 ============ */
+  .board-column{
+    display:flex;flex-direction:column;gap:3px;
+    min-height:0;
   }
-  .board-header{
-    display:grid;grid-template-columns:repeat(5,1fr);gap:4px;
+  .bh-row{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:2px;
     flex-shrink:0;
   }
   .bh{
-    padding:8px 0;text-align:center;font-weight:900;font-size:18px;color:#fff;
-    border-radius:8px;text-shadow:0 1px 3px rgba(0,0,0,.4);
-    transition:opacity .3s,transform .2s; position:relative;
+    padding:4px 0;text-align:center;font-weight:900;font-size:13px;color:#fff;
+    border-radius:5px;text-shadow:0 1px 2px rgba(0,0,0,.4);
+    line-height:1;
+    transition:transform .2s,box-shadow .3s;
   }
   .bh.b{background:linear-gradient(135deg,#f97316,#ea580c)}
   .bh.i{background:linear-gradient(135deg,#10b981,#047857)}
   .bh.n{background:linear-gradient(135deg,#3b82f6,#1d4ed8)}
   .bh.g{background:linear-gradient(135deg,#ef4444,#b91c1c)}
   .bh.o{background:linear-gradient(135deg,#a855f7,#7e22ce)}
-  .bh small{
-    display:block;font-size:9px;font-weight:700;opacity:.75;
-    letter-spacing:1px;margin-top:1px;
-  }
-  .bh.active{transform:scale(1.06);box-shadow:0 0 16px currentColor}
+  .bh.active{transform:scale(1.06);box-shadow:0 0 12px currentColor}
 
-  /* THE 5-COLUMN NUMBER GRID */
-  .number-grid{
-    flex:1 1 auto; display:grid;
+  /* 5×15 number grid — small tiles */
+  .num-grid{
+    flex:1 1 auto; min-height:0;
+    display:grid;
     grid-template-columns:repeat(5,1fr);
     grid-template-rows:repeat(15,1fr);
-    gap:3px; min-height:0;
+    gap:2px;
   }
   .num-cell{
     display:flex;align-items:center;justify-content:center;
-    font-weight:800;
-    font-size:clamp(10px, 1.8vw, 15px);
-    border-radius:6px;
-    background:rgba(139,92,246,.08);
-    color:rgba(245,243,255,.55);
-    border:1px solid rgba(167,139,250,.08);
+    font-weight:800; font-size:9px;
+    border-radius:4px;
+    background:rgba(139,92,246,.06);
+    color:rgba(245,243,255,.45);
+    border:1px solid rgba(167,139,250,.06);
     transition:all .3s cubic-bezier(.2,1.4,.5,1);
-    user-select:none;line-height:1;
+    user-select:none; line-height:1;
   }
   .num-cell.called{
     background:linear-gradient(135deg,var(--neon-orange),#ea580c);
-    color:#fff;font-weight:900;
+    color:#fff; font-weight:900;
     border-color:transparent;
-    box-shadow:0 0 12px rgba(251,146,60,.55);
-    transform:scale(1.05);
+    box-shadow:0 0 6px rgba(251,146,60,.5);
   }
   .num-cell.latest{
     background:linear-gradient(135deg,var(--neon-gold),#eab308);
-    color:#1a0a2e;font-weight:900;
-    border:2px solid #fff;
-    box-shadow:0 0 20px rgba(250,204,21,.9);
-    animation:pulse-latest .8s infinite alternate;
+    color:#1a0a2e; font-weight:900;
+    border:1.5px solid #fff;
+    box-shadow:0 0 12px rgba(250,204,21,.9);
+    animation:pulse-latest .7s infinite alternate;
   }
   @keyframes pulse-latest{
-    from{transform:scale(1.05)}
-    to{transform:scale(1.12)}
+    from{transform:scale(1)}
+    to{transform:scale(1.08)}
   }
 
-  /* ============ RIGHT: SIDE PANEL ============ */
-  .side-panel{
-    display:flex;flex-direction:column;gap:6px;
-    overflow:hidden; min-height:0;
+  /* ============ RIGHT — CONTROL PANEL ============ */
+  .control-column{
+    display:flex;flex-direction:column;gap:5px;
+    min-height:0; overflow:hidden;
   }
 
-  /* LIVE CALL PANEL */
-  .live-panel{
-    background:
-      radial-gradient(circle at 30% 50%, rgba(168,85,247,.25), transparent 60%),
-      linear-gradient(135deg, rgba(30,20,60,.9), rgba(20,12,40,.9));
-    border:1px solid rgba(168,85,247,.45);
-    border-radius:12px;padding:10px;
+  /* STATUS BOX — "STARTED" */
+  .status-box{
+    background:linear-gradient(180deg,rgba(139,92,246,.16),rgba(139,92,246,.05));
+    border:1px solid rgba(167,139,250,.3);
+    border-radius:10px;
+    padding:10px 12px;
+    text-align:center;
+    flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    min-height:44px;
+  }
+  .status-box .txt{
+    font-size:14px;font-weight:900;letter-spacing:2px;
+    color:var(--neon-green);
+    text-transform:uppercase;
+  }
+  .status-box.waiting .txt{color:var(--neon-orange)}
+  .status-box.finished .txt{color:var(--neon-pink)}
+
+  /* CURRENT CALL — pill bar with round badge */
+  .call-pill{
+    background:linear-gradient(135deg,#6b2fb5,#8e44d0);
+    border-radius:12px;
+    padding:10px 12px;
     display:flex;align-items:center;justify-content:space-between;
-    gap:10px;
-    box-shadow:0 0 22px rgba(168,85,247,.35);
-    flex-shrink:0; min-height:76px;
+    gap:8px;
+    box-shadow:0 4px 18px rgba(107,47,181,.4);
+    flex-shrink:0;
+    min-height:60px;
   }
-  .live-panel .label{
-    font-size:9px;color:var(--muted);font-weight:800;
-    letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px;
+  .call-pill .lbl{
+    font-size:13px;font-weight:900;color:#fff;
+    letter-spacing:.5px;
+    text-shadow:0 1px 3px rgba(0,0,0,.3);
   }
-  .live-panel .txt{
-    font-size:22px;font-weight:900;letter-spacing:.5px;
-    background:linear-gradient(135deg,#fff,var(--neon-cyan));
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-    background-clip:text; line-height:1;
-    transition:transform .25s;
-  }
-  .live-panel .txt.pop{transform:scale(1.15)}
-  .live-ball{
-    width:60px;height:60px;border-radius:50%;
+  .call-badge{
+    width:48px;height:48px;border-radius:50%;
     background:radial-gradient(circle at 28% 28%, #fff2b0, var(--neon-gold) 45%, #b45309 100%);
     display:flex;align-items:center;justify-content:center;
-    font-size:24px;font-weight:900;color:#1a0a2e;
-    box-shadow:0 0 22px rgba(250,204,21,.7),inset 0 -3px 6px rgba(0,0,0,.25);
+    font-size:19px;font-weight:900;color:#1a0a2e;
+    box-shadow:0 0 20px rgba(250,204,21,.65),inset 0 -3px 6px rgba(0,0,0,.2);
     transition:transform .3s cubic-bezier(.2,1.6,.4,1);
     flex-shrink:0;
   }
-  .live-ball.pop{transform:scale(1.15)}
+  .call-badge.pop{transform:scale(1.15) rotate(-5deg)}
 
-  /* RECENT CALLS */
-  .recent-panel{
+  /* LAST CALLS — horizontal chips */
+  .last-calls{
     background:linear-gradient(180deg,rgba(30,20,60,.55),rgba(20,12,40,.55));
-    border:1px solid var(--border);border-radius:12px;
-    padding:8px; flex-shrink:0;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:8px 10px;
+    display:flex;flex-wrap:wrap;gap:5px;align-items:center;
+    flex-shrink:0;
+    min-height:44px;
   }
-  .recent-panel .hdr-sm{
-    font-size:9px;font-weight:800;color:var(--muted);
-    letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;
+  .lc-chip{
+    padding:5px 9px;border-radius:14px;
+    font-size:11px;font-weight:800;
+    background:rgba(139,92,246,.2);
+    color:var(--ink);
+    border:1px solid rgba(167,139,250,.25);
+    animation:chip-in .3s;
+    letter-spacing:.3px;
   }
-  .recent-list{display:flex;flex-wrap:wrap;gap:4px}
-  .recent-chip{
-    width:32px;height:32px;border-radius:8px;
-    background:rgba(139,92,246,.18);border:1px solid var(--border);
-    display:flex;align-items:center;justify-content:center;
-    font-weight:800;font-size:11px;color:var(--ink);
-    animation:pop-in .35s;
-  }
-  .recent-chip.newest{
+  .lc-chip:nth-child(1){background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;border-color:transparent}
+  .lc-chip:nth-child(2){background:linear-gradient(135deg,#2563c7,#1e40af);color:#fff;border-color:transparent}
+  .lc-chip:nth-child(3){background:linear-gradient(135deg,#0e8a3e,#047857);color:#fff;border-color:transparent}
+  .lc-chip.newest{
     background:linear-gradient(135deg,var(--neon-gold),#eab308);
     color:#1a0a2e;border-color:#fff;
-    box-shadow:0 0 12px rgba(250,204,21,.6);
+    box-shadow:0 0 10px rgba(250,204,21,.6);
   }
-  @keyframes pop-in{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+  @keyframes chip-in{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+  .lc-empty{font-size:10px;color:var(--muted);font-style:italic}
 
-  /* STATS INSIDE SIDE PANEL */
-  .stats-mini{
-    display:grid;grid-template-columns:1fr 1fr;gap:6px;
-    flex-shrink:0;
-  }
-  .stat-mini{
-    background:linear-gradient(180deg,rgba(139,92,246,.14),rgba(139,92,246,.05));
-    border:1px solid var(--border);border-radius:10px;
-    padding:8px 10px;text-align:center;
-  }
-  .stat-mini small{
-    display:block;font-size:8px;font-weight:800;letter-spacing:.6px;
-    text-transform:uppercase;color:var(--muted);margin-bottom:2px;
-  }
-  .stat-mini b{font-size:15px;font-weight:900;color:var(--ink)}
-  .stat-mini.gold b{color:var(--neon-gold)}
-  .stat-mini.cyan b{color:var(--neon-cyan)}
-
-  /* PROGRESS */
-  .progress{
-    height:4px;background:rgba(139,92,246,.15);border-radius:4px;
-    overflow:hidden;flex-shrink:0;
-  }
-  .progress-fill{
-    height:100%;width:0%;
-    background:linear-gradient(90deg,var(--neon-cyan),var(--neon-pink),var(--neon-gold));
-    transition:width .5s;box-shadow:0 0 8px rgba(236,72,153,.5);
-  }
-
-  /* CARTELAS IN SIDE PANEL */
-  .cartelas-panel{
+  /* MESSAGE / CARTELA AREA */
+  .msg-area{
     flex:1 1 auto; min-height:0;
-    overflow-y:auto;
+    background:linear-gradient(180deg,rgba(30,20,60,.55),rgba(20,12,40,.55));
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:12px;
+    display:flex;flex-direction:column;
+    overflow:hidden;
+  }
+  .msg-default{
+    flex:1;
+    display:flex;align-items:center;justify-content:center;
+    text-align:center;
+    font-size:13px;font-weight:600;
+    color:var(--muted);
+    padding:20px 10px;
+    line-height:1.5;
+  }
+  .cartelas-list{
+    flex:1;overflow-y:auto;
     display:flex;flex-direction:column;gap:6px;
     padding-right:2px;
   }
-  .cartelas-panel::-webkit-scrollbar{width:4px}
-  .cartelas-panel::-webkit-scrollbar-thumb{
-    background:rgba(167,139,250,.4);border-radius:4px;
+  .cartelas-list::-webkit-scrollbar{width:3px}
+  .cartelas-list::-webkit-scrollbar-thumb{
+    background:rgba(167,139,250,.4);border-radius:3px;
   }
-  .board{
+  .cartela-card{
     background:linear-gradient(180deg,rgba(30,20,60,.55),rgba(20,12,40,.55));
-    border:1px solid var(--border);border-radius:10px;
-    padding:4px; flex-shrink:0;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:6px;
+    flex-shrink:0;
   }
-  .board-head{
+  .cartela-head{
     display:flex;justify-content:space-between;align-items:center;
-    padding:2px 4px 4px; font-size:9px;color:var(--muted);font-weight:800;
-    letter-spacing:.6px;
+    font-size:9px;color:var(--muted);font-weight:800;
+    letter-spacing:.5px;margin-bottom:4px;
   }
-  .board-grid{
+  .cartela-head .id{color:var(--neon-cyan)}
+  .cartela-grid{
     display:grid;grid-template-columns:repeat(5,1fr);
     grid-template-rows:repeat(5,1fr);gap:2px;
   }
   .cell{
     aspect-ratio:1;display:flex;align-items:center;justify-content:center;
-    font-weight:800; font-size:clamp(10px,1.6vw,13px);
-    border-radius:5px; background:rgba(139,92,246,.10);
-    color:var(--ink); border:1px solid rgba(167,139,250,.12);
-    transition:background .3s,color .3s,transform .18s,box-shadow .3s;
-    user-select:none;line-height:1;
+    font-weight:800; font-size:11px;
+    border-radius:4px;
+    background:rgba(139,92,246,.10);
+    color:var(--ink);
+    border:1px solid rgba(167,139,250,.12);
+    transition:all .3s;
+    user-select:none; line-height:1;
   }
   .cell.marked{
     background:linear-gradient(135deg,var(--neon-orange),#ea580c);
     color:#fff;border-color:transparent;
-    box-shadow:0 0 8px rgba(251,146,60,.55);
+    box-shadow:0 0 6px rgba(251,146,60,.5);
     animation:mark-pop .4s cubic-bezier(.2,1.6,.5,1);
   }
   @keyframes mark-pop{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
   .cell.win{
     background:linear-gradient(135deg,var(--neon-gold),#eab308);
     color:#1a0a2e;border:1px solid #fff;
-    box-shadow:0 0 12px rgba(250,204,21,.85);
+    box-shadow:0 0 10px rgba(250,204,21,.85);
   }
 
-  /* BOTTOM BAR */
-  .bottom-bar{display:flex;gap:6px;flex-shrink:0}
+  /* progress */
+  .progress{
+    height:3px;background:rgba(139,92,246,.15);border-radius:3px;
+    overflow:hidden;flex-shrink:0;
+  }
+  .progress-fill{
+    height:100%;width:0%;
+    background:linear-gradient(90deg,var(--neon-cyan),var(--neon-pink),var(--neon-gold));
+    transition:width .5s;box-shadow:0 0 6px rgba(236,72,153,.5);
+  }
+
+  /* ============ BOTTOM BAR ============ */
+  .bottom-bar{display:flex;gap:5px;flex-shrink:0}
   .bottom-bar button{
-    flex:1;padding:8px;border-radius:10px;border:none;
-    font-weight:800;font-size:12px;cursor:pointer;transition:all .15s;
+    padding:11px;border-radius:10px;border:none;
+    font-weight:900;font-size:13px;cursor:pointer;transition:all .15s;
   }
-  .bottom-bar .btn-bingo{
+  .btn-bingo{
+    flex:1;
     background:linear-gradient(135deg,#ec4899,#be185d);color:#fff;
-    box-shadow:0 4px 12px rgba(236,72,153,.45);font-size:14px;
+    box-shadow:0 4px 14px rgba(236,72,153,.5);
+    letter-spacing:1px;
   }
-  .bottom-bar .btn-bingo:disabled{background:#444;box-shadow:none;cursor:not-allowed}
-  .bottom-bar .btn-ghost{
+  .btn-bingo:disabled{background:#3a2545;box-shadow:none;cursor:not-allowed;color:#7a6b99}
+  .btn-ghost{
+    flex:0 0 auto;padding:11px 14px;
     background:rgba(139,92,246,.15);color:var(--ink);
-    border:1px solid var(--border);flex:0 0 auto;padding:8px 12px;
+    border:1px solid var(--border);
   }
-  .bottom-bar .btn-ghost.on{
+  .btn-ghost.on{
     background:linear-gradient(135deg,var(--neon-green),#10b981);
     color:#0b0616;border-color:transparent;
   }
 
-  /* PICKER (selection screen) */
-  .picker-wrap{flex:1;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+  /* ============ ICON BAR ============ */
+  .icon-bar{
+    display:grid;grid-template-columns:repeat(6,1fr);gap:3px;flex-shrink:0;
+  }
+  .icon-bar button{
+    padding:6px 2px;border-radius:8px;
+    background:rgba(139,92,246,.10);border:1px solid var(--border);
+    color:var(--ink);font-size:14px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:1px;
+    transition:all .15s;
+  }
+  .icon-bar button small{font-size:7px;color:var(--muted);font-weight:700;letter-spacing:.3px}
+  .icon-bar button:active{transform:scale(.95)}
+
+  /* ============ PICKER SCREEN ============ */
+  .picker-wrap{flex:1;display:flex;flex-direction:column;gap:5px;overflow:hidden}
   .picker-header{
     display:flex;justify-content:space-between;align-items:center;
     gap:8px;flex-shrink:0;
@@ -389,9 +414,8 @@
   .pick.mine{background:linear-gradient(135deg,var(--neon-cyan),var(--accent));
              color:#0b0616;border-color:transparent;
              box-shadow:0 0 12px rgba(34,211,238,.55)}
-
   .action-btn{
-    width:100%;padding:11px;
+    width:100%;padding:12px;
     background:linear-gradient(135deg,var(--accent),var(--neon-pink));
     color:#fff;border:none;border-radius:10px;
     font-size:14px;font-weight:900;cursor:pointer;
@@ -400,28 +424,14 @@
   }
   .action-btn:disabled{background:rgba(139,92,246,.15);color:rgba(167,139,250,.5);cursor:not-allowed;box-shadow:none}
   .action-btn:not(:disabled):active{transform:scale(.98)}
-
   .msg{
     background:linear-gradient(180deg,rgba(30,20,60,.55),rgba(20,12,40,.55));
     border:1px solid var(--border);border-radius:10px;
     padding:10px;text-align:center;font-size:11px;font-weight:600;
     color:var(--muted);flex-shrink:0;
   }
-  .msg.good{color:var(--neon-green);border-color:rgba(34,197,94,.4)}
 
-  /* ICON BAR */
-  .icon-bar{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;flex-shrink:0}
-  .icon-bar button{
-    padding:6px 2px;border-radius:8px;
-    background:rgba(139,92,246,.10);border:1px solid var(--border);
-    color:var(--ink);font-size:14px;cursor:pointer;
-    display:flex;flex-direction:column;align-items:center;gap:1px;
-    transition:all .15s;
-  }
-  .icon-bar button small{font-size:8px;color:var(--muted);font-weight:700}
-  .icon-bar button:active{transform:scale(.95)}
-
-  /* MODAL */
+  /* ============ MODALS ============ */
   .modal-bg{
     position:fixed;inset:0;background:rgba(10,5,25,.88);
     backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;
@@ -431,7 +441,7 @@
     background:linear-gradient(160deg,var(--bg-3),var(--bg-2));
     border:1px solid rgba(168,85,247,.4);
     border-radius:16px;padding:20px;text-align:center;
-    max-width:400px;width:100%;
+    max-width:380px;width:100%;
     box-shadow:0 0 40px rgba(168,85,247,.35);
     animation:pop-modal .4s cubic-bezier(.2,1.4,.5,1);
   }
@@ -455,7 +465,7 @@
   }
   .modal .pool-amount small{font-size:16px;color:var(--muted)}
 
-  /* TOAST */
+  /* ============ TOAST ============ */
   .toast{
     position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
     background:rgba(20,10,40,.95);border:1px solid rgba(168,85,247,.4);
@@ -474,7 +484,7 @@
 </head>
 <body>
 
-<!-- WELCOME SPLASH — appears instantly, never shows Render's screen -->
+<!-- WELCOME SPLASH -->
 <div id="splash">
   <div class="splash-logo">🎯</div>
   <div class="splash-title">Welcome to<br>Abyssinia Bingo Bot</div>
@@ -484,7 +494,6 @@
 </div>
 
 <script>
-  // Telegram WebApp init
   if (window.Telegram && window.Telegram.WebApp) {
     const tw = window.Telegram.WebApp;
     tw.expand();
@@ -493,21 +502,13 @@
     tw.setBackgroundColor?.('#0b0616');
     tw.enableClosingConfirmation?.();
   }
-
-  // Splash status updater
   const splashStatus = document.getElementById('splashStatus');
-  const splashSteps = [
-    'Initializing…',
-    'Connecting to server…',
-    'Loading cartelas…',
-    'Almost ready…'
-  ];
+  const splashSteps = ['Initializing…','Connecting to server…','Loading cartelas…','Almost ready…'];
   let splashStep = 0;
   const splashTimer = setInterval(() => {
     if (splashStep < splashSteps.length - 1) splashStep++;
     if (splashStatus) splashStatus.innerText = splashSteps[splashStep];
   }, 1500);
-
   function hideSplash(){
     clearInterval(splashTimer);
     const s = document.getElementById('splash');
@@ -517,8 +518,10 @@
 </script>
 
 <div class="container">
+
+  <!-- TOP BAR — 5 NARROW STATS -->
   <div class="topbar">
-    <div class="stat purple"><small>PRIZE</small><b id="derashLbl">0</b></div>
+    <div class="stat purple"><small>DERASH</small><b id="derashLbl">0</b></div>
     <div class="stat"><small>PLAYERS</small><b id="playersLbl">0</b></div>
     <div class="stat"><small>BET</small><b id="betLbl">10</b></div>
     <div class="stat"><small>CALL</small><b id="callLbl">--</b></div>
@@ -542,72 +545,70 @@
   </div>
 
   <!-- GAME SCREEN -->
-  <div id="gameScreen" class="hidden" style="flex:1;display:flex;flex-direction:column;gap:6px;min-height:0">
-    <div class="main-grid">
+  <div id="gameScreen" class="hidden" style="flex:1;display:flex;flex-direction:column;gap:5px;min-height:0">
 
-      <!-- LEFT: B-I-N-G-O BOARD -->
-      <div class="board-panel">
-        <div class="board-header">
-          <div class="bh b" data-col="0">B<small>1-15</small></div>
-          <div class="bh i" data-col="1">I<small>16-30</small></div>
-          <div class="bh n" data-col="2">N<small>31-45</small></div>
-          <div class="bh g" data-col="3">G<small>46-60</small></div>
-          <div class="bh o" data-col="4">O<small>61-75</small></div>
+    <!-- MAIN SPLIT: BOARD LEFT + CONTROL RIGHT -->
+    <div class="main-split">
+
+      <!-- LEFT — B-I-N-G-O BOARD -->
+      <div class="board-column">
+        <div class="bh-row">
+          <div class="bh b" data-col="0">B</div>
+          <div class="bh i" data-col="1">I</div>
+          <div class="bh n" data-col="2">N</div>
+          <div class="bh g" data-col="3">G</div>
+          <div class="bh o" data-col="4">O</div>
         </div>
-        <div class="number-grid" id="numberGrid"></div>
+        <div class="num-grid" id="numberGrid"></div>
       </div>
 
-      <!-- RIGHT: SIDE PANEL -->
-      <div class="side-panel">
-
-        <!-- CURRENT CALL -->
-        <div class="live-panel">
-          <div>
-            <div class="label">Current Call</div>
-            <div class="txt" id="liveCallTxt">--</div>
-          </div>
-          <div class="live-ball" id="liveBall">--</div>
-        </div>
+      <!-- RIGHT — CONTROL PANEL -->
+      <div class="control-column">
 
         <!-- STATUS -->
-        <div class="stats-mini">
-          <div class="stat-mini gold">
-            <small>Prize Pool</small>
-            <b id="prizeLbl">0 ETB</b>
+        <div class="status-box" id="statusBox">
+          <div class="txt" id="statusTxt">WAITING</div>
+        </div>
+
+        <!-- CURRENT CALL -->
+        <div class="call-pill">
+          <div class="lbl">Current Call</div>
+          <div class="call-badge" id="liveBall">--</div>
+        </div>
+
+        <!-- LAST CALLS -->
+        <div class="last-calls" id="lastCalls">
+          <div class="lc-empty">Waiting for calls…</div>
+        </div>
+
+        <!-- MESSAGE / CARTELA AREA -->
+        <div class="msg-area" id="msgArea">
+          <div class="msg-default" id="msgDefault">
+            Please wait for this game<br>to be completed
           </div>
-          <div class="stat-mini cyan">
-            <small>Players</small>
-            <b id="playersInGame">0</b>
-          </div>
+          <div class="cartelas-list hidden" id="cartelasList"></div>
         </div>
 
-        <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
-
-        <!-- RECENT CALLS -->
-        <div class="recent-panel">
-          <div class="hdr-sm">Last Calls</div>
-          <div class="recent-list" id="recentList"></div>
-        </div>
-
-        <!-- CARTELAS -->
-        <div class="cartelas-panel" id="cartelasWrap"></div>
-
-        <!-- BOTTOM ACTIONS -->
-        <div class="bottom-bar">
-          <button class="btn-bingo" id="bingoBtn" disabled>🎉 BINGO!</button>
-          <button class="btn-ghost" id="autoBingoBtn" title="Auto Bingo">⚡</button>
-        </div>
-
-        <!-- ICON BAR -->
-        <div class="icon-bar">
-          <button id="btnWallet"><span>💼</span><small>Wallet</small></button>
-          <button id="btnBalance"><span>💵</span><small>Balance</small></button>
-          <button id="btnHistory"><span>📜</span><small>History</small></button>
-          <button id="btnInvite"><span>🎁</span><small>Invite</small></button>
-          <button id="btnLang"><span>🌐</span><small>Lang</small></button>
-          <button id="btnHelp"><span>❓</span><small>Help</small></button>
-        </div>
       </div>
+    </div>
+
+    <!-- PROGRESS -->
+    <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+
+    <!-- BOTTOM ACTIONS -->
+    <div class="bottom-bar">
+      <button class="btn-bingo" id="bingoBtn" disabled>🎉 BINGO!</button>
+      <button class="btn-ghost" id="autoBingoBtn" title="Auto Bingo">⚡</button>
+    </div>
+
+    <!-- ICON BAR -->
+    <div class="icon-bar">
+      <button id="btnWallet"><span>💼</span><small>Wallet</small></button>
+      <button id="btnBalance"><span>💵</span><small>Balance</small></button>
+      <button id="btnHistory"><span>📜</span><small>History</small></button>
+      <button id="btnInvite"><span>🎁</span><small>Invite</small></button>
+      <button id="btnLang"><span>🌐</span><small>Lang</small></button>
+      <button id="btnHelp"><span>❓</span><small>Help</small></button>
     </div>
   </div>
 </div>
@@ -625,7 +626,7 @@ const userId = Number(p.get('uid')) || 0;
 const firstName = p.get('name') || 'Player';
 const socket = io();
 
-// ============ VOICE — PRE-RECORDED MALE MP3s ============
+// ============ VOICE ============
 let voiceEnabled = false;
 const audioCache = new Map();
 
@@ -639,7 +640,7 @@ function preloadAudio(num){
 
 setTimeout(() => {
   for (let n = 1; n <= 75; n++) preloadAudio(n);
-  console.log('🎙️ Preloaded 75 MP3 announcements');
+  console.log('🎙️ Preloaded 75 MP3s');
 }, 2000);
 
 function playCall(number){
@@ -649,10 +650,9 @@ function playCall(number){
     a.currentTime = 0;
     a.volume = 1.0;
     const pr = a.play();
-    if (pr && pr.catch) pr.catch(err => console.log('audio play err:', err.message));
-  } catch(e){ console.error('playCall:', e); }
+    if (pr && pr.catch) pr.catch(err => console.log('audio err:', err.message));
+  } catch(e){ console.error(e); }
 }
-
 function playEventAudio(text){
   if (!voiceEnabled) return;
   if ('speechSynthesis' in window) {
@@ -664,7 +664,6 @@ function playEventAudio(text){
     } catch(e){}
   }
 }
-
 document.getElementById('enableVoiceBtn').onclick = () => {
   voiceEnabled = true;
   document.getElementById('enableVoiceBtn').style.display = 'none';
@@ -673,7 +672,6 @@ document.getElementById('enableVoiceBtn').onclick = () => {
   showToast('🔊 Voice enabled');
   localStorage.setItem('voiceEnabled', '1');
 };
-
 if (localStorage.getItem('voiceEnabled') === '1') {
   const autoEnable = () => {
     if (!voiceEnabled) {
@@ -758,13 +756,26 @@ function applyState(s){
   calledNumbers = s.calledNumbers || [];
   selectionEndsAt = s.selectionEndsAt || 0;
 
-  document.getElementById('prizeLbl').innerText = (s.prizePool||0) + ' ETB';
-  document.getElementById('prizeSelLbl').innerText = (s.prizePool||0) + ' ETB';
   document.getElementById('playersLbl').innerText = s.playerCount || 0;
-  document.getElementById('playersInGame').innerText = s.playerCount || 0;
-  document.getElementById('derashLbl').innerText = (s.prizePool||0) + ' ETB';
+  document.getElementById('derashLbl').innerText = (s.prizePool||0);
   document.getElementById('gameNoLbl').innerText = '#' + (s.roundId || 1);
   document.getElementById('callLbl').innerText = s.currentCall ? letterOf(s.currentCall)+'-'+s.currentCall : '--';
+  document.getElementById('prizeSelLbl').innerText = (s.prizePool||0) + ' ETB';
+
+  // status text
+  const statusBox = document.getElementById('statusBox');
+  const statusTxt = document.getElementById('statusTxt');
+  statusBox.className = 'status-box';
+  if (phase === 'running'){
+    statusTxt.innerText = 'STARTED';
+    statusBox.classList.add('started');
+  } else if (phase === 'selection'){
+    statusTxt.innerText = 'WAITING';
+    statusBox.classList.add('waiting');
+  } else {
+    statusTxt.innerText = 'FINISHED';
+    statusBox.classList.add('finished');
+  }
 
   if (phase === 'selection'){
     if (myCartelas.length === 0){
@@ -779,15 +790,28 @@ function applyState(s){
 
   if (s.currentCall){
     document.getElementById('liveBall').innerText = s.currentCall;
-    document.getElementById('liveCallTxt').innerText = letterOf(s.currentCall)+' - '+s.currentCall;
   }
 
-  renderRecent();
+  renderLastCalls();
   renderPicker();
   renderCartelas();
   renderNumberGrid();
   updateProgress();
   updateColumnHighlights();
+  updateMessageArea();
+}
+
+// ============ MESSAGE AREA ============
+function updateMessageArea(){
+  const msgDefault = document.getElementById('msgDefault');
+  const cartelasList = document.getElementById('cartelasList');
+  if (myCartelas.length > 0){
+    msgDefault.classList.add('hidden');
+    cartelasList.classList.remove('hidden');
+  } else {
+    msgDefault.classList.remove('hidden');
+    cartelasList.classList.add('hidden');
+  }
 }
 
 // ============ COUNTDOWN ============
@@ -804,20 +828,17 @@ function startCountdownUI(endsAt){
   cdTimer = setInterval(tick, 250);
 }
 
-// ============ NUMBER GRID (LEFT PANEL) ============
+// ============ NUMBER GRID ============
 function renderNumberGrid(){
   const grid = document.getElementById('numberGrid');
   if (!grid) return;
   if (grid.children.length === 0){
-    // Build 5 columns × 15 rows
-    // Cell order: for row r (0-14), for col c (0-4), number = c*15 + r + 1
     for (let r = 0; r < 15; r++){
       for (let c = 0; c < 5; c++){
         const num = c*15 + r + 1;
         const d = document.createElement('div');
         d.className = 'num-cell';
         d.dataset.n = num;
-        d.dataset.col = c;
         d.innerText = num;
         grid.appendChild(d);
       }
@@ -875,9 +896,9 @@ function onPickClick(id){
   renderPicker();
 }
 
-// ============ CARTELAS (RIGHT PANEL) ============
+// ============ CARTELAS ============
 function renderCartelas(){
-  const wrap = document.getElementById('cartelasWrap');
+  const wrap = document.getElementById('cartelasList');
   if (!wrap) return;
   const sig = myCartelas.map(c=>c.id).join(',');
   if (wrap.dataset.sig === sig){
@@ -888,11 +909,11 @@ function renderCartelas(){
   wrap.dataset.sig = sig;
   myCartelas.forEach(c => {
     const card = document.createElement('div');
-    card.className = 'board';
+    card.className = 'cartela-card';
     card.id = 'cartela-' + c.id;
-    card.innerHTML = `<div class="board-head"><span>CARTELA #${c.id}</span></div>`;
+    card.innerHTML = `<div class="cartela-head"><span>CARTELA</span><span class="id">#${c.id}</span></div>`;
     const grid = document.createElement('div');
-    grid.className = 'board-grid';
+    grid.className = 'cartela-grid';
     for (let r = 0; r < 5; r++){
       for (let col = 0; col < 5; col++){
         const n = c.grid[r][col];
@@ -907,6 +928,7 @@ function renderCartelas(){
     wrap.appendChild(card);
     updateCartelaCells(c);
   });
+  updateMessageArea();
 }
 function updateCartelaCells(cartela){
   const card = document.getElementById('cartela-' + cartela.id);
@@ -966,20 +988,23 @@ function evaluateWinClient(cartela, calledSet){
 // ============ LIVE CALL ============
 function setLiveCall(num){
   const ball = document.getElementById('liveBall');
-  const txt = document.getElementById('liveCallTxt');
   ball.innerText = num;
-  txt.innerText = letterOf(num) + ' - ' + num;
-  ball.classList.add('pop'); txt.classList.add('pop');
-  setTimeout(()=>{ ball.classList.remove('pop'); txt.classList.remove('pop'); }, 300);
+  ball.classList.add('pop');
+  setTimeout(()=>ball.classList.remove('pop'), 300);
 }
-function renderRecent(){
-  const el = document.getElementById('recentList');
+function renderLastCalls(){
+  const el = document.getElementById('lastCalls');
   if (!el) return;
   el.innerHTML = '';
-  calledNumbers.slice(-8).reverse().forEach((n, idx) => {
+  if (calledNumbers.length === 0){
+    el.innerHTML = '<div class="lc-empty">Waiting for calls…</div>';
+    return;
+  }
+  const recent = calledNumbers.slice(-8).reverse();
+  recent.forEach((n, idx) => {
     const d = document.createElement('div');
-    d.className = 'recent-chip' + (idx === 0 ? ' newest' : '');
-    d.innerText = n;
+    d.className = 'lc-chip' + (idx === 0 ? ' newest' : '');
+    d.innerText = letterOf(n) + n;
     el.appendChild(d);
   });
 }
@@ -1027,6 +1052,7 @@ document.getElementById('joinBtn').onclick = async () => {
     showGameScreen();
     renderCartelas();
     renderNumberGrid();
+    updateMessageArea();
   } catch(e){ document.getElementById('selMsg').innerText = '❌ Network error'; }
 };
 
@@ -1081,7 +1107,7 @@ function updateBingoBtn(){
   btn.disabled = !(phase === 'running' && has && !autoBingo);
 }
 
-// ============ WINNER MODAL ============
+// ============ WINNER ============
 function showWinnerModal(w){
   const div = document.createElement('div');
   div.className = 'modal-bg';
@@ -1128,7 +1154,7 @@ socket.on('number-called', ({number, all}) => {
   setLiveCall(number);
   chime(880, 0.14, 0.08);
   playCall(number);
-  renderRecent();
+  renderLastCalls();
   renderNumberGrid();
   myCartelas.forEach(updateCartelaCells);
   updateProgress();
@@ -1140,9 +1166,10 @@ socket.on('round-finished', w => {
   if (w){ playWinSound(); showWinnerModal(w); }
   myCartelas = [];
   selected = [];
-  document.getElementById('cartelasWrap').innerHTML = '';
-  document.getElementById('cartelasWrap').dataset.sig = '';
+  document.getElementById('cartelasList').innerHTML = '';
+  document.getElementById('cartelasList').dataset.sig = '';
   updateBingoBtn();
+  updateMessageArea();
 });
 socket.on('broadcast', ({message}) => { showToast('📢 ' + message); });
 
@@ -1197,17 +1224,11 @@ document.addEventListener('keydown', e => {
 async function boot(){
   try {
     await Promise.all([loadState(), loadMyCartelas()]);
-  } catch(e){
-    console.error('boot error:', e);
-  } finally {
-    // Always hide splash within 3 seconds of page load
-    setTimeout(hideSplash, 800);
-  }
+  } catch(e){ console.error('boot error:', e); }
+  finally { setTimeout(hideSplash, 800); }
 }
 boot();
 setInterval(() => { if (socket.connected) loadState(); }, 30000);
-
-// Safety: if boot hangs for any reason, force-hide splash after 6s
 setTimeout(hideSplash, 6000);
 </script>
 </body>
