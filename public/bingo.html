@@ -1,104 +1,283 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="am">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>My Profile — Abisinya Bingo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0b0616" />
+<title>Abisinya Bingo</title>
+<script src="/socket.io/socket.io.js"></script>
 <style>
   :root{
     --bg-0:#0b0616; --bg-1:#130c26; --bg-2:#1a1035; --bg-3:#241649;
-    --ink:#f5f3ff; --muted:#a78bfa; --accent:#8b5cf6;
-    --neon-pink:#ec4899; --neon-cyan:#22d3ee; --neon-green:#22c55e; --neon-gold:#facc15;
-    --border:rgba(167,139,250,.18);
+    --ink:#f5f3ff; --muted:#a78bfa; --accent:#8b5cf6; --accent-2:#a855f7;
+    --neon-pink:#ec4899; --neon-cyan:#22d3ee; --neon-green:#22c55e;
+    --neon-orange:#fb923c; --neon-gold:#facc15; --border:rgba(167,139,250,.18);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
   body{
     font-family:'Inter','Segoe UI',sans-serif;
     background:
       radial-gradient(1200px 600px at 50% -100px, rgba(168,85,247,.18), transparent 60%),
       linear-gradient(160deg,var(--bg-0) 0%,var(--bg-1) 40%,var(--bg-2) 100%);
-    background-attachment:fixed; color:var(--ink); min-height:100vh;
-    padding:12px; padding-top:calc(env(safe-area-inset-top) + 12px);
-    padding-bottom:calc(env(safe-area-inset-bottom) + 20px);
+    background-attachment:fixed;
+    color:var(--ink);
+    height:100vh; height:100dvh;
+    padding:6px;
+    padding-top:calc(env(safe-area-inset-top) + 6px);
+    padding-bottom:calc(env(safe-area-inset-bottom) + 6px);
+    display:flex; flex-direction:column;
+    -webkit-font-smoothing:antialiased;
   }
-  .container{max-width:640px;margin:0 auto}
-  .card{
-    background:linear-gradient(180deg,rgba(139,92,246,.12),rgba(139,92,246,.04));
-    border:1px solid var(--border); border-radius:14px;
-    backdrop-filter:blur(10px); padding:14px; margin-bottom:10px;
+  .container{
+    max-width:960px; width:100%; margin:0 auto;
+    display:flex; flex-direction:column;
+    height:100%; overflow:hidden;
+    gap:6px;
   }
-  .label{font-size:10px;font-weight:800;text-transform:uppercase;
-         letter-spacing:.6px;color:var(--muted);margin-bottom:6px;display:block}
-  .tabs{display:flex;gap:6px;margin-bottom:10px}
-  .tab-btn{
-    padding:9px 12px;border-radius:9px;font-weight:700;font-size:12px;
-    background:rgba(139,92,246,.10);border:1px solid var(--border);
-    color:var(--muted);cursor:pointer;flex:1;transition:all .2s;
-  }
-  .tab-btn.active{
-    background:linear-gradient(135deg,var(--accent),var(--neon-pink));
-    color:#fff;border-color:transparent;
-    box-shadow:0 4px 14px rgba(168,85,247,.4);
-  }
-  .tx-row{
-    display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;
-    padding:8px 4px;border-bottom:1px solid rgba(167,139,250,.10);
-    font-size:12px;
-  }
-  .tx-row:last-child{border-bottom:none}
-  .badge{
-    display:inline-block;padding:2px 7px;border-radius:5px;
-    font-size:9px;font-weight:900;letter-spacing:.4px;text-transform:uppercase;
-  }
-  .badge.approved{background:rgba(34,197,94,.18);color:#22c55e}
-  .badge.pending{background:rgba(251,146,60,.18);color:#fb923c}
-  .badge.rejected{background:rgba(236,72,153,.18);color:#ec4899}
-  .badge.win{background:rgba(250,204,21,.18);color:#facc15}
-  .badge.deposit{background:rgba(34,211,238,.18);color:#22d3ee}
-  .badge.withdraw{background:rgba(168,85,247,.20);color:#a855f7}
-  .badge.bet{background:rgba(139,92,246,.18);color:#a78bfa}
 
-  .lb-row{
-    display:grid;grid-template-columns:40px 1fr auto;gap:8px;align-items:center;
-    padding:8px 6px;border-bottom:1px solid rgba(167,139,250,.10);
+  /* TOP BAR */
+  .topbar{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;flex-shrink:0}
+  .stat{
+    background:linear-gradient(180deg,rgba(139,92,246,.14),rgba(139,92,246,.05));
+    border:1px solid var(--border);border-radius:8px;
+    padding:4px 2px;text-align:center;
   }
-  .lb-row:last-child{border-bottom:none}
-  .rank{
-    width:28px;height:28px;border-radius:50%;
+  .stat small{font-size:8px;color:var(--muted);font-weight:800;
+              letter-spacing:.4px;text-transform:uppercase;display:block}
+  .stat b{font-size:12px;color:var(--ink);font-weight:800;display:block}
+  .stat.purple b{color:var(--neon-pink)}
+
+  /* STATUS ROW */
+  .status-row{display:grid;grid-template-columns:1fr auto;gap:6px;flex-shrink:0}
+  .status-pill{
+    background:linear-gradient(180deg,rgba(139,92,246,.16),rgba(139,92,246,.05));
+    border:1px solid var(--border);border-radius:10px;
+    padding:6px 10px;display:flex;align-items:center;gap:8px;
+  }
+  .status-dot2{
+    width:8px;height:8px;border-radius:50%;background:var(--neon-green);
+    box-shadow:0 0 8px var(--neon-green);animation:pulse-dot 1.6s infinite;
+  }
+  @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.2)}}
+  .status-pill .txt{font-weight:800;font-size:11px;letter-spacing:.4px}
+  .status-pill.started .status-dot2{background:var(--neon-green);box-shadow:0 0 8px var(--neon-green)}
+  .status-pill.waiting .status-dot2{background:var(--neon-orange);box-shadow:0 0 8px var(--neon-orange)}
+  .status-pill.finished .status-dot2{background:var(--neon-pink);box-shadow:0 0 8px var(--neon-pink)}
+  .prize-pill{
+    background:linear-gradient(135deg,rgba(236,72,153,.22),rgba(168,85,247,.22));
+    border:1px solid rgba(236,72,153,.35);border-radius:10px;
+    padding:6px 10px;text-align:right;min-width:110px;
+  }
+  .prize-pill small{font-size:8px;color:var(--muted);font-weight:800;
+                    letter-spacing:.5px;text-transform:uppercase;display:block}
+  .prize-pill b{font-size:14px;color:var(--neon-gold);font-weight:900}
+
+  /* LIVE CALL */
+  .live-call{
+    background:
+      radial-gradient(circle at 30% 50%, rgba(168,85,247,.22), transparent 60%),
+      linear-gradient(135deg, rgba(30,20,60,.9), rgba(20,12,40,.9));
+    border:1px solid rgba(168,85,247,.4);
+    border-radius:14px;padding:8px 12px;
+    display:grid;grid-template-columns:1fr auto;
+    align-items:center;gap:10px;
+    box-shadow:0 0 18px rgba(168,85,247,.35);
+    flex-shrink:0;min-height:64px;
+  }
+  .live-call .label{font-size:9px;color:var(--muted);font-weight:800;
+                    letter-spacing:1.2px;text-transform:uppercase;margin-bottom:2px}
+  .live-call .huge{
+    font-size:20px;font-weight:900;letter-spacing:.5px;
+    background:linear-gradient(135deg,#fff,var(--neon-cyan));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    background-clip:text;line-height:1;
+    transition:transform .25s;
+  }
+  .live-call .huge.pop{transform:scale(1.15)}
+  .live-ball{
+    width:52px;height:52px;border-radius:50%;
+    background:radial-gradient(circle at 28% 28%, #fff2b0, var(--neon-gold) 45%, #b45309 100%);
     display:flex;align-items:center;justify-content:center;
-    font-weight:900;font-size:12px;background:rgba(139,92,246,.18);color:var(--muted);
+    font-size:22px;font-weight:900;color:#1a0a2e;
+    box-shadow:0 0 18px rgba(250,204,21,.7),inset 0 -3px 6px rgba(0,0,0,.25);
+    transition:transform .3s cubic-bezier(.2,1.6,.4,1);
+    flex-shrink:0;
   }
-  .rank.gold{background:linear-gradient(135deg,#facc15,#eab308);color:#1a0a2e}
-  .rank.silver{background:linear-gradient(135deg,#cbd5e1,#94a3b8);color:#1a0a2e}
-  .rank.bronze{background:linear-gradient(135deg,#fb923c,#b45309);color:#fff}
+  .live-ball.pop{transform:scale(1.12)}
+  .recent-strip{display:flex;gap:4px;margin-top:4px}
+  .recent-chip{
+    width:24px;height:24px;border-radius:6px;
+    background:rgba(139,92,246,.15);border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:10px;color:var(--ink);
+    animation:pop-in .35s;
+  }
+  @keyframes pop-in{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
 
-  .btn{
-    padding:10px 14px;border-radius:10px;font-weight:800;font-size:12px;
-    border:none;cursor:pointer;transition:all .15s;
+  /* HEADERS */
+  .headers{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;flex-shrink:0}
+  .hdr{
+    padding:5px 0;text-align:center;font-weight:900;font-size:14px;color:#fff;
+    border-radius:6px;text-shadow:0 1px 2px rgba(0,0,0,.4);
+    transition:opacity .3s,transform .2s;
   }
-  .btn:active{transform:scale(.97)}
-  .btn.dep{
-    background:linear-gradient(135deg,#22d3ee,#0891b2);
-    color:#0b0616;box-shadow:0 4px 14px rgba(34,211,238,.4);
-    flex:1;
+  .hdr.dim{opacity:.35}
+  .hdr.active{transform:scale(1.05);box-shadow:0 0 10px currentColor}
+  .hdr.b{background:linear-gradient(135deg,#f97316,#ea580c)}
+  .hdr.i{background:linear-gradient(135deg,#10b981,#047857)}
+  .hdr.n{background:linear-gradient(135deg,#3b82f6,#1d4ed8)}
+  .hdr.g{background:linear-gradient(135deg,#ef4444,#b91c1c)}
+  .hdr.o{background:linear-gradient(135deg,#a855f7,#7e22ce)}
+
+  /* CARTELAS */
+  #cartelasWrap{
+    flex:1 1 auto;overflow:hidden;
+    display:grid;gap:6px;grid-auto-rows:1fr;min-height:0;
   }
-  .btn.wd{
-    background:linear-gradient(135deg,#a855f7,#7e22ce);
-    color:#fff;box-shadow:0 4px 14px rgba(168,85,247,.4);
-    flex:1;
+  #cartelasWrap[data-count="1"]{grid-template-columns:1fr;grid-template-rows:1fr}
+  #cartelasWrap[data-count="2"]{grid-template-columns:1fr 1fr;grid-template-rows:1fr}
+  #cartelasWrap[data-count="3"]{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+  #cartelasWrap[data-count="4"]{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+  #cartelasWrap[data-count="5"]{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr 1fr}
+  #cartelasWrap[data-count="6"]{grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr}
+
+  .board{
+    background:linear-gradient(180deg,rgba(30,20,60,.55),rgba(20,12,40,.55));
+    border:1px solid var(--border);border-radius:10px;
+    padding:3px;overflow:hidden;display:flex;flex-direction:column;
   }
-  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--neon-pink));color:#fff}
-  .btn.ghost{background:rgba(139,92,246,.12);color:var(--ink);border:1px solid var(--border)}
-  .back-pill{
-    display:inline-flex;align-items:center;gap:6px;padding:6px 12px;
-    border-radius:20px;background:rgba(139,92,246,.12);border:1px solid var(--border);
-    color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;
-    text-decoration:none;margin-bottom:10px;
+  .board-grid{
+    display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(5,1fr);
+    gap:2px;flex:1;min-height:0;
+  }
+  .cell{
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:clamp(10px,2.5vw,15px);
+    border-radius:5px;background:rgba(139,92,246,.10);
+    color:var(--ink);border:1px solid rgba(167,139,250,.12);
+    transition:background .3s,color .3s,transform .18s,box-shadow .3s;
+    user-select:none;overflow:hidden;line-height:1;
+  }
+  .cell.marked{
+    background:linear-gradient(135deg,var(--neon-orange),#ea580c);
+    color:#fff;border-color:transparent;
+    box-shadow:0 0 8px rgba(251,146,60,.55);
+    animation:mark-pop .4s cubic-bezier(.2,1.6,.5,1);
+  }
+  @keyframes mark-pop{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
+  .cell.win{
+    background:linear-gradient(135deg,var(--neon-gold),#eab308);
+    color:#1a0a2e;border:1px solid #fff;
+    box-shadow:0 0 12px rgba(250,204,21,.85);
   }
 
-  /* modal */
+  .progress{height:3px;background:rgba(139,92,246,.15);border-radius:3px;
+            overflow:hidden;flex-shrink:0}
+  .progress-fill{
+    height:100%;width:0%;
+    background:linear-gradient(90deg,var(--neon-cyan),var(--neon-pink),var(--neon-gold));
+    transition:width .5s;box-shadow:0 0 8px rgba(236,72,153,.5);
+  }
+
+  /* PICKER */
+  .picker-wrap{flex:1;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+  .picker{
+    flex:1;display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(42px,1fr));
+    gap:4px;overflow-y:auto;padding:6px;
+    background:linear-gradient(180deg,rgba(30,20,60,.55),rgba(20,12,40,.55));
+    border-radius:10px;border:1px solid var(--border);
+    -webkit-overflow-scrolling:touch;
+  }
+  .pick{
+    padding:8px 0;background:rgba(139,92,246,.10);
+    border:1px solid rgba(167,139,250,.15);border-radius:6px;
+    text-align:center;font-weight:800;font-size:12px;color:var(--ink);
+    cursor:pointer;transition:all .15s;user-select:none;
+  }
+  .pick:active{transform:scale(.94)}
+  .pick.sel{
+    background:linear-gradient(135deg,var(--neon-pink),var(--accent-2));
+    color:#fff;border-color:transparent;transform:scale(1.08);
+    box-shadow:0 0 12px rgba(236,72,153,.65);
+  }
+  .pick.taken{background:rgba(34,197,94,.15);color:rgba(34,197,94,.65);
+              border-color:rgba(34,197,94,.3);cursor:not-allowed;text-decoration:line-through}
+  .pick.mine{background:linear-gradient(135deg,var(--neon-cyan),var(--accent));
+             color:#0b0616;border-color:transparent;
+             box-shadow:0 0 12px rgba(34,211,238,.55)}
+
+  .countdown-btn{
+    background:linear-gradient(135deg,var(--neon-cyan),var(--accent));
+    color:#0b0616;border:none;border-radius:10px;width:100%;
+    padding:12px;font-size:26px;font-weight:900;cursor:pointer;
+    box-shadow:0 4px 14px rgba(34,211,238,.4);letter-spacing:2px;
+    transition:all .2s;flex-shrink:0;
+  }
+  .countdown-btn:disabled{opacity:.9;cursor:default}
+  .countdown-btn.low{
+    background:linear-gradient(135deg,var(--neon-pink),#b91c1c);
+    color:#fff;animation:pulse-low .9s infinite;
+  }
+  @keyframes pulse-low{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
+
+  .action-btn{
+    width:100%;padding:11px;
+    background:linear-gradient(135deg,var(--accent),var(--neon-pink));
+    color:#fff;border:none;border-radius:10px;
+    font-size:14px;font-weight:900;cursor:pointer;
+    box-shadow:0 4px 12px rgba(168,85,247,.4);
+    transition:all .15s;flex-shrink:0;
+  }
+  .action-btn:disabled{background:rgba(139,92,246,.15);color:rgba(167,139,250,.5);cursor:not-allowed;box-shadow:none}
+  .action-btn:not(:disabled):active{transform:scale(.98)}
+
+  /* BOTTOM */
+  .bottom-bar{display:flex;gap:6px;flex-shrink:0}
+  .bottom-bar button{
+    flex:1;padding:8px;border-radius:10px;border:none;
+    font-weight:800;font-size:12px;cursor:pointer;transition:all .15s;
+  }
+  .bottom-bar .btn-bingo{
+    background:linear-gradient(135deg,#ec4899,#be185d);color:#fff;
+    box-shadow:0 4px 12px rgba(236,72,153,.45);font-size:14px;
+  }
+  .bottom-bar .btn-bingo:disabled{background:#444;box-shadow:none;cursor:not-allowed}
+  .bottom-bar .btn-ghost{
+    background:rgba(139,92,246,.15);color:var(--ink);
+    border:1px solid var(--border);flex:0 0 auto;padding:8px 12px;
+  }
+  .bottom-bar .btn-ghost.on{
+    background:linear-gradient(135deg,var(--neon-green),#10b981);
+    color:#0b0616;border-color:transparent;
+  }
+
+  .msg{
+    background:linear-gradient(180deg,rgba(30,20,60,.55),rgba(20,12,40,.55));
+    border:1px solid var(--border);border-radius:10px;
+    padding:12px;text-align:center;font-size:12px;font-weight:600;
+    color:var(--muted);flex-shrink:0;
+  }
+  .msg.good{color:var(--neon-green);border-color:rgba(34,197,94,.4)}
+
+  /* ICON BAR */
+  .icon-bar{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;flex-shrink:0}
+  .icon-bar button{
+    padding:6px 2px;border-radius:8px;
+    background:rgba(139,92,246,.10);border:1px solid var(--border);
+    color:var(--ink);font-size:14px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:1px;
+    transition:all .15s;
+  }
+  .icon-bar button small{font-size:8px;color:var(--muted);font-weight:700}
+  .icon-bar button:active{transform:scale(.95)}
+  .icon-bar button.on{background:linear-gradient(135deg,var(--neon-green),#10b981);border-color:transparent}
+  .icon-bar button.on small{color:#0b0616}
+
+  /* MODAL */
   .modal-bg{
-    position:fixed;inset:0;background:rgba(10,5,25,.9);
+    position:fixed;inset:0;background:rgba(10,5,25,.88);
     backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;
     z-index:100;padding:16px;animation:fade-in .25s;
   }
@@ -106,418 +285,700 @@
   .modal{
     background:linear-gradient(160deg,var(--bg-3),var(--bg-2));
     border:1px solid rgba(168,85,247,.4);
-    border-radius:16px; padding:20px; max-width:400px; width:100%;
+    border-radius:16px;padding:20px;text-align:center;
+    max-width:400px;width:100%;
     box-shadow:0 0 40px rgba(168,85,247,.35);
-    animation:pop-modal .4s;
+    animation:pop-modal .4s cubic-bezier(.2,1.4,.5,1);
   }
   @keyframes pop-modal{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
-  .modal h2{font-size:18px;margin-bottom:8px;color:var(--neon-gold)}
-  .modal p{font-size:12px;color:var(--muted);margin-bottom:10px}
-  .input, .select{
-    padding:11px 12px;border-radius:10px;width:100%;
-    background:rgba(11,6,22,.7);border:1px solid var(--border);
-    color:var(--ink);font-size:14px;margin-bottom:8px;
+  .modal h1{
+    font-size:22px;font-weight:900;letter-spacing:2px;font-style:italic;
+    background:linear-gradient(135deg,var(--neon-gold),var(--neon-pink));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    background-clip:text;margin-bottom:10px;
   }
-  .input:focus, .select:focus{
-    outline:none;border-color:var(--accent);
-    box-shadow:0 0 0 3px rgba(139,92,246,.15);
+  .modal .winner-badge{
+    display:inline-flex;align-items:center;gap:6px;
+    background:linear-gradient(135deg,var(--neon-pink),#be185d);
+    color:#fff;padding:6px 14px;border-radius:8px;
+    font-weight:900;font-size:14px;margin-bottom:12px;
   }
-  .method-row{
-    display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;
+  .modal .pool-label{font-size:10px;color:var(--muted);font-weight:800;letter-spacing:1.5px;text-transform:uppercase}
+  .modal .pool-amount{
+    font-size:34px;font-weight:900;color:var(--neon-gold);
+    margin-bottom:14px;text-shadow:0 0 16px rgba(250,204,21,.5);
   }
-  .method-btn{
-    padding:11px;border-radius:10px;font-weight:800;font-size:13px;
-    background:rgba(139,92,246,.10);border:1px solid var(--border);
-    color:var(--ink);cursor:pointer;transition:all .15s;
+  .modal .pool-amount small{font-size:16px;color:var(--muted)}
+  .modal .mini-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-top:8px}
+  .modal .mini-grid .mh{padding:4px 0;font-size:9px;font-weight:900;color:#fff;border-radius:4px}
+  .modal .mini-grid .mh.b{background:#f97316}.modal .mini-grid .mh.i{background:#10b981}
+  .modal .mini-grid .mh.n{background:#3b82f6}.modal .mini-grid .mh.g{background:#ef4444}
+  .modal .mini-grid .mh.o{background:#a855f7}
+  .modal .mini-grid .mc{
+    padding:5px 0;background:rgba(139,92,246,.12);
+    font-size:10px;font-weight:800;color:var(--ink);border-radius:4px;
   }
-  .method-btn.sel{
-    background:linear-gradient(135deg,var(--accent),var(--neon-pink));
-    color:#fff;border-color:transparent;
-    box-shadow:0 4px 14px rgba(168,85,247,.5);
-  }
-  .modal-actions{display:flex;gap:6px;margin-top:8px}
-  .modal-actions .btn{flex:1}
+  .modal .mini-grid .mc.m{background:linear-gradient(135deg,#fb923c,#ea580c);color:#fff}
+  .modal .mini-grid .mc.w{background:linear-gradient(135deg,#facc15,#eab308);color:#1a0a2e}
 
+  /* TOAST */
   .toast{
-    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
     background:rgba(20,10,40,.95);border:1px solid rgba(168,85,247,.4);
-    color:var(--ink);padding:12px 20px;border-radius:10px;
-    font-size:13px;font-weight:700;z-index:200;
-    animation:toast-in .25s;max-width:90%;
+    color:var(--ink);padding:10px 18px;border-radius:10px;
+    font-size:12px;font-weight:700;z-index:99;
+    box-shadow:0 0 20px rgba(168,85,247,.4);
+    animation:toast-in .25s;max-width:90%;text-align:center;
   }
   @keyframes toast-in{from{transform:translate(-50%,20px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
 
-  .spinner{
-    display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);
-    border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;
-    margin-right:6px;vertical-align:-2px;
-  }
-  @keyframes spin{to{transform:rotate(360deg)}}
+  .confetti{position:fixed;width:8px;height:8px;top:-20px;z-index:98;pointer-events:none;border-radius:2px}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
 
   .hidden{display:none !important}
 </style>
 </head>
 <body>
+
+<script>
+  if (window.Telegram && window.Telegram.WebApp) {
+    const tw = window.Telegram.WebApp;
+    tw.expand();
+    tw.disableVerticalSwipes?.();
+    tw.setHeaderColor?.('#0b0616');
+    tw.setBackgroundColor?.('#0b0616');
+    tw.enableClosingConfirmation?.();
+  }
+</script>
+
 <div class="container">
-
-  <a class="back-pill" id="backBtn">← Back to Game</a>
-
-  <!-- WALLET -->
-  <div class="card">
-    <div class="label">💼 MY WALLET</div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div>
-        <div style="font-size:26px;font-weight:900" id="balanceLbl">--</div>
-        <div style="font-size:10px;color:var(--muted)">Playable (ETB)</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:18px;font-weight:900;color:var(--neon-gold)" id="winLbl">--</div>
-        <div style="font-size:10px;color:var(--muted)">Winnings</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:6px">
-      <button class="btn dep" onclick="openDeposit()">💰 DEPOSIT</button>
-      <button class="btn wd" onclick="openWithdraw()">📤 WITHDRAW</button>
-    </div>
+  <div class="topbar">
+    <div class="stat purple"><small>PRIZE</small><b id="derashLbl">0</b></div>
+    <div class="stat"><small>PLAYERS</small><b id="playersLbl">0</b></div>
+    <div class="stat"><small>BET</small><b id="betLbl">10</b></div>
+    <div class="stat"><small>CALL</small><b id="callLbl">--</b></div>
+    <div class="stat"><small>GAME №</small><b id="gameNoLbl">1</b></div>
   </div>
 
-  <!-- STATS -->
-  <div class="card">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
-      <div>
-        <div style="font-size:20px;font-weight:900" id="gamesLbl">0</div>
-        <div style="font-size:10px;color:var(--muted)">Games</div>
+  <!-- SELECTION SCREEN -->
+  <div id="selectScreen" class="picker-wrap">
+    <div class="status-row">
+      <div class="status-pill waiting">
+        <div class="status-dot2"></div>
+        <div class="txt">CHOOSE CARTELAS</div>
       </div>
-      <div>
-        <div style="font-size:20px;font-weight:900;color:var(--neon-pink)" id="winsLbl">0</div>
-        <div style="font-size:10px;color:var(--muted)">Wins</div>
-      </div>
-      <div>
-        <div style="font-size:20px;font-weight:900;color:var(--neon-gold)" id="earnLbl">0</div>
-        <div style="font-size:10px;color:var(--muted)">Earned</div>
+      <div class="prize-pill">
+        <small>PRIZE POOL</small>
+        <b id="prizeSelLbl">0 ETB</b>
       </div>
     </div>
+    <div class="picker" id="picker"></div>
+    <button class="countdown-btn" id="countdownBtn" disabled>--</button>
+    <button class="action-btn" id="joinBtn" disabled>🎯 JOIN GAME</button>
+    <div class="msg" id="selMsg">Pick 1–6 cartelas then tap JOIN</div>
   </div>
 
-  <div class="tabs">
-    <button class="tab-btn active" data-tab="history" onclick="switchTab('history')">📋 History</button>
-    <button class="tab-btn" data-tab="leader" onclick="switchTab('leader')">🏆 Leaderboard</button>
-  </div>
-
-  <div class="card" id="historyPanel">
-    <div id="txList"></div>
-    <div style="display:flex;justify-content:space-between;margin-top:10px" id="pager"></div>
-  </div>
-
-  <div class="card hidden" id="leaderPanel">
-    <div class="tabs" style="margin-bottom:8px">
-      <button class="tab-btn active" data-range="day" onclick="switchRange('day')">Today</button>
-      <button class="tab-btn" data-range="week" onclick="switchRange('week')">Week</button>
-      <button class="tab-btn" data-range="all" onclick="switchRange('all')">All</button>
+  <!-- GAME SCREEN -->
+  <div id="gameScreen" class="hidden" style="display:flex;flex-direction:column;flex:1;gap:6px;min-height:0">
+    <div class="status-row">
+      <div class="status-pill started" id="statusPill">
+        <div class="status-dot2"></div>
+        <div class="txt" id="statusTxt">STARTED</div>
+      </div>
+      <div class="prize-pill">
+        <small>PRIZE POOL</small>
+        <b id="prizeLbl">0 ETB</b>
+      </div>
     </div>
-    <div id="lbList"></div>
+
+    <div class="live-call" aria-live="polite">
+      <div>
+        <div class="label">LIVE CALL</div>
+        <div class="huge" id="liveCallTxt">Waiting…</div>
+        <div class="recent-strip" id="recentStrip"></div>
+      </div>
+      <div class="live-ball" id="liveBall">--</div>
+    </div>
+
+    <div class="headers">
+      <div class="hdr b" data-col="0">B</div>
+      <div class="hdr i" data-col="1">I</div>
+      <div class="hdr n" data-col="2">N</div>
+      <div class="hdr g" data-col="3">G</div>
+      <div class="hdr o" data-col="4">O</div>
+    </div>
+
+    <div id="cartelasWrap" data-count="1"></div>
+
+    <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+
+    <div class="bottom-bar">
+      <button class="btn-bingo" id="bingoBtn" disabled>🎉 BINGO!</button>
+      <button class="btn-ghost" id="autoBingoBtn"><span id="autoBingoIcon">⚡</span></button>
+    </div>
+
+    <div class="icon-bar">
+      <button id="btnWallet"><span>💼</span><small>Wallet</small></button>
+      <button id="btnBalance"><span>💵</span><small>Balance</small></button>
+      <button id="btnHistory"><span>📜</span><small>History</small></button>
+      <button id="btnInvite"><span>🎁</span><small>Invite</small></button>
+      <button id="btnLang"><span>🌐</span><small>Lang</small></button>
+      <button id="btnHelp"><span>❓</span><small>Help</small></button>
+    </div>
   </div>
 </div>
 
+<button id="enableVoiceBtn" style="position:fixed;top:6px;right:6px;z-index:200;
+  background:linear-gradient(135deg,var(--neon-green),#10b981);color:#0b0616;
+  border:none;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">
+  🔊 Enable Voice
+</button>
+
 <script>
-if (window.Telegram && window.Telegram.WebApp){
-  const tw = window.Telegram.WebApp;
-  tw.expand();
-  tw.setHeaderColor?.('#0b0616');
-  tw.setBackgroundColor?.('#0b0616');
-}
+// ============ PARAMS ============
 const p = new URLSearchParams(location.search);
 const userId = Number(p.get('uid')) || 0;
-const initialTab = p.get('tab') || 'history';
-let page = 1;
-let myProfile = null;
+const firstName = p.get('name') || 'Player';
+const socket = io();
 
-document.getElementById('backBtn').onclick = () => {
-  location.href = '/game?uid=' + userId;
+// ============ VOICE ============
+let voiceEnabled = false;
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => {};
+  window.speechSynthesis.getVoices();
+}
+function speak(text, opts={}){
+  if (!voiceEnabled || !('speechSynthesis' in window)) return;
+  try {
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = opts.rate || 0.95; u.pitch = opts.pitch || 1;
+    const voices = speechSynthesis.getVoices();
+    const en = voices.find(v => v.lang.startsWith('en')) || voices[0];
+    if (en) u.voice = en;
+    speechSynthesis.speak(u);
+  } catch(e){}
+}
+document.getElementById('enableVoiceBtn').onclick = () => {
+  voiceEnabled = true;
+  document.getElementById('enableVoiceBtn').style.display = 'none';
+  speak('Voice enabled');
+  chime(880, 0.15, 0.08);
+  showToast('🔊 Voice enabled');
+};
+function chime(freq, dur, vol=0.06, type='sine'){
+  try {
+    if (!window._ac) window._ac = new (window.AudioContext||window.webkitAudioContext)();
+    const ac = window._ac;
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
+    o.connect(g); g.connect(ac.destination);
+    o.start(); o.stop(ac.currentTime + dur);
+  } catch(e){}
+}
+function playWinSound(){
+  [523, 659, 784, 1047, 1319].forEach((f,i)=>setTimeout(()=>chime(f, 0.28, 0.11, 'triangle'), i*130));
+}
+
+function letterOf(n){
+  if (n <= 15) return 'B';
+  if (n <= 30) return 'I';
+  if (n <= 45) return 'N';
+  if (n <= 60) return 'G';
+  return 'O';
+}
+
+// ============ SOCKET ============
+socket.on('connect', () => {
+  socket.emit('join-room');
+  loadState();
+  loadMyCartelas();
+});
+
+// ============ STATE ============
+let phase = 'selection';
+let selected = [];
+let myCartelas = [];
+let calledNumbers = [];
+let takenSet = new Set();
+let availableCartelas = 600;
+let fee = 10;
+let selectionEndsAt = 0;
+let cdTimer = null;
+let autoBingo = localStorage.getItem('autoBingo') === '1';
+
+async function loadState(){
+  try {
+    const r = await fetch('/api/game').then(x=>x.json());
+    fee = r.entryFee || 10;
+    availableCartelas = r.cartelaCount || 600;
+    document.getElementById('betLbl').innerText = fee;
+    applyState(r);
+  } catch(e){}
+}
+async function loadMyCartelas(){
+  try {
+    const r = await fetch('/api/my-cartelas/' + userId).then(x=>x.json());
+    if (r.success && r.cartelas && r.cartelas.length){
+      myCartelas = r.cartelas;
+      showGameScreen();
+      renderCartelas();
+    }
+  } catch(e){}
+}
+
+function applyState(s){
+  phase = s.phase;
+  takenSet = new Set(s.takenCartelas || []);
+  calledNumbers = s.calledNumbers || [];
+  selectionEndsAt = s.selectionEndsAt || 0;
+
+  document.getElementById('prizeLbl').innerText = (s.prizePool||0) + ' ETB';
+  document.getElementById('prizeSelLbl').innerText = (s.prizePool||0) + ' ETB';
+  document.getElementById('playersLbl').innerText = s.playerCount || 0;
+  document.getElementById('derashLbl').innerText = (s.prizePool||0) + ' ETB';
+  document.getElementById('gameNoLbl').innerText = '#' + (s.roundId || 1);
+  document.getElementById('callLbl').innerText = s.currentCall ? letterOf(s.currentCall)+'-'+s.currentCall : '--';
+
+  if (phase === 'selection'){
+    if (myCartelas.length === 0){
+      showSelectionScreen();
+      startCountdownUI(s.selectionEndsAt);
+    } else {
+      showGameScreen();
+    }
+  } else if (phase === 'running'){
+    showGameScreen();
+    setStatus('started', 'STARTED');
+  } else if (phase === 'finished'){
+    setStatus('finished', 'FINISHED');
+  }
+
+  if (s.currentCall){
+    document.getElementById('liveBall').innerText = s.currentCall;
+    document.getElementById('liveCallTxt').innerText = letterOf(s.currentCall)+' - '+s.currentCall;
+  }
+
+  renderRecent();
+  renderPicker();
+  renderCartelas();
+  updateProgress();
+  updateColumnHighlights();
+}
+function setStatus(cls, txt){
+  const pill = document.getElementById('statusPill');
+  pill.className = 'status-pill ' + cls;
+  document.getElementById('statusTxt').innerText = txt;
+}
+
+// ============ COUNTDOWN ============
+function startCountdownUI(endsAt){
+  clearInterval(cdTimer);
+  const btn = document.getElementById('countdownBtn');
+  const tick = () => {
+    const left = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+    btn.innerText = left > 0 ? left : 'STARTING…';
+    btn.classList.toggle('low', left <= 5 && left > 0);
+    if (left <= 0) clearInterval(cdTimer);
+  };
+  tick();
+  cdTimer = setInterval(tick, 250);
+}
+
+// ============ PICKER ============
+function renderPicker(){
+  const el = document.getElementById('picker');
+  if (!el) return;
+  if (el.children.length !== availableCartelas){
+    el.innerHTML = '';
+    for (let i = 1; i <= availableCartelas; i++){
+      const d = document.createElement('div');
+      d.className = 'pick'; d.dataset.id = i; d.innerText = i;
+      d.onclick = () => onPickClick(i);
+      el.appendChild(d);
+    }
+  }
+  for (const d of el.children){
+    const id = Number(d.dataset.id);
+    const taken = takenSet.has(id);
+    const mine = myCartelas.some(c => c.id === id);
+    const sel = selected.includes(id);
+    d.className = 'pick';
+    if (mine) d.classList.add('mine');
+    else if (taken) d.classList.add('taken');
+    else if (sel) d.classList.add('sel');
+  }
+  document.getElementById('joinBtn').disabled = selected.length === 0;
+  if (selected.length > 0){
+    document.getElementById('selMsg').innerText = selected.length + '/6 selected — tap JOIN';
+  } else {
+    document.getElementById('selMsg').innerText = 'Pick 1–6 cartelas then tap JOIN';
+  }
+}
+function onPickClick(id){
+  if (phase !== 'selection') return;
+  if (takenSet.has(id)) { showToast('⚠️ Cartela taken'); return; }
+  if (myCartelas.some(c => c.id === id)) { showToast('Already yours'); return; }
+  const i = selected.indexOf(id);
+  if (i >= 0) selected.splice(i, 1);
+  else if (selected.length >= 6) { showToast('⚠️ Max 6 cartelas'); return; }
+  else selected.push(id);
+  chime(660, 0.1, 0.05, 'triangle');
+  renderPicker();
+}
+
+// ============ CARTELAS ============
+function renderCartelas(){
+  const wrap = document.getElementById('cartelasWrap');
+  if (!wrap) return;
+  const sig = myCartelas.map(c=>c.id).join(',');
+  wrap.dataset.count = String(Math.min(6, myCartelas.length || 1));
+  if (wrap.dataset.sig === sig){
+    myCartelas.forEach(updateCartelaCells);
+    return;
+  }
+  wrap.innerHTML = '';
+  wrap.dataset.sig = sig;
+  myCartelas.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'board';
+    card.id = 'cartela-' + c.id;
+    const grid = document.createElement('div');
+    grid.className = 'board-grid';
+    for (let r = 0; r < 5; r++){
+      for (let col = 0; col < 5; col++){
+        const n = c.grid[r][col];
+        const d = document.createElement('div');
+        d.className = 'cell';
+        d.dataset.n = n;
+        d.innerText = n === 0 ? '★' : n;
+        grid.appendChild(d);
+      }
+    }
+    card.appendChild(grid);
+    wrap.appendChild(card);
+    updateCartelaCells(c);
+  });
+}
+function updateCartelaCells(cartela){
+  const card = document.getElementById('cartela-' + cartela.id);
+  if (!card) return;
+  const called = new Set(calledNumbers); called.add(0);
+  card.querySelectorAll('.cell[data-n]').forEach(el => {
+    const n = Number(el.dataset.n);
+    if (called.has(n)) el.classList.add('marked');
+    else el.classList.remove('marked');
+  });
+  const winInfo = evaluateWinClient(cartela, called);
+  if (winInfo){
+    card.querySelectorAll('.cell[data-n]').forEach(el => {
+      const n = Number(el.dataset.n);
+      if (winInfo.cells.includes(n)) el.classList.add('win');
+      else el.classList.remove('win');
+    });
+  } else {
+    card.querySelectorAll('.cell.win').forEach(el => el.classList.remove('win'));
+  }
+}
+
+// ============ WIN CHECKER ============
+function evaluateWinClient(cartela, calledSet){
+  const g = cartela.grid;
+  for (let r=0;r<5;r++){
+    const cells = []; let ok = true;
+    for (let c=0;c<5;c++){
+      const n = g[r][c]; cells.push(n);
+      if (n !== 0 && !calledSet.has(n)){ ok=false; break; }
+    }
+    if (ok) return { pattern: 'row:'+r, cells };
+  }
+  for (let c=0;c<5;c++){
+    const cells = []; let ok = true;
+    for (let r=0;r<5;r++){
+      const n = g[r][c]; cells.push(n);
+      if (n !== 0 && !calledSet.has(n)){ ok=false; break; }
+    }
+    if (ok) return { pattern: 'col:'+c, cells };
+  }
+  let cells = []; let ok = true;
+  for (let i=0;i<5;i++){
+    const n = g[i][i]; cells.push(n);
+    if (n !== 0 && !calledSet.has(n)){ ok=false; break; }
+  }
+  if (ok) return { pattern: 'diag:main', cells };
+  cells = []; ok = true;
+  for (let i=0;i<5;i++){
+    const n = g[i][4-i]; cells.push(n);
+    if (n !== 0 && !calledSet.has(n)){ ok=false; break; }
+  }
+  if (ok) return { pattern: 'diag:anti', cells };
+  return null;
+}
+
+// ============ LIVE CALL ============
+function setLiveCall(num){
+  const ball = document.getElementById('liveBall');
+  const txt = document.getElementById('liveCallTxt');
+  ball.innerText = num;
+  txt.innerText = letterOf(num) + ' - ' + num;
+  ball.classList.add('pop'); txt.classList.add('pop');
+  setTimeout(()=>{ ball.classList.remove('pop'); txt.classList.remove('pop'); }, 300);
+}
+function renderRecent(){
+  const el = document.getElementById('recentStrip');
+  if (!el) return;
+  el.innerHTML = '';
+  calledNumbers.slice(-5).reverse().forEach(n => {
+    const d = document.createElement('div');
+    d.className = 'recent-chip'; d.innerText = n;
+    el.appendChild(d);
+  });
+}
+function updateProgress(){
+  const f = document.getElementById('progressFill');
+  if (!f) return;
+  f.style.width = Math.min(100, (calledNumbers.length/75)*100) + '%';
+}
+function updateColumnHighlights(){
+  const ranges = [[1,15],[16,30],[31,45],[46,60],[61,75]];
+  document.querySelectorAll('.hdr').forEach((h, idx) => {
+    const [mn,mx] = ranges[idx];
+    const done = [...Array(mx-mn+1)].map((_,i)=>mn+i).every(n=>calledNumbers.includes(n));
+    h.classList.toggle('dim', done);
+    if (calledNumbers.length){
+      const last = calledNumbers[calledNumbers.length-1];
+      h.classList.toggle('active', last >= mn && last <= mx);
+    }
+  });
+}
+
+// ============ SCREENS ============
+function showSelectionScreen(){
+  document.getElementById('selectScreen').classList.remove('hidden');
+  document.getElementById('selectScreen').style.display = 'flex';
+  document.getElementById('gameScreen').classList.add('hidden');
+  document.getElementById('gameScreen').style.display = 'none';
+}
+function showGameScreen(){
+  document.getElementById('selectScreen').classList.add('hidden');
+  document.getElementById('selectScreen').style.display = 'none';
+  document.getElementById('gameScreen').classList.remove('hidden');
+  document.getElementById('gameScreen').style.display = 'flex';
+}
+
+// ============ JOIN ============
+document.getElementById('joinBtn').onclick = async () => {
+  if (selected.length === 0) return;
+  document.getElementById('selMsg').innerText = 'Joining…';
+  try {
+    const r = await fetch('/api/player/join', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({userId, firstName, cartelaIds: selected})
+    }).then(x=>x.json());
+    if (!r.success){ document.getElementById('selMsg').innerText = '❌ '+r.error; return; }
+    myCartelas = r.cartelas;
+    chime(660, 0.14, 0.08, 'triangle');
+    showToast('✅ Joined!');
+    showGameScreen();
+    renderCartelas();
+  } catch(e){ document.getElementById('selMsg').innerText = '❌ Network error'; }
 };
 
-function toast(msg){
+// ============ BINGO ============
+document.getElementById('bingoBtn').onclick = () => tryClaimBingo();
+async function tryClaimBingo(){
+  const called = new Set(calledNumbers); called.add(0);
+  for (const c of myCartelas){
+    const w = evaluateWinClient(c, called);
+    if (w){
+      try {
+        const r = await fetch('/api/player/bingo', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({userId, cartelaId: c.id})
+        }).then(x=>x.json());
+        if (r.success) speak('Bingo!');
+        else showToast('❌ ' + r.error);
+      } catch(e){}
+      return;
+    }
+  }
+  showToast('⚠️ No complete line yet');
+}
+function checkAutoBingo(){
+  if (!autoBingo) return;
+  const called = new Set(calledNumbers); called.add(0);
+  for (const c of myCartelas){
+    const w = evaluateWinClient(c, called);
+    if (w){
+      fetch('/api/player/bingo', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({userId, cartelaId: c.id})
+      }).catch(()=>{});
+      return;
+    }
+  }
+}
+const autoBtn = document.getElementById('autoBingoBtn');
+function updateAutoBingoUI(){ autoBtn.classList.toggle('on', autoBingo); }
+updateAutoBingoUI();
+autoBtn.onclick = () => {
+  autoBingo = !autoBingo;
+  localStorage.setItem('autoBingo', autoBingo ? '1' : '0');
+  updateAutoBingoUI();
+  showToast(autoBingo ? '⚡ Auto-Bingo ON' : 'Auto-Bingo OFF');
+  if (autoBingo) checkAutoBingo();
+};
+function updateBingoBtn(){
+  const called = new Set(calledNumbers); called.add(0);
+  const has = myCartelas.some(c => evaluateWinClient(c, called));
+  const btn = document.getElementById('bingoBtn');
+  btn.disabled = !(phase === 'running' && has && !autoBingo);
+}
+
+// ============ WINNER MODAL ============
+function showWinnerModal(w){
+  let miniHTML = '';
+  if (w.cartelaGrid){
+    ['B','I','N','G','O'].forEach(h => miniHTML += `<div class="mh ${h.toLowerCase()}">${h}</div>`);
+    const called = new Set(calledNumbers); called.add(0);
+    const winCells = new Set();
+    if (w.pattern){
+      if (w.pattern.startsWith('row:')){
+        const r = Number(w.pattern.split(':')[1]);
+        for (let c=0;c<5;c++) winCells.add(w.cartelaGrid[r][c]);
+      } else if (w.pattern.startsWith('col:')){
+        const c = Number(w.pattern.split(':')[1]);
+        for (let r=0;r<5;r++) winCells.add(w.cartelaGrid[r][c]);
+      } else if (w.pattern === 'diag:main'){
+        for (let i=0;i<5;i++) winCells.add(w.cartelaGrid[i][i]);
+      } else if (w.pattern === 'diag:anti'){
+        for (let i=0;i<5;i++) winCells.add(w.cartelaGrid[i][4-i]);
+      }
+    }
+    for (let r=0;r<5;r++){
+      for (let c=0;c<5;c++){
+        const n = w.cartelaGrid[r][c];
+        let cls = 'mc';
+        if (winCells.has(n)) cls += ' w';
+        else if (called.has(n)) cls += ' m';
+        miniHTML += `<div class="${cls}">${n===0?'★':n}</div>`;
+      }
+    }
+  }
+  const div = document.createElement('div');
+  div.className = 'modal-bg';
+  div.innerHTML = `
+    <div class="modal">
+      <h1>GAME OVER</h1>
+      <div class="winner-badge">🏆 ${w.firstName}</div>
+      <div class="pool-label">TOTAL PRIZE</div>
+      <div class="pool-amount">${w.prize}<small> ETB</small></div>
+      ${miniHTML ? `<div class="mini-grid">${miniHTML}</div>` : ''}
+    </div>`;
+  document.body.appendChild(div);
+  fireConfetti();
+  speak(w.firstName + ' won ' + w.prize + ' ETB');
+  setTimeout(()=>div.remove(), 7500);
+}
+function fireConfetti(){
+  const colors = ['#ec4899','#a855f7','#22d3ee','#facc15','#22c55e','#fb923c'];
+  for (let i = 0; i < 70; i++){
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = Math.random() * 100 + 'vw';
+    c.style.background = colors[i % colors.length];
+    c.style.animation = `fall ${2 + Math.random()*2}s linear forwards`;
+    c.style.animationDelay = (Math.random()*0.6) + 's';
+    c.style.width = (5 + Math.random()*6) + 'px';
+    c.style.height = (5 + Math.random()*6) + 'px';
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(), 5000);
+  }
+}
+
+// ============ TOAST ============
+function showToast(msg){
   const t = document.createElement('div');
   t.className = 'toast'; t.innerText = msg;
   document.body.appendChild(t);
   setTimeout(()=>t.remove(), 3000);
 }
 
-// ============================================================
-// PROFILE
-// ============================================================
-async function loadProfile(){
+// ============ SOCKETS ============
+socket.on('game-state', s => applyState(s));
+socket.on('number-called', ({number, all}) => {
+  calledNumbers = all;
+  setLiveCall(number);
+  chime(880, 0.14, 0.08);
+  speak(letterOf(number) + ' ' + number);
+  renderRecent();
+  myCartelas.forEach(updateCartelaCells);
+  updateProgress();
+  updateColumnHighlights();
+  updateBingoBtn();
+  checkAutoBingo();
+});
+socket.on('round-finished', w => {
+  if (w){ playWinSound(); showWinnerModal(w); }
+  myCartelas = [];
+  selected = [];
+  document.getElementById('cartelasWrap').innerHTML = '';
+  document.getElementById('cartelasWrap').dataset.sig = '';
+  updateBingoBtn();
+});
+socket.on('broadcast', ({message}) => { showToast('📢 ' + message); });
+
+// ============ ICON BAR ============
+document.getElementById('btnWallet').onclick = () => location.href = '/profile.html?uid=' + userId;
+document.getElementById('btnBalance').onclick = async () => {
   try {
     const r = await fetch('/api/profile/' + userId).then(x=>x.json());
-    if (!r.success) return;
-    const u = r.user; myProfile = u;
-    document.getElementById('balanceLbl').innerText = u.balance.toFixed(2) + ' ETB';
-    document.getElementById('winLbl').innerText = u.winBalance.toFixed(2) + ' ETB';
-    document.getElementById('gamesLbl').innerText = u.totalGames || 0;
-    document.getElementById('winsLbl').innerText = u.totalWins || 0;
-    document.getElementById('earnLbl').innerText = (u.totalEarnings || 0).toFixed(0);
-  } catch(e){}
-}
-
-// ============================================================
-// HISTORY
-// ============================================================
-async function loadHistory(pg=1){
-  page = pg;
-  try {
-    const r = await fetch(`/api/history/${userId}?page=${pg}`).then(x=>x.json());
-    if (!r.success) return;
-    const el = document.getElementById('txList');
-    if (!r.txs.length){
-      el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">No transactions yet</div>';
-      document.getElementById('pager').innerHTML = '';
-      return;
+    if (r.success){
+      showToast(`💰 ${r.user.balance.toFixed(2)} · 🏆 ${r.user.winBalance.toFixed(2)} ETB`);
     }
-    el.innerHTML = r.txs.map(tx => {
-      const when = new Date(tx.createdAt).toLocaleString();
-      const isIn = (tx.type === 'deposit' || tx.type === 'win');
-      const sign = isIn ? '+' : '-';
-      const color = isIn ? 'var(--neon-green)' : 'var(--neon-pink)';
-      const gameTag = tx.gameId ? ` · Game #${tx.gameId}` : '';
-      return `
-        <div class="tx-row">
-          <div><span class="badge ${tx.type}">${tx.type}</span></div>
-          <div>
-            <div style="font-weight:700;color:${color}">${sign}${tx.amount.toFixed(2)} ETB</div>
-            <div style="color:var(--muted);font-size:10px">${when}${gameTag}</div>
-          </div>
-          <div style="text-align:right"><span class="badge ${tx.status}">${tx.status}</span></div>
-        </div>`;
-    }).join('');
-    document.getElementById('pager').innerHTML = `
-      <button ${page<=1?'disabled':''} onclick="loadHistory(${page-1})" class="tab-btn" style="max-width:100px;${page<=1?'opacity:.4':''}">← Prev</button>
-      <span style="font-size:11px;color:var(--muted);align-self:center">Page ${page} / ${r.totalPages}</span>
-      <button ${page>=r.totalPages?'disabled':''} onclick="loadHistory(${page+1})" class="tab-btn" style="max-width:100px;${page>=r.totalPages?'opacity:.4':''}">Next →</button>
-    `;
   } catch(e){}
-}
-
-// ============================================================
-// LEADERBOARD
-// ============================================================
-async function loadLeaderboard(range='all'){
-  try {
-    const r = await fetch('/api/leaderboard?range=' + range).then(x=>x.json());
-    if (!r.success) return;
-    const el = document.getElementById('lbList');
-    if (!r.list.length){
-      el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">No winners yet</div>';
-      return;
-    }
-    el.innerHTML = r.list.map((u,i) => {
-      const rankCls = i===0?'gold':i===1?'silver':i===2?'bronze':'';
-      const name = u.firstName || u.username || ('User ' + u.telegramId);
-      const isMe = u.telegramId === userId;
-      return `
-        <div class="lb-row" style="${isMe?'background:rgba(236,72,153,.08);border-radius:8px':''}">
-          <div class="rank ${rankCls}">${i+1}</div>
-          <div>
-            <div style="font-weight:800;font-size:12px">${name}${isMe?' · <span style="color:var(--neon-pink);font-size:10px">YOU</span>':''}</div>
-            <div style="color:var(--muted);font-size:10px">${u.totalWins} wins</div>
-          </div>
-          <div style="text-align:right;font-weight:900;color:var(--neon-gold);font-size:12px">
-            ${(u.totalEarnings||0).toFixed(0)} ETB
-          </div>
-        </div>`;
-    }).join('');
-  } catch(e){}
-}
-
-function switchTab(name){
-  document.querySelectorAll('.tab-btn').forEach(b => {
-    if (b.dataset.tab) b.classList.toggle('active', b.dataset.tab === name);
-  });
-  document.getElementById('historyPanel').classList.toggle('hidden', name !== 'history');
-  document.getElementById('leaderPanel').classList.toggle('hidden', name !== 'leader');
-  if (name === 'leader') loadLeaderboard('all');
-}
-function switchRange(range){
-  document.querySelectorAll('#leaderPanel .tab-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.range === range);
-  });
-  loadLeaderboard(range);
-}
-
-// ============================================================
-// DEPOSIT MODAL
-// ============================================================
-function openDeposit(){
+};
+document.getElementById('btnHistory').onclick = () => location.href = '/profile.html?uid=' + userId + '&tab=history';
+document.getElementById('btnInvite').onclick = async () => {
+  const link = `https://t.me/AbyssinaBingobot?start=${userId}`;
+  try { await navigator.clipboard.writeText(link); showToast('🔗 Copied!'); } catch(e){}
+  if (navigator.share){
+    try { await navigator.share({title:'Abisinya Bingo', text:'Join me!', url:link}); } catch(e){}
+  }
+};
+document.getElementById('btnLang').onclick = () => showToast('🌐 Language: አማርኛ');
+document.getElementById('btnHelp').onclick = () => {
   const ov = document.createElement('div');
   ov.className = 'modal-bg';
-  ov.id = 'depositModal';
-  ov.innerHTML = `
-    <div class="modal">
-      <h2>💰 Deposit</h2>
-      <p>Choose payment method and amount.</p>
-
-      <label class="label">Payment Method</label>
-      <div class="method-row">
-        <button class="method-btn sel" data-method="telebirr">📲 Telebirr</button>
-        <button class="method-btn" data-method="cbe">🏦 CBE</button>
-      </div>
-
-      <label class="label">Amount (ETB)</label>
-      <input class="input" id="depAmount" type="number" min="10" placeholder="e.g. 100" />
-
-      <label class="label">Your Phone / Account</label>
-      <input class="input" id="depPhone" type="tel" placeholder="09xxxxxxxx" />
-
-      <label class="label">Bank SMS (paste)</label>
-      <input class="input" id="depSms" type="text" placeholder="Paste the confirmation SMS" />
-
-      <div id="depErr" style="color:var(--neon-pink);font-size:11px;margin-bottom:6px"></div>
-
-      <div class="modal-actions">
-        <button class="btn ghost" onclick="closeModal('depositModal')">Cancel</button>
-        <button class="btn primary" id="depSubmit">Send Request</button>
-      </div>
-    </div>`;
+  ov.innerHTML = `<div class="modal" style="text-align:left">
+    <h1 style="text-align:center">How to Play</h1>
+    <p style="font-size:12px;line-height:1.6;color:var(--ink);margin:10px 0">
+    Complete <b>one full line</b> — row, column, or diagonal — to win.<br><br>
+    ⚡ Turn on Auto-Bingo to claim automatically.<br>
+    🔊 Tap Enable Voice to hear every call.<br><br>
+    Shortcuts: <b>B</b> Bingo · <b>A</b> Auto · <b>W</b> Wallet · <b>H</b> History · <b>?</b> Help
+    </p>
+    <button class="action-btn" onclick="this.closest('.modal-bg').remove()">Got it</button>
+  </div>`;
   document.body.appendChild(ov);
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+};
 
-  ov.querySelectorAll('.method-btn').forEach(b => {
-    b.onclick = () => {
-      ov.querySelectorAll('.method-btn').forEach(x => x.classList.remove('sel'));
-      b.classList.add('sel');
-    };
-  });
+// ============ KEYBOARD ============
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const k = e.key.toLowerCase();
+  if (k === 'b') tryClaimBingo();
+  else if (k === 'a') autoBtn.click();
+  else if (k === 'w') document.getElementById('btnWallet').click();
+  else if (k === 'h') document.getElementById('btnHistory').click();
+  else if (k === '?') document.getElementById('btnHelp').click();
+});
 
-  ov.addEventListener('click', e => { if (e.target === ov) closeModal('depositModal'); });
-  document.getElementById('depSubmit').onclick = submitDeposit;
-}
-
-async function submitDeposit(){
-  const err = document.getElementById('depErr');
-  const method = document.querySelector('#depositModal .method-btn.sel')?.dataset.method || 'telebirr';
-  const amount = Number(document.getElementById('depAmount').value);
-  const phone = document.getElementById('depPhone').value.trim();
-  const sms = document.getElementById('depSms').value.trim();
-
-  if (!amount || amount < 10){ err.innerText = '⚠️ Minimum 10 ETB'; return; }
-  if (!phone || phone.length < 9){ err.innerText = '⚠️ Enter valid phone'; return; }
-  if (!sms){ err.innerText = '⚠️ Paste the SMS confirmation'; return; }
-
-  const btn = document.getElementById('depSubmit');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Sending…';
-
-  try {
-    const r = await fetch('/api/deposit/request', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ userId, amount, method, phone, sms })
-    }).then(x=>x.json());
-    if (r.success){
-      closeModal('depositModal');
-      toast('✅ Deposit sent to admin');
-      loadHistory(1);
-    } else {
-      err.innerText = '❌ ' + (r.error || 'failed');
-      btn.disabled = false;
-      btn.innerText = 'Send Request';
-    }
-  } catch(e){
-    err.innerText = '❌ Network error';
-    btn.disabled = false;
-    btn.innerText = 'Send Request';
-  }
-}
-
-// ============================================================
-// WITHDRAW MODAL
-// ============================================================
-function openWithdraw(){
-  if (!myProfile) return toast('⚠️ Profile not loaded');
-  const available = myProfile.balance + myProfile.winBalance;
-  const ov = document.createElement('div');
-  ov.className = 'modal-bg';
-  ov.id = 'withdrawModal';
-  ov.innerHTML = `
-    <div class="modal">
-      <h2>📤 Withdraw</h2>
-      <p>Available: <b style="color:var(--neon-gold)">${available.toFixed(2)} ETB</b> · Min 100 ETB</p>
-
-      <label class="label">Payment Method</label>
-      <div class="method-row">
-        <button class="method-btn sel" data-method="telebirr">📲 Telebirr</button>
-        <button class="method-btn" data-method="cbe">🏦 CBE</button>
-      </div>
-
-      <label class="label">Amount (ETB)</label>
-      <input class="input" id="wdAmount" type="number" min="100" placeholder="e.g. 100" />
-
-      <label class="label">Your Phone / Account</label>
-      <input class="input" id="wdPhone" type="tel" placeholder="09xxxxxxxx" />
-
-      <div id="wdErr" style="color:var(--neon-pink);font-size:11px;margin-bottom:6px"></div>
-
-      <div class="modal-actions">
-        <button class="btn ghost" onclick="closeModal('withdrawModal')">Cancel</button>
-        <button class="btn primary" id="wdSubmit">Request Withdraw</button>
-      </div>
-    </div>`;
-  document.body.appendChild(ov);
-
-  ov.querySelectorAll('.method-btn').forEach(b => {
-    b.onclick = () => {
-      ov.querySelectorAll('.method-btn').forEach(x => x.classList.remove('sel'));
-      b.classList.add('sel');
-    };
-  });
-  ov.addEventListener('click', e => { if (e.target === ov) closeModal('withdrawModal'); });
-  document.getElementById('wdSubmit').onclick = submitWithdraw;
-}
-
-async function submitWithdraw(){
-  const err = document.getElementById('wdErr');
-  const method = document.querySelector('#withdrawModal .method-btn.sel')?.dataset.method || 'telebirr';
-  const amount = Number(document.getElementById('wdAmount').value);
-  const phone = document.getElementById('wdPhone').value.trim();
-  const available = (myProfile?.balance || 0) + (myProfile?.winBalance || 0);
-
-  if (!amount || amount < 100){ err.innerText = '⚠️ Minimum 100 ETB'; return; }
-  if (amount > available){ err.innerText = '❌ Exceeds available balance'; return; }
-  if (!phone || phone.length < 9){ err.innerText = '⚠️ Enter valid phone'; return; }
-
-  const btn = document.getElementById('wdSubmit');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Sending…';
-
-  try {
-    const r = await fetch('/api/withdraw/request', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ userId, amount, method, phone })
-    }).then(x=>x.json());
-    if (r.success){
-      closeModal('withdrawModal');
-      toast('✅ Withdraw sent to admin');
-      loadProfile();
-      loadHistory(1);
-    } else {
-      err.innerText = '❌ ' + (r.error || 'failed');
-      btn.disabled = false;
-      btn.innerText = 'Request Withdraw';
-    }
-  } catch(e){
-    err.innerText = '❌ Network error';
-    btn.disabled = false;
-    btn.innerText = 'Request Withdraw';
-  }
-}
-
-function closeModal(id){
-  const el = document.getElementById(id);
-  if (el) el.remove();
-}
-
-loadProfile();
-loadHistory(1);
-if (initialTab === 'leader') switchTab('leader');
+// ============ START ============
+loadState().then(loadMyCartelas);
+setInterval(() => { if (socket.connected) loadState(); }, 30000);
 </script>
 </body>
 </html>
