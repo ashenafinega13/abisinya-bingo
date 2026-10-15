@@ -348,8 +348,8 @@ app.post('/api/player/join', async (req, res) => {
     const cartelaIds = req.body.cartelaIds;
     if (state.phase !== 'selection')
       return res.status(400).json({ error: 'Selection closed - wait for next round' });
-    if (!Array.isArray(cartelaIds) || cartelaIds.length < 1 || cartelaIds.length > 3)
-      return res.status(400).json({ error: 'Choose 1 to 3 cartelas' });
+    if (!Array.isArray(cartelaIds) || cartelaIds.length < 1 || cartelaIds.length > 4)
+      return res.status(400).json({ error: 'Choose 1 to 4 cartelas' });
     if (state.players.has(userId))
       return res.status(400).json({ error: 'Already joined this round' });
 
