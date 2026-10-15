@@ -92,14 +92,14 @@ def sv_set_tx_status(tx_id, status):
         print("sv_set_tx_status:", e)
 
 # ================================================================
-#                        URL BUILDERS — CRITICAL
+#             URL BUILDERS — PAY ATTENTION HERE
 # ================================================================
 def game_url(uid, name):
-    """Play button → opens the picker (or spectator if game running)."""
+    """PLAY button → /game?uid=...  (server redirects to bingo.html)"""
     return f"{WEBAPP_URL}/game?uid={uid}&name={name}"
 
 def profile_url(uid, tab="history"):
-    """Profile button → wallet/history/leaderboard."""
+    """PROFILE button → /profile.html?uid=..."""
     return f"{WEBAPP_URL}/profile.html?uid={uid}&tab={tab}"
 
 # ================================================================
@@ -107,15 +107,27 @@ def profile_url(uid, tab="history"):
 # ================================================================
 def main_kb(uid, name):
     keyboard = [
+        # ---------- ROW 1: PLAY ----------
         [KeyboardButton("🎯  Play Abisinya Bingo",
                         web_app=WebAppInfo(url=game_url(uid, name)))],
+
+        # ---------- ROW 2: PROFILE + LEADERBOARD ----------
         [KeyboardButton("👤  My Profile",
                         web_app=WebAppInfo(url=profile_url(uid, "history"))),
          KeyboardButton("🏆  Leaderboard",
                         web_app=WebAppInfo(url=profile_url(uid, "leader")))],
-        [KeyboardButton("💰  Deposit"), KeyboardButton("📤  Withdraw")],
-        [KeyboardButton("💵  Balance"), KeyboardButton("👥  Invite Friends")],
-        [KeyboardButton("💬  Support"), KeyboardButton("ℹ️  Help")],
+
+        # ---------- ROW 3: MONEY ----------
+        [KeyboardButton("💰  Deposit"),
+         KeyboardButton("📤  Withdraw")],
+
+        # ---------- ROW 4: INFO ----------
+        [KeyboardButton("💵  Balance"),
+         KeyboardButton("👥  Invite Friends")],
+
+        # ---------- ROW 5: HELP ----------
+        [KeyboardButton("💬  Support"),
+         KeyboardButton("ℹ️  Help")],
     ]
     return ReplyKeyboardMarkup(
         keyboard, resize_keyboard=True, is_persistent=True,
@@ -196,11 +208,10 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "3️⃣ *JOIN GAME* ይጫኑ\n"
         "4️⃣ አንድ ሙሉ መስመር ሲሟላ *BINGO* ይጫኑ\n\n"
         "🎯 የማሸነፊያ መስመሮች:\n"
-        "• ማንኛውም አግዳሚ ረድፍ (horizontal)\n"
-        "• ማንኛውም ቁልቁል አምድ (vertical)\n"
-        "• ማዕዘን-ለማዕዘን (diagonal)\n\n"
-        "⚡ *Auto-Bingo* ን ካበሩ በራስ-ሰር ያሸንፋል።\n\n"
-        "💰 ያሸነፉትን ለማውጣት *📤 Withdraw* ይጫኑ።",
+        "• ማንኛውም አግዳሚ ረድፍ\n"
+        "• ማንኛውም ቁልቁል አምድ\n"
+        "• ማዕዘን-ለማዕዘን\n\n"
+        "⚡ *Auto-Bingo* ን ካበሩ በራስ-ሰር ያሸንፋል።",
         parse_mode="Markdown"
     )
 
@@ -210,8 +221,7 @@ async def debug_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🔧 *DEBUG*\n\n"
         f"`SERVER_URL` = `{SERVER_URL}`\n"
         f"`WEBAPP_URL` = `{WEBAPP_URL}`\n"
-        f"`BOT_USERNAME` = `{BOT_USERNAME}`\n"
-        f"`BOT_PORT` = `{BOT_PORT}`\n\n"
+        f"`BOT_USERNAME` = `{BOT_USERNAME}`\n\n"
         f"*Play URL:*\n`{game_url(u.id, u.first_name or 'Player')}`\n\n"
         f"*Profile URL:*\n`{profile_url(u.id)}`",
         parse_mode="Markdown"
@@ -288,7 +298,7 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ---------- WITHDRAW: amount ----------
     if action == "withdraw_amount":
         if not txt.isdigit():
-            await update.message.reply_text("⚠️ ቁጥር ብቻ ያስገቡ (ለምሳሌ: 100)"); return
+            await update.message.reply_text("⚠️ ቁጥር ብቻ ያስገቡ"); return
         amount = float(txt)
         if amount < 100:
             await update.message.reply_text("⚠️ ዝቅተኛው 100 ብር ነው።"); return
@@ -318,7 +328,7 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "method": method, "phone": phone, "status": "pending"
         })
         if not tx:
-            await update.message.reply_text("⚠️ ኔትወርክ ችግር። በድጋሚ ሞክር።"); return
+            await update.message.reply_text("⚠️ ኔትወርክ ችግር።"); return
 
         tx_id = tx["_id"]
         method_label = "📲 Telebirr" if method == "telebirr" else "🏦 CBE"
@@ -336,10 +346,7 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         user_states.pop(u.id, None)
         await update.message.reply_text(
-            f"✅ *የወጭ ጥያቄዎ ተልኳል!*\n\n"
-            f"💰 {amount:.2f} ብር\n"
-            f"📱 `{phone}`\n\n"
-            f"⏳ አስተዳዳሪው ሲያጸድቅ ገንዘቡ ይደርስዎታል።",
+            f"✅ *የወጭ ጥያቄዎ ተልኳል!*",
             parse_mode="Markdown",
             reply_markup=main_kb(u.id, u.first_name or "Player"))
         return
@@ -357,7 +364,7 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif "🏆" in txt:
         await update.message.reply_text(
-            "🏆 *Leaderboard* ን ይጫኑ — ምርጥ ተጫዋቾችን ያያሉ።",
+            "🏆 *Leaderboard* ን ይጫኑ።",
             parse_mode="Markdown")
 
     elif "💰" in txt:
@@ -376,22 +383,19 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif "👥" in txt:
         link = f"https://t.me/{BOT_USERNAME}?start={u.id}"
         await update.message.reply_text(
-            f"👥 *የግብዣ ሊንክ*\n\n`{link}`\n\n"
-            f"✨ ጓደኛዎን ይጋብዙ እና *30 ብር* ያግኙ!",
+            f"👥 *የግብዣ ሊንክ*\n\n`{link}`\n\n✨ 30 ብር ያግኙ!",
             parse_mode="Markdown")
 
     elif "💬" in txt:
         await update.message.reply_text(
-            "💬 *ድጋፍ*\n\n👤 @Tazikes",
-            parse_mode="Markdown")
+            "💬 *ድጋፍ*\n\n👤 @Tazikes", parse_mode="Markdown")
 
     elif "ℹ️" in txt:
         await help_cmd(update, context)
 
     else:
         await update.message.reply_text(
-            "🤔 *ጥያቄዎን አልተረዳሁም።*\n\nከታች ካሉት አዝራሮች አንዱን ይምረጡ።",
-            parse_mode="Markdown",
+            "🤔 ካርቴላ ይምረጡ እና ይጫወቱ።",
             reply_markup=main_kb(u.id, u.first_name or "Player"))
 
 # ================================================================
@@ -429,14 +433,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 try:
                     await context.bot.send_message(
                         tx["userId"],
-                        f"✅ *የወጭ ጥያቄዎ ፀድቋል!*\n\n💰 {tx['amount']:.2f} ETB",
+                        f"✅ *የወጭ ጥያቄዎ ፀድቋል!*",
                         parse_mode="Markdown")
                 except Exception: pass
         else:
             try:
                 await context.bot.send_message(
                     tx["userId"],
-                    f"❌ *ጥያቄዎ ተሰርዟል*\n\n💰 {tx['amount']:.2f} ETB",
+                    f"❌ *ጥያቄዎ ተሰርዟል*",
                     parse_mode="Markdown")
             except Exception: pass
 
@@ -448,18 +452,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data == "dep_telebirr":
         user_states[u.id] = {"action": "deposit", "method": "telebirr"}
         await q.edit_message_text(
-            "🏦 *Telebirr*\n\n"
-            "👤 Name: tazebew\n"
-            "👉 Account: `0968940123`\n\n"
-            "📩 የባንክ SMS ይለጥፉ:",
+            "🏦 *Telebirr*\n\n👤 tazebew\n👉 `0968940123`\n\n📩 SMS ይለጥፉ:",
             parse_mode="Markdown")
     elif data == "dep_cbe":
         user_states[u.id] = {"action": "deposit", "method": "cbe"}
         await q.edit_message_text(
-            "🏦 *CBE*\n\n"
-            "👤 Name: tazebew\n"
-            "👉 Account: `1000390803005`\n\n"
-            "📩 የባንክ SMS ይለጥፉ:",
+            "🏦 *CBE*\n\n👤 tazebew\n👉 `1000390803005`\n\n📩 SMS ይለጥፉ:",
             parse_mode="Markdown")
     elif data == "wd_telebirr":
         user_states[u.id] = {"action": "withdraw_amount", "method": "telebirr"}
@@ -497,16 +495,13 @@ async def broadcast_handler(request):
     try:
         r = requests.get(f"{SERVER_URL}/api/bot/all-users", headers=H, timeout=10)
         users = _safe(r).get("users", [])
-        sent = 0
         for usr in users:
             try:
                 await tg.bot.send_message(
                     usr["telegramId"],
                     f"📢 *ማስታወቂያ*\n\n{d['message']}",
                     parse_mode="Markdown")
-                sent += 1
             except Exception: pass
-        print(f"📢 broadcast sent to {sent}/{len(users)}")
     except Exception as e:
         print("broadcast err:", e)
     return web.json_response({"ok": True})
@@ -521,8 +516,7 @@ async def winner_handler(request):
             d["userId"],
             f"🏆 *እንኳን ደስ አለዎት!*\n\n"
             f"💰 *{d['prize']:.2f} ETB*\n"
-            f"🎫 ካርቴላ #{d['cartelaId']}\n\n"
-            f"👉 ወደ *👤 My Profile* በመሄድ ያረጋግጡ።",
+            f"🎫 ካርቴላ #{d['cartelaId']}",
             parse_mode="Markdown")
     except Exception: pass
     return web.json_response({"ok": True})
@@ -533,12 +527,10 @@ async def winner_handler(request):
 async def main():
     if not TOKEN:
         print("❌ TELEGRAM_BOT_TOKEN missing"); return
-    if not SERVER_URL or not WEBAPP_URL:
-        print("⚠️ SERVER_URL / WEBAPP_URL missing")
 
-    print(f"🔧 SERVER_URL : {SERVER_URL}")
-    print(f"🔧 WEBAPP_URL : {WEBAPP_URL}")
-    print(f"🔧 BOT_PORT   : {BOT_PORT}")
+    print(f"🔧 SERVER_URL   : {SERVER_URL}")
+    print(f"🔧 WEBAPP_URL   : {WEBAPP_URL}")
+    print(f"🔧 BOT_PORT     : {BOT_PORT}")
     print(f"🔧 BOT_USERNAME : {BOT_USERNAME}")
 
     tg = ApplicationBuilder().token(TOKEN).build()
