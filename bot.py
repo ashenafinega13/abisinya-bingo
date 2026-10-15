@@ -92,19 +92,20 @@ def sv_set_tx_status(tx_id, status):
         print("sv_set_tx_status:", e)
 
 # ================================================================
-#                        URL BUILDERS
+#                        URL BUILDERS — CRITICAL
 # ================================================================
 def game_url(uid, name):
+    """Play button → opens the picker (or spectator if game running)."""
     return f"{WEBAPP_URL}/game?uid={uid}&name={name}"
 
 def profile_url(uid, tab="history"):
+    """Profile button → wallet/history/leaderboard."""
     return f"{WEBAPP_URL}/profile.html?uid={uid}&tab={tab}"
 
 # ================================================================
 #                        KEYBOARDS
 # ================================================================
 def main_kb(uid, name):
-    """Compact, clean 4-row keyboard with WebApp buttons on top."""
     keyboard = [
         [KeyboardButton("🎯  Play Abisinya Bingo",
                         web_app=WebAppInfo(url=game_url(uid, name)))],
@@ -191,9 +192,13 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "ℹ️ *እርዳታ*\n\n"
         "1️⃣ *🎯 Play* ይጫኑ\n"
-        "2️⃣ 1–4 ካርቴላ ይምረጡ\n"
+        "2️⃣ 1–6 ካርቴላ ይምረጡ\n"
         "3️⃣ *JOIN GAME* ይጫኑ\n"
-        "4️⃣ 4 ማዕዘኖች ሲሟሉ *BINGO* ይጫኑ\n\n"
+        "4️⃣ አንድ ሙሉ መስመር ሲሟላ *BINGO* ይጫኑ\n\n"
+        "🎯 የማሸነፊያ መስመሮች:\n"
+        "• ማንኛውም አግዳሚ ረድፍ (horizontal)\n"
+        "• ማንኛውም ቁልቁል አምድ (vertical)\n"
+        "• ማዕዘን-ለማዕዘን (diagonal)\n\n"
         "⚡ *Auto-Bingo* ን ካበሩ በራስ-ሰር ያሸንፋል።\n\n"
         "💰 ያሸነፉትን ለማውጣት *📤 Withdraw* ይጫኑ።",
         parse_mode="Markdown"
@@ -205,9 +210,10 @@ async def debug_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🔧 *DEBUG*\n\n"
         f"`SERVER_URL` = `{SERVER_URL}`\n"
         f"`WEBAPP_URL` = `{WEBAPP_URL}`\n"
-        f"`BOT_USERNAME` = `{BOT_USERNAME}`\n\n"
-        f"Play URL:\n`{game_url(u.id, u.first_name or 'Player')}`\n\n"
-        f"Profile URL:\n`{profile_url(u.id)}`",
+        f"`BOT_USERNAME` = `{BOT_USERNAME}`\n"
+        f"`BOT_PORT` = `{BOT_PORT}`\n\n"
+        f"*Play URL:*\n`{game_url(u.id, u.first_name or 'Player')}`\n\n"
+        f"*Profile URL:*\n`{profile_url(u.id)}`",
         parse_mode="Markdown"
     )
 
@@ -500,7 +506,7 @@ async def broadcast_handler(request):
                     parse_mode="Markdown")
                 sent += 1
             except Exception: pass
-        print(f"📢 sent to {sent}/{len(users)}")
+        print(f"📢 broadcast sent to {sent}/{len(users)}")
     except Exception as e:
         print("broadcast err:", e)
     return web.json_response({"ok": True})
@@ -533,6 +539,7 @@ async def main():
     print(f"🔧 SERVER_URL : {SERVER_URL}")
     print(f"🔧 WEBAPP_URL : {WEBAPP_URL}")
     print(f"🔧 BOT_PORT   : {BOT_PORT}")
+    print(f"🔧 BOT_USERNAME : {BOT_USERNAME}")
 
     tg = ApplicationBuilder().token(TOKEN).build()
     tg.add_handler(CommandHandler("start",   start))

@@ -26,24 +26,31 @@ const BOT_API_SECRET = process.env.BOT_API_SECRET || 'change-me';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const BOT_CALLBACK_URL = process.env.BOT_CALLBACK_URL || '';
 
-// Secret admin path — generated from ADMIN_PASSWORD hash.
-// Nothing routes to /admin.html by default — only this path works.
+// =============================================================
+//                    SECURE ADMIN URL
+// =============================================================
 const ADMIN_SECRET_PATH = (() => {
   const h = crypto.createHash('sha256').update('adm-' + ADMIN_PASSWORD).digest('hex');
   return '/admin-panel-' + h.slice(0, 20);
 })();
 
+console.log('\n' + '='.repeat(64));
+console.log('ADMIN DASHBOARD URL');
+console.log('https://abisinya-bingo-server.onrender.com' + ADMIN_SECRET_PATH);
+console.log('Save this URL! It changes if ADMIN_PASSWORD changes.');
+console.log('='.repeat(64) + '\n');
+
+// =============================================================
+//                       MIDDLEWARE
+// =============================================================
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
-console.log('📁 Static files:', PUBLIC_DIR);
-console.log('👑 Admin secret path:', ADMIN_SECRET_PATH);
+console.log('Serving static files from:', PUBLIC_DIR);
 
-// Static — but BLOCK the plain /admin.html path from being reachable
 app.get('/admin.html', (req, res) => res.status(404).send('Not found'));
 
-// Serve admin.html ONLY at the secret path
 app.get(ADMIN_SECRET_PATH, (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
 });
@@ -54,8 +61,8 @@ app.use(express.static(PUBLIC_DIR));
 //                       MONGO
 // =============================================================
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('✅ MongoDB connected'))
-  .catch(e => console.error('❌ Mongo error:', e.message));
+  .then(() => console.log('MongoDB connected'))
+  .catch(e => console.error('Mongo error:', e.message));
 
 // =============================================================
 //                       ROUND ENGINE
@@ -81,7 +88,6 @@ const state = {
   callTimer: null,
   phaseTimer: null,
   roundHistory: [],
-
   entryFee: DEFAULT_ENTRY_FEE,
   prizePct: DEFAULT_PRIZE_PERCENT,
   selectionSeconds: DEFAULT_SELECTION_SECONDS,
@@ -109,9 +115,9 @@ function generateCartela(cartelaId) {
   return { id: cartelaId, grid };
 }
 
-console.log('🎴 Generating cartelas…');
+console.log('Generating cartelas...');
 for (let id = 1; id <= CARTELA_COUNT; id++) state.cartelas.push(generateCartela(id));
-console.log(`✅ ${CARTELA_COUNT} cartelas ready`);
+console.log(CARTELA_COUNT + ' cartelas ready');
 
 function letterOf(n) {
   if (n <= 15) return 'B';
@@ -121,50 +127,41 @@ function letterOf(n) {
   return 'O';
 }
 
-// =============================================================
-//               WIN PATTERN CHECKER (NEW)
-// =============================================================
-// Returns { win: true, pattern: "row:2" | "col:3" | "diag:main" | "diag:anti" }
-// Center (2,2) is FREE — auto-marked.
 function evaluateWin(cartela, calledSet) {
   if (!cartela) return null;
   const g = cartela.grid;
 
-  // ---- rows ----
   for (let r = 0; r < 5; r++) {
     let ok = true;
     for (let c = 0; c < 5; c++) {
       const n = g[r][c];
       if (n !== 0 && !calledSet.has(n)) { ok = false; break; }
     }
-    if (ok) return { pattern: `row:${r}` };
+    if (ok) return { pattern: 'row:' + r };
   }
 
-  // ---- columns ----
   for (let c = 0; c < 5; c++) {
     let ok = true;
     for (let r = 0; r < 5; r++) {
       const n = g[r][c];
       if (n !== 0 && !calledSet.has(n)) { ok = false; break; }
     }
-    if (ok) return { pattern: `col:${c}` };
+    if (ok) return { pattern: 'col:' + c };
   }
 
-  // ---- main diagonal (TL → BR) ----
-  let okMain = true;
+  let ok = true;
   for (let i = 0; i < 5; i++) {
     const n = g[i][i];
-    if (n !== 0 && !calledSet.has(n)) { okMain = false; break; }
+    if (n !== 0 && !calledSet.has(n)) { ok = false; break; }
   }
-  if (okMain) return { pattern: 'diag:main' };
+  if (ok) return { pattern: 'diag:main' };
 
-  // ---- anti diagonal (TR → BL) ----
-  let okAnti = true;
+  ok = true;
   for (let i = 0; i < 5; i++) {
     const n = g[i][4 - i];
-    if (n !== 0 && !calledSet.has(n)) { okAnti = false; break; }
+    if (n !== 0 && !calledSet.has(n)) { ok = false; break; }
   }
-  if (okAnti) return { pattern: 'diag:anti' };
+  if (ok) return { pattern: 'diag:anti' };
 
   return null;
 }
@@ -205,14 +202,14 @@ function startSelectionPhase() {
   state.roundId++;
   clearTimeout(state.phaseTimer);
   clearInterval(state.callTimer);
-  console.log(`🟢 Round ${state.roundId}: selection (${state.selectionSeconds}s)`);
+  console.log('Round ' + state.roundId + ': selection (' + state.selectionSeconds + 's)');
   broadcastState();
   state.phaseTimer = setTimeout(startRunningPhase, state.selectionSeconds * 1000);
 }
 
 function startRunningPhase() {
   if (state.players.size === 0) {
-    console.log('⏳ No players — extending selection');
+    console.log('No players - extending selection');
     state.selectionEndsAt = Date.now() + state.selectionSeconds * 1000;
     broadcastState();
     state.phaseTimer = setTimeout(startRunningPhase, state.selectionSeconds * 1000);
@@ -220,7 +217,7 @@ function startRunningPhase() {
   }
   state.phase = 'running';
   broadcastState();
-  console.log(`▶️ Round ${state.roundId}: running (${state.players.size} players)`);
+  console.log('Round ' + state.roundId + ': running (' + state.players.size + ' players)');
   clearInterval(state.callTimer);
   state.callTimer = setInterval(callNextNumber, state.callIntervalMs);
   setTimeout(callNextNumber, 1000);
@@ -236,29 +233,7 @@ function callNextNumber() {
   state.currentCall = n;
   io.emit('number-called', { number: n, all: state.calledNumbers });
   broadcastState();
-  console.log(`📞 ${letterOf(n)}-${n}`);
-}
-
-// Instant win check — which player(s) have a completed line right now
-function findInstantWinners() {
-  const calledSet = new Set(state.calledNumbers);
-  calledSet.add(0);
-  const winners = [];
-  for (const [uid, player] of state.players.entries()) {
-    for (const cid of player.cartelas) {
-      const cartela = state.cartelas.find(c => c.id === cid);
-      const w = evaluateWin(cartela, calledSet);
-      if (w) {
-        winners.push({
-          userId: uid,
-          firstName: player.firstName,
-          cartelaId: cid,
-          pattern: w.pattern
-        });
-      }
-    }
-  }
-  return winners;
+  console.log('Call: ' + letterOf(n) + '-' + n);
 }
 
 async function finishRound(winnerInfo) {
@@ -268,9 +243,9 @@ async function finishRound(winnerInfo) {
 
   if (winnerInfo) {
     const prize = Math.floor(state.prizePool * state.prizePct);
-    const winner = { ...winnerInfo, prize };
+    const winner = Object.assign({}, winnerInfo, { prize: prize });
     state.winner = winner;
-    state.roundHistory.push({ roundId: state.roundId, ...winner });
+    state.roundHistory.push(Object.assign({ roundId: state.roundId }, winner));
 
     try {
       await User.updateOne(
@@ -290,18 +265,18 @@ async function finishRound(winnerInfo) {
     } catch (e) { console.error('winner credit error:', e.message); }
 
     const wc = state.cartelas.find(c => c.id === winner.cartelaId);
-    const winnerPayload = { ...winner, cartelaGrid: wc ? wc.grid : null };
+    const winnerPayload = Object.assign({}, winner, { cartelaGrid: wc ? wc.grid : null });
     io.emit('round-finished', winnerPayload);
 
     if (BOT_CALLBACK_URL) {
-      axios.post(`${BOT_CALLBACK_URL}/winner`, winner,
+      axios.post(BOT_CALLBACK_URL + '/winner', winner,
         { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 })
         .catch(() => {});
     }
-    console.log(`🏆 ${winner.firstName} won ${prize} (${winner.pattern})`);
+    console.log('Winner: ' + winner.firstName + ' won ' + prize + ' (' + winner.pattern + ')');
   } else {
     io.emit('round-finished', null);
-    console.log('😐 No winner');
+    console.log('No winner');
   }
   broadcastState();
   state.phaseTimer = setTimeout(startSelectionPhase, BETWEEN_ROUNDS_MS);
@@ -324,28 +299,12 @@ function adminAuth(req, res, next) {
 }
 
 // =============================================================
-//                       LANDING
+//                       ROOT
 // =============================================================
 app.get('/', (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html><head><meta charset="utf-8"><title>Abisinya Bingo</title>
-    <style>body{font-family:system-ui;background:#0b0616;color:#f5f3ff;
-      min-height:100vh;display:flex;align-items:center;justify-content:center;
-      margin:0;padding:20px}
-    .c{background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);
-       border-radius:16px;padding:32px;max-width:400px;text-align:center}
-    h1{color:#ec4899;margin:0 0 8px}
-    a{color:#22d3ee}
-    </style></head><body>
-    <div class="c">
-      <h1>🎯 Abisinya Bingo</h1>
-      <p style="color:#a78bfa">Round ${state.roundId} · ${state.phase} · ${state.players.size} players</p>
-    </div></body></html>
-  `);
+  res.redirect('/bingo.html');
 });
 
-// Game — direct entry: if running, spectator; if selection, picker
 app.get('/game', (req, res) => {
   const q = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
   res.redirect('/bingo.html' + q);
@@ -366,7 +325,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.get('/api/game', (req, res) => {
-  res.json({ success: true, ...publicState() });
+  res.json(Object.assign({ success: true }, publicState()));
 });
 
 app.get('/api/game-players', (req, res) => {
@@ -384,9 +343,11 @@ app.get('/api/my-cartelas/:userId', (req, res) => {
 
 app.post('/api/player/join', async (req, res) => {
   try {
-    const { userId, firstName, cartelaIds } = req.body;
+    const userId = req.body.userId;
+    const firstName = req.body.firstName;
+    const cartelaIds = req.body.cartelaIds;
     if (state.phase !== 'selection')
-      return res.status(400).json({ error: 'Selection closed — wait for next round' });
+      return res.status(400).json({ error: 'Selection closed - wait for next round' });
     if (!Array.isArray(cartelaIds) || cartelaIds.length < 1 || cartelaIds.length > 6)
       return res.status(400).json({ error: 'Choose 1 to 6 cartelas' });
     if (state.players.has(userId))
@@ -394,28 +355,28 @@ app.post('/api/player/join', async (req, res) => {
 
     for (const id of cartelaIds) {
       if (!Number.isInteger(id) || id < 1 || id > CARTELA_COUNT)
-        return res.status(400).json({ error: `Invalid cartela ${id}` });
+        return res.status(400).json({ error: 'Invalid cartela ' + id });
       if (state.takenCartelas.has(id))
-        return res.status(400).json({ error: `Cartela ${id} already taken` });
+        return res.status(400).json({ error: 'Cartela ' + id + ' already taken' });
     }
 
     const total = state.entryFee * cartelaIds.length;
     const u = await User.findOne({ telegramId: userId });
-    if (!u) return res.status(404).json({ error: 'User not found — send /start to bot' });
+    if (!u) return res.status(404).json({ error: 'User not found - send /start to bot' });
     if (u.balance < total)
-      return res.status(400).json({ error: `Need ${total} ETB (you have ${u.balance.toFixed(2)})` });
+      return res.status(400).json({ error: 'Need ' + total + ' ETB (you have ' + u.balance.toFixed(2) + ')' });
 
     u.balance -= total;
     u.totalGames = (u.totalGames || 0) + 1;
     await u.save();
 
     await Transaction.create({
-      userId, type: 'bet', amount: total, status: 'approved',
+      userId: userId, type: 'bet', amount: total, status: 'approved',
       method: 'game', gameId: state.roundId, cartelas: cartelaIds
     });
 
     state.prizePool += total;
-    state.players.set(userId, { firstName, cartelas: cartelaIds });
+    state.players.set(userId, { firstName: firstName, cartelas: cartelaIds });
     cartelaIds.forEach(id => state.takenCartelas.add(id));
 
     const grids = state.cartelas.filter(c => cartelaIds.includes(c.id));
@@ -429,7 +390,8 @@ app.post('/api/player/join', async (req, res) => {
 
 app.post('/api/player/bingo', async (req, res) => {
   try {
-    const { userId, cartelaId } = req.body;
+    const userId = req.body.userId;
+    const cartelaId = req.body.cartelaId;
     if (state.phase !== 'running')
       return res.status(400).json({ error: 'Game not running' });
     const player = state.players.get(userId);
@@ -442,15 +404,65 @@ app.post('/api/player/bingo', async (req, res) => {
     if (!w) return res.status(400).json({ error: 'No complete line yet' });
 
     await finishRound({
-      userId,
+      userId: userId,
       firstName: player.firstName,
-      cartelaId,
+      cartelaId: cartelaId,
       pattern: w.pattern
     });
     res.json({ success: true, prize: state.winner ? state.winner.prize : 0, pattern: w.pattern });
   } catch (e) {
     res.status(500).json({ error: 'Server error' });
   }
+});
+
+// =============================================================
+//                    DIRECT DEPOSIT / WITHDRAW
+// =============================================================
+app.post('/api/deposit/request', async (req, res) => {
+  try {
+    const b = req.body;
+    if (!b.userId || !b.amount || b.amount < 1)
+      return res.status(400).json({ error: 'invalid amount' });
+
+    const tx = await Transaction.create({
+      userId: b.userId, type: 'deposit', amount: b.amount,
+      method: b.method, phone: b.phone, sms: b.sms, status: 'pending'
+    });
+
+    if (BOT_CALLBACK_URL) {
+      axios.post(BOT_CALLBACK_URL + '/notify-tx', {
+        telegramId: b.userId, type: 'deposit', amount: b.amount, status: 'pending'
+      }, { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 })
+        .catch(() => {});
+    }
+    res.json({ success: true, tx: tx });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/withdraw/request', async (req, res) => {
+  try {
+    const b = req.body;
+    if (!b.userId || !b.amount || b.amount < 100)
+      return res.status(400).json({ error: 'min 100 ETB' });
+
+    const u = await User.findOne({ telegramId: b.userId });
+    if (!u) return res.status(404).json({ error: 'user not found' });
+    if (b.amount > (u.balance + u.winBalance))
+      return res.status(400).json({ error: 'exceeds available balance' });
+
+    const tx = await Transaction.create({
+      userId: b.userId, type: 'withdraw', amount: b.amount,
+      method: b.method, phone: b.phone, status: 'pending'
+    });
+
+    if (BOT_CALLBACK_URL) {
+      axios.post(BOT_CALLBACK_URL + '/notify-tx', {
+        telegramId: b.userId, type: 'withdraw', amount: b.amount, status: 'pending'
+      }, { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 })
+        .catch(() => {});
+    }
+    res.json({ success: true, tx: tx });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // =============================================================
@@ -478,11 +490,13 @@ app.get('/api/history/:userId', async (req, res) => {
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = 20;
     const skip = (page - 1) * limit;
-    const [txs, total] = await Promise.all([
+    const results = await Promise.all([
       Transaction.find({ userId: uid }).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       Transaction.countDocuments({ userId: uid })
     ]);
-    res.json({ success: true, page, totalPages: Math.ceil(total / limit), total, txs });
+    const txs = results[0];
+    const total = results[1];
+    res.json({ success: true, page: page, totalPages: Math.ceil(total / limit), total: total, txs: txs });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -514,10 +528,8 @@ app.get('/api/leaderboard', async (req, res) => {
         }}
       ]);
     }
-    res.json({ success: true, range, list });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
+    res.json({ success: true, range: range, list: list });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // =============================================================
@@ -525,11 +537,11 @@ app.get('/api/leaderboard', async (req, res) => {
 // =============================================================
 app.post('/api/bot/user', botAuth, async (req, res) => {
   try {
-    const { telegramId, username, firstName, phone } = req.body;
-    const update = { username, firstName };
-    if (phone) update.phone = phone;
+    const b = req.body;
+    const update = { username: b.username, firstName: b.firstName };
+    if (b.phone) update.phone = b.phone;
     const u = await User.findOneAndUpdate(
-      { telegramId }, { $set: update }, { new: true, upsert: true }
+      { telegramId: b.telegramId }, { $set: update }, { new: true, upsert: true }
     );
     res.json({ success: true, user: u });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -542,7 +554,8 @@ app.get('/api/bot/user/:id', botAuth, async (req, res) => {
 
 app.post('/api/bot/user/:id/adjust', botAuth, async (req, res) => {
   try {
-    const { field, delta } = req.body;
+    const field = req.body.field;
+    const delta = req.body.delta;
     if (!['balance', 'winBalance'].includes(field))
       return res.status(400).json({ error: 'invalid field' });
     const u = await User.findOneAndUpdate(
@@ -555,72 +568,26 @@ app.post('/api/bot/user/:id/adjust', botAuth, async (req, res) => {
 
 app.get('/api/bot/all-users', botAuth, async (req, res) => {
   const users = await User.find({}, { telegramId: 1, firstName: 1 });
-  res.json({ success: true, users });
+  res.json({ success: true, users: users });
 });
 
 app.post('/api/bot/transaction', botAuth, async (req, res) => {
   const tx = await Transaction.create(req.body);
-  res.json({ success: true, tx });
+  res.json({ success: true, tx: tx });
 });
 
 app.get('/api/bot/transaction/:id', botAuth, async (req, res) => {
   const tx = await Transaction.findById(req.params.id);
-  res.json({ success: true, tx });
+  res.json({ success: true, tx: tx });
 });
 
 app.post('/api/bot/transaction/:id/status', botAuth, async (req, res) => {
   const tx = await Transaction.findByIdAndUpdate(
     req.params.id, { status: req.body.status }, { new: true }
   );
-  res.json({ success: true, tx });
+  res.json({ success: true, tx: tx });
 });
 
-// Direct deposit/withdraw requests from the WebApp (not via bot)
-app.post('/api/deposit/request', async (req, res) => {
-  try {
-    const { userId, amount, method, phone, sms } = req.body;
-    if (!userId || !amount || amount < 1)
-      return res.status(400).json({ error: 'invalid amount' });
-
-    const tx = await Transaction.create({
-      userId, type: 'deposit', amount, method, phone, sms, status: 'pending'
-    });
-
-    // Notify admin via bot
-    if (BOT_CALLBACK_URL) {
-      axios.post(`${BOT_CALLBACK_URL}/notify-tx`, {
-        telegramId: userId, type: 'deposit', amount, status: 'pending'
-      }, { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 })
-        .catch(() => {});
-    }
-    res.json({ success: true, tx });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post('/api/withdraw/request', async (req, res) => {
-  try {
-    const { userId, amount, method, phone } = req.body;
-    if (!userId || !amount || amount < 100)
-      return res.status(400).json({ error: 'min 100 ETB' });
-
-    const u = await User.findOne({ telegramId: userId });
-    if (!u) return res.status(404).json({ error: 'user not found' });
-    if (amount > (u.balance + u.winBalance))
-      return res.status(400).json({ error: 'exceeds available balance' });
-
-    const tx = await Transaction.create({
-      userId, type: 'withdraw', amount, method, phone, status: 'pending'
-    });
-
-    if (BOT_CALLBACK_URL) {
-      axios.post(`${BOT_CALLBACK_URL}/notify-tx`, {
-        telegramId: userId, type: 'withdraw', amount, status: 'pending'
-      }, { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 })
-        .catch(() => {});
-    }
-    res.json({ success: true, tx });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 // =============================================================
 //                       ADMIN
 // =============================================================
@@ -637,17 +604,17 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
 
 app.get('/api/admin/users', adminAuth, async (req, res) => {
   const users = await User.find().sort({ createdAt: -1 }).limit(200);
-  res.json({ success: true, users });
+  res.json({ success: true, users: users });
 });
 
 app.get('/api/admin/transactions', adminAuth, async (req, res) => {
   const txs = await Transaction.find().sort({ createdAt: -1 }).limit(200);
-  res.json({ success: true, txs });
+  res.json({ success: true, txs: txs });
 });
 
 app.post('/api/admin/transaction/:id', adminAuth, async (req, res) => {
   try {
-    const { action } = req.body;
+    const action = req.body.action;
     const tx = await Transaction.findById(req.params.id);
     if (!tx || tx.status !== 'pending')
       return res.status(400).json({ error: 'invalid tx' });
@@ -662,20 +629,20 @@ app.post('/api/admin/transaction/:id', adminAuth, async (req, res) => {
     await tx.save();
 
     if (BOT_CALLBACK_URL) {
-      axios.post(`${BOT_CALLBACK_URL}/notify-tx`, {
+      axios.post(BOT_CALLBACK_URL + '/notify-tx', {
         telegramId: tx.userId, type: tx.type, amount: tx.amount, status: tx.status
       }, { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 }).catch(() => {});
     }
-    res.json({ success: true, tx });
+    res.json({ success: true, tx: tx });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/admin/broadcast', adminAuth, (req, res) => {
-  const { message } = req.body;
+  const message = req.body.message;
   if (!message) return res.status(400).json({ error: 'empty message' });
-  io.emit('broadcast', { message });
+  io.emit('broadcast', { message: message });
   if (BOT_CALLBACK_URL) {
-    axios.post(`${BOT_CALLBACK_URL}/broadcast`, { message },
+    axios.post(BOT_CALLBACK_URL + '/broadcast', { message: message },
       { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 }).catch(() => {});
   }
   res.json({ success: true });
@@ -695,12 +662,13 @@ app.get('/api/admin/round-players', adminAuth, (req, res) => {
     cartelas: p.cartelas,
     hasBingo: false
   }));
-  res.json({ success: true, players });
+  res.json({ success: true, players: players });
 });
 
 app.post('/api/admin/user/:uid/adjust', adminAuth, async (req, res) => {
   try {
-    const { field, delta } = req.body;
+    const field = req.body.field;
+    const delta = req.body.delta;
     if (!['balance', 'winBalance'].includes(field))
       return res.status(400).json({ error: 'invalid field' });
     if (typeof delta !== 'number' || isNaN(delta))
@@ -715,12 +683,12 @@ app.post('/api/admin/user/:uid/adjust', adminAuth, async (req, res) => {
 });
 
 app.post('/api/admin/settings', adminAuth, (req, res) => {
-  const { entryFee, prizePct, selectionSeconds, callIntervalMs } = req.body;
-  if (typeof entryFee === 'number' && entryFee > 0) state.entryFee = entryFee;
-  if (typeof prizePct === 'number' && prizePct > 0 && prizePct <= 100) state.prizePct = prizePct / 100;
-  if (typeof selectionSeconds === 'number' && selectionSeconds >= 10 && selectionSeconds <= 300) state.selectionSeconds = selectionSeconds;
-  if (typeof callIntervalMs === 'number' && callIntervalMs >= 1000 && callIntervalMs <= 20000) {
-    state.callIntervalMs = callIntervalMs;
+  const b = req.body;
+  if (typeof b.entryFee === 'number' && b.entryFee > 0) state.entryFee = b.entryFee;
+  if (typeof b.prizePct === 'number' && b.prizePct > 0 && b.prizePct <= 100) state.prizePct = b.prizePct / 100;
+  if (typeof b.selectionSeconds === 'number' && b.selectionSeconds >= 10 && b.selectionSeconds <= 300) state.selectionSeconds = b.selectionSeconds;
+  if (typeof b.callIntervalMs === 'number' && b.callIntervalMs >= 1000 && b.callIntervalMs <= 20000) {
+    state.callIntervalMs = b.callIntervalMs;
     if (state.phase === 'running') {
       clearInterval(state.callTimer);
       state.callTimer = setInterval(callNextNumber, state.callIntervalMs);
@@ -774,28 +742,26 @@ io.on('connection', socket => {
 //                       404 FALLBACK
 // =============================================================
 app.use((req, res) => {
-  console.log(`❓ 404: ${req.method} ${req.url}`);
-  res.status(404).send(`
-    <!DOCTYPE html><html><head><meta charset="utf-8"><title>Not Found</title>
-    <style>body{font-family:system-ui;background:#0b0616;color:#f5f3ff;
-      display:flex;min-height:100vh;align-items:center;justify-content:center;
-      margin:0;padding:20px;text-align:center}
-    .c{background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);
-       padding:24px;border-radius:12px;max-width:420px}
-    a{color:#22d3ee}
-    </style></head><body>
-    <div class="c">
-      <h2 style="color:#ec4899">404 — Not Found</h2>
-      <p style="color:#a78bfa;font-size:14px">Path: <code>${req.url}</code></p>
-      <p style="margin-top:16px"><a href="/">Home</a></p>
-    </div></body></html>
-  `);
+  console.log('404: ' + req.method + ' ' + req.url);
+  res.status(404).send(
+    '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Not Found</title>' +
+    '<style>body{font-family:system-ui;background:#0b0616;color:#f5f3ff;' +
+    'display:flex;min-height:100vh;align-items:center;justify-content:center;' +
+    'margin:0;padding:20px;text-align:center}' +
+    '.c{background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);' +
+    'padding:24px;border-radius:12px;max-width:420px}a{color:#22d3ee}</style>' +
+    '</head><body><div class="c">' +
+    '<h2 style="color:#ec4899">404 - Not Found</h2>' +
+    '<p style="color:#a78bfa;font-size:14px">Path: <code>' + req.url + '</code></p>' +
+    '<p style="margin-top:16px"><a href="/game">Play Game</a></p>' +
+    '</div></body></html>'
+  );
 });
 
 // =============================================================
 //                       START
 // =============================================================
 server.listen(PORT, () => {
-  console.log(`🚀 Server on port ${PORT}`);
-  console.log(`👑 Admin secret path: ${ADMIN_SECRET_PATH}`);
+  console.log('Server on port ' + PORT);
+  console.log('Admin URL: ' + ADMIN_SECRET_PATH);
 });
