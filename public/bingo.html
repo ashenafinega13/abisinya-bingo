@@ -30,7 +30,6 @@
     -webkit-font-smoothing:antialiased;
   }
 
-  /* WELCOME SPLASH */
   #splash{
     position:fixed;inset:0;z-index:500;
     background:
@@ -83,16 +82,12 @@
     height:100%; overflow:hidden; gap:4px;
   }
 
-  /* TOP BAR */
-  .topbar{
-    display:grid;grid-template-columns:repeat(5,1fr);gap:3px;flex-shrink:0;
-  }
+  .topbar{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;flex-shrink:0}
   .stat{
     background:linear-gradient(180deg,rgba(139,92,246,.14),rgba(139,92,246,.05));
     border:1px solid var(--border);border-radius:7px;
     padding:4px 2px;text-align:center;
-    display:flex;flex-direction:column;justify-content:center;
-    min-height:38px;
+    display:flex;flex-direction:column;justify-content:center;min-height:38px;
   }
   .stat small{
     font-size:7px;color:var(--muted);font-weight:800;
@@ -104,14 +99,12 @@
   }
   .stat.purple b{color:var(--neon-pink)}
 
-  /* MAIN SPLIT */
   .main-split{
     flex:1 1 auto;min-height:0;
     display:grid;grid-template-columns: 40% 1fr;
     gap:5px;overflow:hidden;
   }
 
-  /* LEFT BOARD */
   .board-column{display:flex;flex-direction:column;gap:3px;min-height:0}
   .bh-row{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;flex-shrink:0}
   .bh{
@@ -155,11 +148,42 @@
     to{transform:scale(1.08)}
   }
 
-  /* RIGHT CONTROL */
   .control-column{
     display:flex;flex-direction:column;gap:4px;
     min-height:0; overflow:hidden;
   }
+
+  /* MODE TOGGLE + STATUS + CALL — all in a compact row */
+  .mode-row{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:4px;
+    flex-shrink:0;
+  }
+  .mode-btn{
+    display:flex;align-items:center;justify-content:center;gap:5px;
+    padding:5px 6px;border-radius:8px;
+    font-size:10px;font-weight:900;letter-spacing:.5px;
+    background:rgba(139,92,246,.12);
+    border:1px solid var(--border);
+    color:var(--muted);
+    cursor:pointer;transition:all .2s;
+    text-transform:uppercase;
+  }
+  .mode-btn.on{
+    background:linear-gradient(135deg,var(--neon-green),#10b981);
+    color:#0b0616;border-color:transparent;
+    box-shadow:0 0 14px rgba(34,197,94,.45);
+  }
+  .mode-btn.on.manual{
+    background:linear-gradient(135deg,var(--neon-cyan),#0891b2);
+    color:#0b0616;box-shadow:0 0 14px rgba(34,211,238,.45);
+  }
+  .mode-btn .indicator{
+    display:inline-block;width:7px;height:7px;border-radius:50%;
+    background:currentColor;opacity:.65;
+  }
+  .mode-btn.on .indicator{opacity:1;background:#0b0616;box-shadow:0 0 6px #fff}
 
   .compact-top{
     display:grid;grid-template-columns: 1fr auto;
@@ -168,11 +192,11 @@
   .status-box{
     background:linear-gradient(180deg,rgba(139,92,246,.16),rgba(139,92,246,.05));
     border:1px solid rgba(167,139,250,.3);
-    border-radius:8px;padding:4px 8px;
-    display:flex;align-items:center;justify-content:center;min-height:32px;
+    border-radius:8px;padding:3px 8px;
+    display:flex;align-items:center;justify-content:center;min-height:28px;
   }
   .status-box .txt{
-    font-size:12px;font-weight:900;letter-spacing:1.5px;
+    font-size:11px;font-weight:900;letter-spacing:1.5px;
     color:var(--neon-green);text-transform:uppercase;
   }
   .status-box.waiting .txt{color:var(--neon-orange)}
@@ -180,20 +204,20 @@
 
   .call-pill{
     background:linear-gradient(135deg,#6b2fb5,#8e44d0);
-    border-radius:8px;padding:4px 8px;
+    border-radius:8px;padding:3px 8px;
     display:flex;align-items:center;gap:6px;
-    box-shadow:0 3px 12px rgba(107,47,181,.4);min-height:32px;
+    box-shadow:0 3px 12px rgba(107,47,181,.4);min-height:28px;
   }
   .call-pill .lbl{
-    font-size:10px;font-weight:900;color:#fff;letter-spacing:.3px;
+    font-size:9px;font-weight:900;color:#fff;letter-spacing:.3px;
     text-shadow:0 1px 2px rgba(0,0,0,.3);white-space:nowrap;
   }
   .call-badge{
-    width:30px;height:30px;border-radius:50%;
+    width:26px;height:26px;border-radius:50%;
     background:radial-gradient(circle at 28% 28%, #fff2b0, var(--neon-gold) 45%, #b45309 100%);
     display:flex;align-items:center;justify-content:center;
-    font-size:14px;font-weight:900;color:#1a0a2e;
-    box-shadow:0 0 14px rgba(250,204,21,.65),inset 0 -2px 4px rgba(0,0,0,.2);
+    font-size:12px;font-weight:900;color:#1a0a2e;
+    box-shadow:0 0 12px rgba(250,204,21,.65),inset 0 -2px 4px rgba(0,0,0,.2);
     transition:transform .3s cubic-bezier(.2,1.6,.4,1);
     flex-shrink:0;
   }
@@ -202,17 +226,18 @@
   .last-calls{
     background:linear-gradient(180deg,rgba(30,20,60,.55),rgba(20,12,40,.55));
     border:1px solid var(--border);border-radius:8px;
-    padding:5px 6px;display:flex;gap:4px;align-items:center;
+    padding:4px 6px;display:flex;gap:4px;align-items:center;
     flex-shrink:0;overflow-x:auto;overflow-y:hidden;
     white-space:nowrap;-webkit-overflow-scrolling:touch;
-    scrollbar-width:none;min-height:32px;
+    scrollbar-width:none;min-height:28px;
   }
   .last-calls::-webkit-scrollbar{display:none}
   .lc-chip{
-    padding:3px 8px;border-radius:12px;font-size:10px;font-weight:800;
+    padding:2px 7px;border-radius:10px;font-size:9px;font-weight:800;
     background:rgba(139,92,246,.2);color:var(--ink);
     border:1px solid rgba(167,139,250,.25);
     animation:chip-in .3s;letter-spacing:.3px;flex-shrink:0;
+    transition:opacity .3s;
   }
   .lc-chip:nth-child(1){background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;border-color:transparent}
   .lc-chip:nth-child(2){background:linear-gradient(135deg,#2563c7,#1e40af);color:#fff;border-color:transparent}
@@ -220,6 +245,11 @@
   .lc-chip.newest{
     background:linear-gradient(135deg,var(--neon-gold),#eab308);
     color:#1a0a2e;border-color:#fff;box-shadow:0 0 10px rgba(250,204,21,.6);
+  }
+  .lc-chip.marked-by-me{
+    opacity:.55;
+    text-decoration:line-through;
+    text-decoration-thickness:1.5px;
   }
   @keyframes chip-in{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
   .lc-empty{font-size:10px;color:var(--muted);font-style:italic}
@@ -249,36 +279,74 @@
   }
   .cartela-card{
     background:linear-gradient(180deg,rgba(30,20,60,.55),rgba(20,12,40,.55));
-    border:1px solid var(--border);border-radius:8px;padding:4px;
+    border:1px solid var(--border);border-radius:8px;padding:5px;
+    transition:transform .2s, box-shadow .3s, border-color .3s;
+  }
+  .cartela-card.has-manual-win{
+    border-color:var(--neon-gold);
+    box-shadow:0 0 16px rgba(250,204,21,.6);
+    animation:win-glow 1s infinite alternate;
+  }
+  @keyframes win-glow{
+    from{box-shadow:0 0 12px rgba(250,204,21,.4)}
+    to{box-shadow:0 0 24px rgba(250,204,21,.85)}
   }
   .cartela-head{
     display:flex;justify-content:space-between;align-items:center;
-    font-size:8px;color:var(--muted);font-weight:800;
-    letter-spacing:.4px;margin-bottom:3px;
+    font-size:9px;color:var(--muted);font-weight:800;
+    letter-spacing:.4px;margin-bottom:4px;
   }
-  .cartela-head .id{color:var(--neon-cyan)}
+  .cartela-head .id{color:var(--neon-cyan);font-size:10px}
   .cartela-grid{
     display:grid;grid-template-columns:repeat(5,1fr);
-    grid-template-rows:repeat(5,1fr);gap:2px;
+    grid-template-rows:repeat(5,1fr);gap:3px;
   }
   .cell{
     aspect-ratio:1;display:flex;align-items:center;justify-content:center;
-    font-weight:800; font-size:10px;border-radius:4px;
-    background:rgba(139,92,246,.10);color:var(--ink);
+    font-weight:800; font-size:13px;
+    border-radius:5px;
+    background:rgba(139,92,246,.10);
+    color:var(--ink);
     border:1px solid rgba(167,139,250,.12);
-    transition:all .3s;user-select:none; line-height:1;
+    transition:all .3s;
+    user-select:none; line-height:1;
+    min-height:22px;
+    cursor:default;
+  }
+  /* In manual mode, cells that are eligible to be tapped */
+  .cell.tappable{
+    cursor:pointer;
+    border-color:rgba(34,211,238,.4);
+    box-shadow:inset 0 0 6px rgba(34,211,238,.2);
+    animation:tappable-pulse 1.4s infinite;
+  }
+  .cell.tappable:active{transform:scale(.9)}
+  @keyframes tappable-pulse{
+    0%,100%{border-color:rgba(34,211,238,.35)}
+    50%{border-color:rgba(34,211,238,.85);box-shadow:inset 0 0 10px rgba(34,211,238,.3)}
   }
   .cell.marked{
     background:linear-gradient(135deg,var(--neon-orange),#ea580c);
     color:#fff;border-color:transparent;
-    box-shadow:0 0 6px rgba(251,146,60,.5);
+    box-shadow:0 0 8px rgba(251,146,60,.6);
     animation:mark-pop .4s cubic-bezier(.2,1.6,.5,1);
   }
-  @keyframes mark-pop{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
+  @keyframes mark-pop{0%{transform:scale(1)}40%{transform:scale(1.22)}100%{transform:scale(1)}}
+  .cell.auto-marked{
+    background:linear-gradient(135deg,var(--neon-orange),#ea580c);
+    color:#fff;border-color:transparent;
+    box-shadow:0 0 8px rgba(251,146,60,.6);
+  }
   .cell.win{
     background:linear-gradient(135deg,var(--neon-gold),#eab308);
-    color:#1a0a2e;border:1px solid #fff;
-    box-shadow:0 0 10px rgba(250,204,21,.85);
+    color:#1a0a2e;border:1.5px solid #fff;
+    box-shadow:0 0 14px rgba(250,204,21,.9);
+    font-weight:900;
+  }
+
+  @media (max-height: 700px){
+    .cell{font-size:11px;min-height:18px}
+    .cartela-head{font-size:8px}
   }
 
   .progress{
@@ -301,14 +369,17 @@
     box-shadow:0 3px 12px rgba(236,72,153,.5);letter-spacing:1px;
   }
   .btn-bingo:disabled{background:#3a2545;box-shadow:none;cursor:not-allowed;color:#7a6b99}
+  .btn-bingo.hot{
+    animation:pulse-bingo .8s infinite alternate;
+  }
+  @keyframes pulse-bingo{
+    from{box-shadow:0 3px 12px rgba(236,72,153,.5)}
+    to{box-shadow:0 3px 24px rgba(236,72,153,1);transform:scale(1.03)}
+  }
   .btn-ghost{
     flex:0 0 auto;padding:9px 12px;
     background:rgba(139,92,246,.15);color:var(--ink);
     border:1px solid var(--border);
-  }
-  .btn-ghost.on{
-    background:linear-gradient(135deg,var(--neon-green),#10b981);
-    color:#0b0616;border-color:transparent;
   }
 
   .icon-bar{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;flex-shrink:0}
@@ -322,7 +393,6 @@
   .icon-bar button small{font-size:7px;color:var(--muted);font-weight:700;letter-spacing:.3px}
   .icon-bar button:active{transform:scale(.95)}
 
-  /* PICKER */
   .picker-wrap{flex:1;display:flex;flex-direction:column;gap:5px;overflow:hidden}
   .picker-header{
     display:flex;justify-content:space-between;align-items:center;
@@ -389,7 +459,6 @@
   }
   .msg.error{color:var(--neon-pink);border-color:rgba(236,72,153,.4)}
 
-  /* MODALS */
   .modal-bg{
     position:fixed;inset:0;background:rgba(10,5,25,.88);
     backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;
@@ -488,14 +557,14 @@
       <div style="flex:1">
         <div style="font-size:11px;color:var(--muted);font-weight:800;letter-spacing:.6px;text-transform:uppercase">Choose Cartelas</div>
         <div style="font-size:14px;font-weight:900;color:var(--ink);margin-top:2px">
-          <span id="selCount">0</span>/3 · Balance: <span id="balanceSel" style="color:var(--neon-cyan)">--</span> · Pool: <span id="prizeSelLbl" style="color:var(--neon-gold)">0 ETB</span>
+          <span id="selCount">0</span>/4 · Balance: <span id="balanceSel" style="color:var(--neon-cyan)">--</span> · Pool: <span id="prizeSelLbl" style="color:var(--neon-gold)">0 ETB</span>
         </div>
       </div>
       <div class="picker-countdown" id="countdownBtn">--</div>
     </div>
     <div class="picker" id="picker"></div>
     <button class="action-btn" id="joinBtn" disabled>🎯 JOIN GAME</button>
-    <div class="msg" id="selMsg">Pick 1–3 cartelas then tap JOIN</div>
+    <div class="msg" id="selMsg">Pick 1–4 cartelas then tap JOIN</div>
   </div>
 
   <div id="gameScreen" class="hidden" style="flex:1;display:flex;flex-direction:column;gap:4px;min-height:0">
@@ -512,6 +581,17 @@
       </div>
 
       <div class="control-column">
+
+        <!-- MODE TOGGLE -->
+        <div class="mode-row">
+          <div class="mode-btn manual" id="modeManualBtn" title="Tap numbers yourself">
+            <span class="indicator"></span> MANUAL
+          </div>
+          <div class="mode-btn" id="modeAutoBtn" title="Auto mark & claim">
+            <span class="indicator"></span> AUTO
+          </div>
+        </div>
+
         <div class="compact-top">
           <div class="status-box" id="statusBox">
             <div class="txt" id="statusTxt">WAITING</div>
@@ -539,7 +619,6 @@
 
     <div class="bottom-bar">
       <button class="btn-bingo" id="bingoBtn" disabled>🎉 BINGO!</button>
-      <button class="btn-ghost" id="autoBingoBtn" title="Auto Bingo">⚡</button>
     </div>
 
     <div class="icon-bar">
@@ -561,7 +640,7 @@
 
 <script>
 // ============ CONFIG ============
-const MAX_CARTELAS = 3;   // ⬅️ changed from 6 to 3
+const MAX_CARTELAS = 4;
 
 // ============ PARAMS ============
 const p = new URLSearchParams(location.search);
@@ -572,7 +651,6 @@ const socket = io();
 // ============ VOICE ============
 let voiceEnabled = false;
 const audioCache = new Map();
-
 function preloadAudio(num){
   if (audioCache.has(num)) return audioCache.get(num);
   const a = new Audio('/audio/call_' + num + '.mp3');
@@ -582,9 +660,7 @@ function preloadAudio(num){
 }
 setTimeout(() => {
   for (let n = 1; n <= 75; n++) preloadAudio(n);
-  console.log('🎙️ Preloaded 75 MP3s');
 }, 2000);
-
 function playCall(number){
   if (!voiceEnabled) return;
   try {
@@ -592,8 +668,8 @@ function playCall(number){
     a.currentTime = 0;
     a.volume = 1.0;
     const pr = a.play();
-    if (pr && pr.catch) pr.catch(err => console.log('audio err:', err.message));
-  } catch(e){ console.error(e); }
+    if (pr && pr.catch) pr.catch(()=>{});
+  } catch(e){}
 }
 function playEventAudio(text){
   if (!voiceEnabled) return;
@@ -670,8 +746,12 @@ let availableCartelas = 600;
 let fee = 10;
 let selectionEndsAt = 0;
 let cdTimer = null;
-let autoBingo = localStorage.getItem('autoBingo') === '1';
-let userProfile = null;     // cached profile with balance
+let userProfile = null;
+
+// ⬇️ NEW: player-toggled mode and per-cartela manual marks
+let playMode = localStorage.getItem('playMode') || 'manual';   // 'manual' | 'auto'
+// manMarks: Set of numbers the player has tapped themselves on their OWN cartelas
+let manMarks = new Set();
 
 async function loadState(){
   try {
@@ -682,7 +762,6 @@ async function loadState(){
     applyState(r);
   } catch(e){}
 }
-
 async function loadProfile(){
   if (!userId) return;
   try {
@@ -697,11 +776,8 @@ async function loadProfile(){
       const balEl = document.getElementById('balanceSel');
       if (balEl) balEl.innerText = 'new user';
     }
-  } catch(e){
-    userProfile = null;
-  }
+  } catch(e){ userProfile = null; }
 }
-
 async function loadMyCartelas(){
   if (!userId) return;
   try {
@@ -729,16 +805,9 @@ function applyState(s){
   const statusBox = document.getElementById('statusBox');
   const statusTxt = document.getElementById('statusTxt');
   statusBox.className = 'status-box';
-  if (phase === 'running'){
-    statusTxt.innerText = 'STARTED';
-    statusBox.classList.add('started');
-  } else if (phase === 'selection'){
-    statusTxt.innerText = 'WAITING';
-    statusBox.classList.add('waiting');
-  } else {
-    statusTxt.innerText = 'FINISHED';
-    statusBox.classList.add('finished');
-  }
+  if (phase === 'running'){ statusTxt.innerText = 'STARTED'; statusBox.classList.add('started'); }
+  else if (phase === 'selection'){ statusTxt.innerText = 'WAITING'; statusBox.classList.add('waiting'); }
+  else { statusTxt.innerText = 'FINISHED'; statusBox.classList.add('finished'); }
 
   if (phase === 'selection'){
     if (myCartelas.length === 0){
@@ -762,6 +831,8 @@ function applyState(s){
   updateProgress();
   updateColumnHighlights();
   updateMessageArea();
+  updateModeUI();
+  updateBingoBtn();
 }
 
 function updateMessageArea(){
@@ -826,8 +897,6 @@ function renderPicker(){
       el.appendChild(d);
     }
   }
-
-  // Compute affordable count based on balance
   const bal = userProfile ? ((userProfile.balance || 0) + (userProfile.winBalance || 0)) : null;
   const maxAffordable = bal === null ? MAX_CARTELAS : Math.floor(bal / fee);
   const selectionCap = Math.min(MAX_CARTELAS, Math.max(1, maxAffordable));
@@ -841,20 +910,14 @@ function renderPicker(){
     if (mine) d.classList.add('mine');
     else if (taken) d.classList.add('taken');
     else if (sel) d.classList.add('sel');
-    // grey out unaffordable when selection is empty and user can't afford more
-    else if (bal !== null && bal < fee){
-      d.classList.add('disabled');
-    }
+    else if (bal !== null && bal < fee) d.classList.add('disabled');
   }
-
   document.getElementById('joinBtn').disabled = selected.length === 0;
   document.getElementById('selCount').innerText = selected.length + '';
   if (bal !== null){
     const balEl = document.getElementById('balanceSel');
     if (balEl) balEl.innerText = bal.toFixed(0) + ' ETB';
   }
-
-  // message logic
   const msgEl = document.getElementById('selMsg');
   msgEl.classList.remove('error');
   if (bal !== null && bal < fee){
@@ -862,32 +925,57 @@ function renderPicker(){
     msgEl.innerText = `❌ ቀሪ ሂሳብ አይበቃም · Balance: ${bal.toFixed(2)} ETB · Need ${fee} ETB per cartela. Send /start to top up.`;
   } else if (selected.length === 0){
     msgEl.innerText = `Pick 1–${selectionCap} cartelas then tap JOIN · ${fee} ETB each`;
-  } else if (selected.length > 0){
+  } else {
     msgEl.innerText = `${selected.length}/${selectionCap} selected · Total: ${selected.length * fee} ETB — tap JOIN`;
   }
 }
-
 function onPickClick(id){
   if (phase !== 'selection') return;
   if (takenSet.has(id)) { showToast('⚠️ Cartela taken'); return; }
   if (myCartelas.some(c => c.id === id)) { showToast('Already yours'); return; }
-
   const bal = userProfile ? ((userProfile.balance || 0) + (userProfile.winBalance || 0)) : null;
   const maxAffordable = bal === null ? MAX_CARTELAS : Math.floor(bal / fee);
   const cap = Math.min(MAX_CARTELAS, Math.max(1, maxAffordable));
-
   const i = selected.indexOf(id);
   if (i >= 0) selected.splice(i, 1);
-  else if (selected.length >= cap) {
-    showToast(`⚠️ Max ${cap} cartela${cap > 1 ? 's' : ''} (balance or limit)`);
-    return;
-  }
+  else if (selected.length >= cap) { showToast(`⚠️ Max ${cap} cartela${cap > 1 ? 's' : ''}`); return; }
   else selected.push(id);
-
   chime(660, 0.1, 0.05, 'triangle');
   renderPicker();
 }
 
+// ============ MODE TOGGLE ============
+function updateModeUI(){
+  const manBtn = document.getElementById('modeManualBtn');
+  const autoBtn = document.getElementById('modeAutoBtn');
+  manBtn.classList.toggle('on', playMode === 'manual');
+  autoBtn.classList.toggle('on', playMode === 'auto');
+  // when switching to auto, immediately auto-mark all called numbers
+  if (playMode === 'auto') {
+    manMarks.clear();
+  }
+}
+document.getElementById('modeManualBtn').onclick = () => {
+  if (playMode === 'manual') return;
+  playMode = 'manual';
+  localStorage.setItem('playMode', 'manual');
+  updateModeUI();
+  renderCartelas();
+  updateBingoBtn();
+  showToast('👆 Manual — tap numbers yourself');
+};
+document.getElementById('modeAutoBtn').onclick = () => {
+  if (playMode === 'auto') return;
+  playMode = 'auto';
+  localStorage.setItem('playMode', 'auto');
+  updateModeUI();
+  renderCartelas();
+  updateBingoBtn();
+  checkAutoBingo();
+  showToast('⚡ Auto — machine marks & claims');
+};
+
+// ============ CARTELAS ============
 function renderCartelas(){
   const wrap = document.getElementById('cartelasList');
   if (!wrap) return;
@@ -912,7 +1000,11 @@ function renderCartelas(){
         const d = document.createElement('div');
         d.className = 'cell';
         d.dataset.n = n;
+        d.dataset.cartela = c.id;
         d.innerText = n === 0 ? '★' : n;
+        if (n !== 0) {
+          d.onclick = () => onCellClick(c.id, n, d);
+        }
         grid.appendChild(d);
       }
     }
@@ -922,35 +1014,96 @@ function renderCartelas(){
   });
   updateMessageArea();
 }
+
 function updateCartelaCells(cartela){
   const card = document.getElementById('cartela-' + cartela.id);
   if (!card) return;
-  const called = new Set(calledNumbers); called.add(0);
+  const called = new Set(calledNumbers);
+  called.add(0);
+
   card.querySelectorAll('.cell[data-n]').forEach(el => {
     const n = Number(el.dataset.n);
-    if (called.has(n)) el.classList.add('marked');
-    else el.classList.remove('marked');
+    const isFree = n === 0;
+    const isCalled = called.has(n);
+    const isManMark = manMarks.has(n);
+
+    // Determine final marked state:
+    // - AUTO mode: marked if number was called (or free)
+    // - MANUAL mode: marked only if the player tapped it (or free)
+    let marked = isFree;
+    if (playMode === 'auto') marked = marked || isCalled;
+    else marked = marked || isManMark;
+
+    el.classList.remove('auto-marked', 'marked', 'tappable');
+
+    if (marked) {
+      el.classList.add(playMode === 'auto' && isCalled && !isFree ? 'auto-marked' : 'marked');
+    } else if (playMode === 'manual' && isCalled && !isFree) {
+      // Available to be tapped by the player
+      el.classList.add('tappable');
+    }
   });
-  const winInfo = evaluateWinClient(cartela, called);
+
+  // Check if this cartela's marks complete a line (for the glow)
+  const playerMarks = getPlayerMarkSet();
+  const winInfo = evaluateWinClient(cartela, playerMarks);
   if (winInfo){
+    // highlight winning cells
     card.querySelectorAll('.cell[data-n]').forEach(el => {
       const n = Number(el.dataset.n);
       if (winInfo.cells.includes(n)) el.classList.add('win');
       else el.classList.remove('win');
     });
+    card.classList.add('has-manual-win');
   } else {
     card.querySelectorAll('.cell.win').forEach(el => el.classList.remove('win'));
+    card.classList.remove('has-manual-win');
   }
 }
 
+function getPlayerMarkSet(){
+  // In AUTO mode, use the server-called numbers.
+  // In MANUAL mode, use the numbers the player has tapped.
+  const set = new Set();
+  set.add(0); // free
+  if (playMode === 'auto') {
+    for (const n of calledNumbers) set.add(n);
+  } else {
+    for (const n of manMarks) {
+      if (calledNumbers.includes(n)) set.add(n); // only count numbers that were actually called
+    }
+  }
+  return set;
+}
+
+function onCellClick(cartelaId, n, el){
+  if (phase !== 'running') return;
+  if (playMode !== 'manual') return;
+  if (!calledNumbers.includes(n)) {
+    showToast('⚠️ Not called yet');
+    return;
+  }
+  if (manMarks.has(n)) {
+    // allow un-marking? Let's allow it with a second tap for flexibility
+    manMarks.delete(n);
+    chime(440, 0.08, 0.05, 'sine');
+  } else {
+    manMarks.add(n);
+    chime(880, 0.1, 0.07, 'triangle');
+  }
+  renderLastCalls();
+  myCartelas.forEach(updateCartelaCells);
+  updateBingoBtn();
+}
+
 // ============ WIN CHECKER ============
-function evaluateWinClient(cartela, calledSet){
+function evaluateWinClient(cartela, markSet){
   const g = cartela.grid;
   for (let r=0;r<5;r++){
     const cells = []; let ok = true;
     for (let c=0;c<5;c++){
       const n = g[r][c]; cells.push(n);
-      if (n !== 0 && !calledSet.has(n)){ ok=false; break; }
+      if (n !== 0 && !markSet.has(n)){ ok=false; break; }
     }
     if (ok) return { pattern: 'row:'+r, cells };
   }
@@ -958,20 +1111,20 @@ function evaluateWinClient(cartela, calledSet){
     const cells = []; let ok = true;
     for (let r=0;r<5;r++){
       const n = g[r][c]; cells.push(n);
-      if (n !== 0 && !calledSet.has(n)){ ok=false; break; }
+      if (n !== 0 && !markSet.has(n)){ ok=false; break; }
     }
     if (ok) return { pattern: 'col:'+c, cells };
   }
   let cells = []; let ok = true;
   for (let i=0;i<5;i++){
     const n = g[i][i]; cells.push(n);
-    if (n !== 0 && !calledSet.has(n)){ ok=false; break; }
+    if (n !== 0 && !markSet.has(n)){ ok=false; break; }
   }
   if (ok) return { pattern: 'diag:main', cells };
   cells = []; ok = true;
   for (let i=0;i<5;i++){
     const n = g[i][4-i]; cells.push(n);
-    if (n !== 0 && !calledSet.has(n)){ ok=false; break; }
+    if (n !== 0 && !markSet.has(n)){ ok=false; break; }
   }
   if (ok) return { pattern: 'diag:anti', cells };
   return null;
@@ -996,6 +1149,8 @@ function renderLastCalls(){
   recent.forEach((n, idx) => {
     const d = document.createElement('div');
     d.className = 'lc-chip' + (idx === 0 ? ' newest' : '');
+    // mark visually if the player has marked this number manually (only in manual mode)
+    if (playMode === 'manual' && manMarks.has(n)) d.classList.add('marked-by-me');
     d.innerText = letterOf(n) + n;
     el.appendChild(d);
   });
@@ -1041,14 +1196,14 @@ document.getElementById('joinBtn').onclick = async () => {
       const errEl = document.getElementById('selMsg');
       errEl.classList.add('error');
       if (r.error && r.error.includes('User not found')) {
-        errEl.innerText = `❌ Please send /start to @AbyssinaBingobot first, then come back.`;
+        errEl.innerText = `❌ Please send /start to @AbissinaBingobot first, then come back.`;
       } else {
         errEl.innerText = '❌ ' + r.error;
       }
       return;
     }
     myCartelas = r.cartelas;
-    // refresh balance after join
+    manMarks.clear();
     loadProfile();
     chime(660, 0.14, 0.08, 'triangle');
     showToast('✅ Joined!');
@@ -1056,6 +1211,7 @@ document.getElementById('joinBtn').onclick = async () => {
     renderCartelas();
     renderNumberGrid();
     updateMessageArea();
+    updateBingoBtn();
   } catch(e){
     document.getElementById('selMsg').innerText = '❌ Network error';
   }
@@ -1064,9 +1220,13 @@ document.getElementById('joinBtn').onclick = async () => {
 // ============ BINGO ============
 document.getElementById('bingoBtn').onclick = () => tryClaimBingo();
 async function tryClaimBingo(){
-  const called = new Set(calledNumbers); called.add(0);
+  if (phase !== 'running') return;
+  const playerMarks = getPlayerMarkSet();
+
+  // In manual mode: require that at least one cartela's line is fully marked
+  // on the player's own cartela (not just server side)
   for (const c of myCartelas){
-    const w = evaluateWinClient(c, called);
+    const w = evaluateWinClient(c, playerMarks);
     if (w){
       try {
         const r = await fetch('/api/player/bingo', {
@@ -1079,13 +1239,20 @@ async function tryClaimBingo(){
       return;
     }
   }
-  showToast('⚠️ No complete line yet');
+
+  // Different messages per mode
+  if (playMode === 'manual'){
+    showToast('⚠️ Mark all numbers of a line first!');
+  } else {
+    showToast('⚠️ No complete line yet');
+  }
 }
 function checkAutoBingo(){
-  if (!autoBingo) return;
-  const called = new Set(calledNumbers); called.add(0);
+  if (playMode !== 'auto') return;
+  if (phase !== 'running') return;
+  const marks = getPlayerMarkSet();
   for (const c of myCartelas){
-    const w = evaluateWinClient(c, called);
+    const w = evaluateWinClient(c, marks);
     if (w){
       fetch('/api/player/bingo', {
         method:'POST', headers:{'Content-Type':'application/json'},
@@ -1095,21 +1262,21 @@ function checkAutoBingo(){
     }
   }
 }
-const autoBtn = document.getElementById('autoBingoBtn');
-function updateAutoBingoUI(){ autoBtn.classList.toggle('on', autoBingo); }
-updateAutoBingoUI();
-autoBtn.onclick = () => {
-  autoBingo = !autoBingo;
-  localStorage.setItem('autoBingo', autoBingo ? '1' : '0');
-  updateAutoBingoUI();
-  showToast(autoBingo ? '⚡ Auto-Bingo ON' : 'Auto-Bingo OFF');
-  if (autoBingo) checkAutoBingo();
-};
 function updateBingoBtn(){
-  const called = new Set(calledNumbers); called.add(0);
-  const has = myCartelas.some(c => evaluateWinClient(c, called));
+  const marks = getPlayerMarkSet();
+  const has = myCartelas.some(c => evaluateWinClient(c, marks));
   const btn = document.getElementById('bingoBtn');
-  btn.disabled = !(phase === 'running' && has && !autoBingo);
+  if (phase === 'running' && has && playMode === 'manual'){
+    btn.disabled = false;
+    btn.classList.add('hot');
+  } else if (phase === 'running' && has && playMode === 'auto'){
+    // auto will claim automatically — keep button enabled for safety
+    btn.disabled = false;
+    btn.classList.remove('hot');
+  } else {
+    btn.disabled = true;
+    btn.classList.remove('hot');
+  }
 }
 
 // ============ WINNER ============
@@ -1165,17 +1332,19 @@ socket.on('number-called', ({number, all}) => {
   updateProgress();
   updateColumnHighlights();
   updateBingoBtn();
-  checkAutoBingo();
+  // auto mode: after refresh, check for win
+  if (playMode === 'auto') checkAutoBingo();
 });
 socket.on('round-finished', w => {
   if (w){ playWinSound(); showWinnerModal(w); }
   myCartelas = [];
   selected = [];
+  manMarks.clear();
   document.getElementById('cartelasList').innerHTML = '';
   document.getElementById('cartelasList').dataset.sig = '';
   updateBingoBtn();
   updateMessageArea();
-  loadProfile();  // refresh balance after winning/losing
+  loadProfile();
 });
 socket.on('broadcast', ({message}) => { showToast('📢 ' + message); });
 
@@ -1203,10 +1372,10 @@ document.getElementById('btnHelp').onclick = () => {
     <h1 style="text-align:center">How to Play</h1>
     <p style="font-size:12px;line-height:1.6;color:var(--ink);margin:10px 0">
     Complete <b>one full line</b> — row, column, or diagonal — to win.<br><br>
-    Pick up to <b>3 cartelas</b> per game.<br>
-    ⚡ Turn on Auto-Bingo to claim automatically.<br>
-    🔊 Tap Enable Voice to hear every call.<br><br>
-    Shortcuts: <b>B</b> Bingo · <b>A</b> Auto · <b>W</b> Wallet · <b>H</b> History · <b>?</b> Help
+    <b>👆 MANUAL mode:</b> When a number is called, tap it on your cartela to mark it. Complete a line and tap BINGO!<br>
+    <b>⚡ AUTO mode:</b> Numbers are marked automatically and BINGO is claimed for you.<br><br>
+    Pick up to <b>4 cartelas</b> per game.<br>
+    🔊 Tap Enable Voice to hear every call.
     </p>
     <button class="action-btn" onclick="this.closest('.modal-bg').remove()">Got it</button>
   </div>`;
@@ -1219,7 +1388,8 @@ document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
   const k = e.key.toLowerCase();
   if (k === 'b') tryClaimBingo();
-  else if (k === 'a') autoBtn.click();
+  else if (k === 'm') document.getElementById('modeManualBtn').click();
+  else if (k === 'a') document.getElementById('modeAutoBtn').click();
   else if (k === 'w') document.getElementById('btnWallet').click();
   else if (k === 'h') document.getElementById('btnHistory').click();
   else if (k === '?') document.getElementById('btnHelp').click();
@@ -1228,6 +1398,7 @@ document.addEventListener('keydown', e => {
 // ============ BOOT ============
 async function boot(){
   try {
+    updateModeUI();
     await Promise.all([loadState(), loadProfile(), loadMyCartelas()]);
   } catch(e){ console.error('boot error:', e); }
   finally { setTimeout(hideSplash, 800); }
