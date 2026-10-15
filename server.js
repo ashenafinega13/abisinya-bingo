@@ -5,6 +5,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const { Server } = require('socket.io');
 const path = require('path');
+const crypto = require('crypto');
 const axios = require('axios');
 
 const User = require('./models/User');
@@ -25,14 +26,28 @@ const BOT_API_SECRET = process.env.BOT_API_SECRET || 'change-me';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const BOT_CALLBACK_URL = process.env.BOT_CALLBACK_URL || '';
 
-// =============================================================
-//                       MIDDLEWARE
-// =============================================================
+// Secret admin path — generated from ADMIN_PASSWORD hash.
+// Nothing routes to /admin.html by default — only this path works.
+const ADMIN_SECRET_PATH = (() => {
+  const h = crypto.createHash('sha256').update('adm-' + ADMIN_PASSWORD).digest('hex');
+  return '/admin-panel-' + h.slice(0, 20);
+})();
+
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
-console.log('📁 Serving static files from:', PUBLIC_DIR);
+console.log('📁 Static files:', PUBLIC_DIR);
+console.log('👑 Admin secret path:', ADMIN_SECRET_PATH);
+
+// Static — but BLOCK the plain /admin.html path from being reachable
+app.get('/admin.html', (req, res) => res.status(404).send('Not found'));
+
+// Serve admin.html ONLY at the secret path
+app.get(ADMIN_SECRET_PATH, (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
+});
+
 app.use(express.static(PUBLIC_DIR));
 
 // =============================================================
@@ -58,7 +73,7 @@ const state = {
   selectionEndsAt: 0,
   calledNumbers: [],
   currentCall: null,
-  players: new Map(),          // userId -> { firstName, cartelas: [id] }
+  players: new Map(),
   takenCartelas: new Set(),
   prizePool: 0,
   winner: null,
@@ -67,14 +82,12 @@ const state = {
   phaseTimer: null,
   roundHistory: [],
 
-  // Runtime-adjustable settings (admin can change these)
   entryFee: DEFAULT_ENTRY_FEE,
   prizePct: DEFAULT_PRIZE_PERCENT,
   selectionSeconds: DEFAULT_SELECTION_SECONDS,
   callIntervalMs: DEFAULT_CALL_INTERVAL_MS
 };
 
-// ---------- cartela generator ----------
 function generateCartela(cartelaId) {
   const cols = [];
   for (let c = 0; c < 5; c++) {
@@ -92,14 +105,12 @@ function generateCartela(cartelaId) {
     for (let c = 0; c < 5; c++) row.push(cols[c][r]);
     grid.push(row);
   }
-  grid[2][2] = 0; // FREE
+  grid[2][2] = 0;
   return { id: cartelaId, grid };
 }
 
-console.log('🎴 Generating 600 cartelas…');
-for (let id = 1; id <= CARTELA_COUNT; id++) {
-  state.cartelas.push(generateCartela(id));
-}
+console.log('🎴 Generating cartelas…');
+for (let id = 1; id <= CARTELA_COUNT; id++) state.cartelas.push(generateCartela(id));
 console.log(`✅ ${CARTELA_COUNT} cartelas ready`);
 
 function letterOf(n) {
@@ -108,6 +119,54 @@ function letterOf(n) {
   if (n <= 45) return 'N';
   if (n <= 60) return 'G';
   return 'O';
+}
+
+// =============================================================
+//               WIN PATTERN CHECKER (NEW)
+// =============================================================
+// Returns { win: true, pattern: "row:2" | "col:3" | "diag:main" | "diag:anti" }
+// Center (2,2) is FREE — auto-marked.
+function evaluateWin(cartela, calledSet) {
+  if (!cartela) return null;
+  const g = cartela.grid;
+
+  // ---- rows ----
+  for (let r = 0; r < 5; r++) {
+    let ok = true;
+    for (let c = 0; c < 5; c++) {
+      const n = g[r][c];
+      if (n !== 0 && !calledSet.has(n)) { ok = false; break; }
+    }
+    if (ok) return { pattern: `row:${r}` };
+  }
+
+  // ---- columns ----
+  for (let c = 0; c < 5; c++) {
+    let ok = true;
+    for (let r = 0; r < 5; r++) {
+      const n = g[r][c];
+      if (n !== 0 && !calledSet.has(n)) { ok = false; break; }
+    }
+    if (ok) return { pattern: `col:${c}` };
+  }
+
+  // ---- main diagonal (TL → BR) ----
+  let okMain = true;
+  for (let i = 0; i < 5; i++) {
+    const n = g[i][i];
+    if (n !== 0 && !calledSet.has(n)) { okMain = false; break; }
+  }
+  if (okMain) return { pattern: 'diag:main' };
+
+  // ---- anti diagonal (TR → BL) ----
+  let okAnti = true;
+  for (let i = 0; i < 5; i++) {
+    const n = g[i][4 - i];
+    if (n !== 0 && !calledSet.has(n)) { okAnti = false; break; }
+  }
+  if (okAnti) return { pattern: 'diag:anti' };
+
+  return null;
 }
 
 function publicState() {
@@ -144,10 +203,8 @@ function startSelectionPhase() {
   state.prizePool = 0;
   state.winner = null;
   state.roundId++;
-
   clearTimeout(state.phaseTimer);
   clearInterval(state.callTimer);
-
   console.log(`🟢 Round ${state.roundId}: selection (${state.selectionSeconds}s)`);
   broadcastState();
   state.phaseTimer = setTimeout(startRunningPhase, state.selectionSeconds * 1000);
@@ -155,7 +212,7 @@ function startSelectionPhase() {
 
 function startRunningPhase() {
   if (state.players.size === 0) {
-    console.log('⏳ No players — extending selection window');
+    console.log('⏳ No players — extending selection');
     state.selectionEndsAt = Date.now() + state.selectionSeconds * 1000;
     broadcastState();
     state.phaseTimer = setTimeout(startRunningPhase, state.selectionSeconds * 1000);
@@ -163,7 +220,7 @@ function startRunningPhase() {
   }
   state.phase = 'running';
   broadcastState();
-  console.log(`▶️ Round ${state.roundId}: running with ${state.players.size} players`);
+  console.log(`▶️ Round ${state.roundId}: running (${state.players.size} players)`);
   clearInterval(state.callTimer);
   state.callTimer = setInterval(callNextNumber, state.callIntervalMs);
   setTimeout(callNextNumber, 1000);
@@ -182,16 +239,26 @@ function callNextNumber() {
   console.log(`📞 ${letterOf(n)}-${n}`);
 }
 
-function checkWinner(cartelaId) {
-  const cartela = state.cartelas.find(c => c.id === cartelaId);
-  if (!cartela) return false;
-  const called = new Set(state.calledNumbers);
-  called.add(0);
-  const corners = [
-    cartela.grid[0][0], cartela.grid[0][4],
-    cartela.grid[4][0], cartela.grid[4][4]
-  ];
-  return corners.every(x => called.has(x));
+// Instant win check — which player(s) have a completed line right now
+function findInstantWinners() {
+  const calledSet = new Set(state.calledNumbers);
+  calledSet.add(0);
+  const winners = [];
+  for (const [uid, player] of state.players.entries()) {
+    for (const cid of player.cartelas) {
+      const cartela = state.cartelas.find(c => c.id === cid);
+      const w = evaluateWin(cartela, calledSet);
+      if (w) {
+        winners.push({
+          userId: uid,
+          firstName: player.firstName,
+          cartelaId: cid,
+          pattern: w.pattern
+        });
+      }
+    }
+  }
+  return winners;
 }
 
 async function finishRound(winnerInfo) {
@@ -231,10 +298,10 @@ async function finishRound(winnerInfo) {
         { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 })
         .catch(() => {});
     }
-    console.log(`🏆 ${winner.firstName} won ${prize} on cartela #${winner.cartelaId}`);
+    console.log(`🏆 ${winner.firstName} won ${prize} (${winner.pattern})`);
   } else {
     io.emit('round-finished', null);
-    console.log('😐 No winner — all 75 numbers called');
+    console.log('😐 No winner');
   }
   broadcastState();
   state.phaseTimer = setTimeout(startSelectionPhase, BETWEEN_ROUNDS_MS);
@@ -262,34 +329,23 @@ function adminAuth(req, res, next) {
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
-    <html><head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width,initial-scale=1">
-      <title>Abisinya Bingo Server</title>
-      <style>
-        body{font-family:system-ui,sans-serif;background:#0b0616;color:#f5f3ff;
-             min-height:100vh;display:flex;align-items:center;justify-content:center;
-             margin:0;padding:20px;text-align:center}
-        .card{background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);
-              border-radius:16px;padding:32px;max-width:400px}
-        h1{color:#ec4899;font-size:22px;margin:0 0 8px}
-        p{color:#a78bfa;font-size:14px;margin:6px 0}
-        a{color:#22d3ee;text-decoration:none;font-weight:700;display:block;
-          margin-top:14px;padding:10px;border-radius:10px;
-          background:rgba(34,211,238,.15)}
-      </style>
-    </head><body>
-      <div class="card">
-        <h1>🎯 Abisinya Bingo</h1>
-        <p>Server is running</p>
-        <p style="font-size:12px;opacity:.7">Round ${state.roundId} · ${state.phase} · ${state.players.size} players</p>
-        <a href="/api/health">Check /api/health</a>
-        <a href="/admin.html">Open Admin Dashboard</a>
-      </div>
-    </body></html>
+    <html><head><meta charset="utf-8"><title>Abisinya Bingo</title>
+    <style>body{font-family:system-ui;background:#0b0616;color:#f5f3ff;
+      min-height:100vh;display:flex;align-items:center;justify-content:center;
+      margin:0;padding:20px}
+    .c{background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);
+       border-radius:16px;padding:32px;max-width:400px;text-align:center}
+    h1{color:#ec4899;margin:0 0 8px}
+    a{color:#22d3ee}
+    </style></head><body>
+    <div class="c">
+      <h1>🎯 Abisinya Bingo</h1>
+      <p style="color:#a78bfa">Round ${state.roundId} · ${state.phase} · ${state.players.size} players</p>
+    </div></body></html>
   `);
 });
 
+// Game — direct entry: if running, spectator; if selection, picker
 app.get('/game', (req, res) => {
   const q = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
   res.redirect('/bingo.html' + q);
@@ -305,8 +361,7 @@ app.get('/api/health', (req, res) => {
     phase: state.phase,
     players: state.players.size,
     cartelaCount: CARTELA_COUNT,
-    uptime: process.uptime(),
-    staticDir: PUBLIC_DIR
+    uptime: process.uptime()
   });
 });
 
@@ -332,8 +387,8 @@ app.post('/api/player/join', async (req, res) => {
     const { userId, firstName, cartelaIds } = req.body;
     if (state.phase !== 'selection')
       return res.status(400).json({ error: 'Selection closed — wait for next round' });
-    if (!Array.isArray(cartelaIds) || cartelaIds.length < 1 || cartelaIds.length > 4)
-      return res.status(400).json({ error: 'Choose 1 to 4 cartelas' });
+    if (!Array.isArray(cartelaIds) || cartelaIds.length < 1 || cartelaIds.length > 6)
+      return res.status(400).json({ error: 'Choose 1 to 6 cartelas' });
     if (state.players.has(userId))
       return res.status(400).json({ error: 'Already joined this round' });
 
@@ -346,7 +401,7 @@ app.post('/api/player/join', async (req, res) => {
 
     const total = state.entryFee * cartelaIds.length;
     const u = await User.findOne({ telegramId: userId });
-    if (!u) return res.status(404).json({ error: 'User not found — send /start to the bot first' });
+    if (!u) return res.status(404).json({ error: 'User not found — send /start to bot' });
     if (u.balance < total)
       return res.status(400).json({ error: `Need ${total} ETB (you have ${u.balance.toFixed(2)})` });
 
@@ -380,20 +435,26 @@ app.post('/api/player/bingo', async (req, res) => {
     const player = state.players.get(userId);
     if (!player || !player.cartelas.includes(cartelaId))
       return res.status(400).json({ error: 'Not your cartela' });
-    if (!checkWinner(cartelaId))
-      return res.status(400).json({ error: 'Invalid bingo claim' });
+
+    const calledSet = new Set(state.calledNumbers); calledSet.add(0);
+    const cartela = state.cartelas.find(c => c.id === cartelaId);
+    const w = evaluateWin(cartela, calledSet);
+    if (!w) return res.status(400).json({ error: 'No complete line yet' });
+
     await finishRound({
-      userId, firstName: player.firstName,
-      cartelaId, pattern: '4-corners'
+      userId,
+      firstName: player.firstName,
+      cartelaId,
+      pattern: w.pattern
     });
-    res.json({ success: true, prize: state.winner ? state.winner.prize : 0 });
+    res.json({ success: true, prize: state.winner ? state.winner.prize : 0, pattern: w.pattern });
   } catch (e) {
     res.status(500).json({ error: 'Server error' });
   }
 });
 
 // =============================================================
-//                       PROFILE / WALLET / LEADERBOARD
+//                    PROFILE / WALLET / LEADERBOARD
 // =============================================================
 app.get('/api/profile/:userId', async (req, res) => {
   try {
@@ -455,7 +516,6 @@ app.get('/api/leaderboard', async (req, res) => {
     }
     res.json({ success: true, range, list });
   } catch (e) {
-    console.error('leaderboard:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
@@ -515,6 +575,52 @@ app.post('/api/bot/transaction/:id/status', botAuth, async (req, res) => {
   res.json({ success: true, tx });
 });
 
+// Direct deposit/withdraw requests from the WebApp (not via bot)
+app.post('/api/deposit/request', async (req, res) => {
+  try {
+    const { userId, amount, method, phone, sms } = req.body;
+    if (!userId || !amount || amount < 1)
+      return res.status(400).json({ error: 'invalid amount' });
+
+    const tx = await Transaction.create({
+      userId, type: 'deposit', amount, method, phone, sms, status: 'pending'
+    });
+
+    // Notify admin via bot
+    if (BOT_CALLBACK_URL) {
+      axios.post(`${BOT_CALLBACK_URL}/notify-tx`, {
+        telegramId: userId, type: 'deposit', amount, status: 'pending'
+      }, { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 })
+        .catch(() => {});
+    }
+    res.json({ success: true, tx });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/withdraw/request', async (req, res) => {
+  try {
+    const { userId, amount, method, phone } = req.body;
+    if (!userId || !amount || amount < 100)
+      return res.status(400).json({ error: 'min 100 ETB' });
+
+    const u = await User.findOne({ telegramId: userId });
+    if (!u) return res.status(404).json({ error: 'user not found' });
+    if (amount > (u.balance + u.winBalance))
+      return res.status(400).json({ error: 'exceeds available balance' });
+
+    const tx = await Transaction.create({
+      userId, type: 'withdraw', amount, method, phone, status: 'pending'
+    });
+
+    if (BOT_CALLBACK_URL) {
+      axios.post(`${BOT_CALLBACK_URL}/notify-tx`, {
+        telegramId: userId, type: 'withdraw', amount, status: 'pending'
+      }, { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 })
+        .catch(() => {});
+    }
+    res.json({ success: true, tx });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 // =============================================================
 //                       ADMIN
 // =============================================================
@@ -558,8 +664,7 @@ app.post('/api/admin/transaction/:id', adminAuth, async (req, res) => {
     if (BOT_CALLBACK_URL) {
       axios.post(`${BOT_CALLBACK_URL}/notify-tx`, {
         telegramId: tx.userId, type: tx.type, amount: tx.amount, status: tx.status
-      }, { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 })
-        .catch(() => {});
+      }, { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 }).catch(() => {});
     }
     res.json({ success: true, tx });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -571,24 +676,18 @@ app.post('/api/admin/broadcast', adminAuth, (req, res) => {
   io.emit('broadcast', { message });
   if (BOT_CALLBACK_URL) {
     axios.post(`${BOT_CALLBACK_URL}/broadcast`, { message },
-      { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 })
-      .catch(() => {});
+      { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 }).catch(() => {});
   }
   res.json({ success: true });
 });
 
-// ---------- NEW admin endpoints ----------
-
-// Call exactly one number (used by auto-call toggle in admin UI)
 app.post('/api/admin/call-one', adminAuth, (req, res) => {
-  if (state.phase !== 'running') {
+  if (state.phase !== 'running')
     return res.status(400).json({ success: false, error: 'game not running' });
-  }
   callNextNumber();
   res.json({ success: true, number: state.currentCall });
 });
 
-// Current round player list (with cartelas)
 app.get('/api/admin/round-players', adminAuth, (req, res) => {
   const players = [...state.players.entries()].map(([uid, p]) => ({
     userId: uid,
@@ -599,7 +698,6 @@ app.get('/api/admin/round-players', adminAuth, (req, res) => {
   res.json({ success: true, players });
 });
 
-// Manually adjust a user's balance / winBalance
 app.post('/api/admin/user/:uid/adjust', adminAuth, async (req, res) => {
   try {
     const { field, delta } = req.body;
@@ -609,68 +707,38 @@ app.post('/api/admin/user/:uid/adjust', adminAuth, async (req, res) => {
       return res.status(400).json({ error: 'invalid amount' });
     const u = await User.findOneAndUpdate(
       { telegramId: Number(req.params.uid) },
-      { $inc: { [field]: delta } },
-      { new: true }
+      { $inc: { [field]: delta } }, { new: true }
     );
     if (!u) return res.status(404).json({ error: 'user not found' });
     res.json({ success: true, user: u });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Save game settings (runtime adjustable)
 app.post('/api/admin/settings', adminAuth, (req, res) => {
   const { entryFee, prizePct, selectionSeconds, callIntervalMs } = req.body;
-
-  if (typeof entryFee === 'number' && entryFee > 0) {
-    state.entryFee = entryFee;
-  }
-  if (typeof prizePct === 'number' && prizePct > 0 && prizePct <= 100) {
-    state.prizePct = prizePct / 100;
-  }
-  if (typeof selectionSeconds === 'number' && selectionSeconds >= 10 && selectionSeconds <= 300) {
-    state.selectionSeconds = selectionSeconds;
-  }
+  if (typeof entryFee === 'number' && entryFee > 0) state.entryFee = entryFee;
+  if (typeof prizePct === 'number' && prizePct > 0 && prizePct <= 100) state.prizePct = prizePct / 100;
+  if (typeof selectionSeconds === 'number' && selectionSeconds >= 10 && selectionSeconds <= 300) state.selectionSeconds = selectionSeconds;
   if (typeof callIntervalMs === 'number' && callIntervalMs >= 1000 && callIntervalMs <= 20000) {
     state.callIntervalMs = callIntervalMs;
-    // Restart call loop with new interval if game is running
     if (state.phase === 'running') {
       clearInterval(state.callTimer);
       state.callTimer = setInterval(callNextNumber, state.callIntervalMs);
     }
   }
-
-  console.log('⚙️ Settings updated:', {
-    entryFee: state.entryFee,
-    prizePct: (state.prizePct * 100).toFixed(0) + '%',
-    selectionSeconds: state.selectionSeconds,
-    callIntervalMs: state.callIntervalMs
-  });
-
-  res.json({
-    success: true,
-    settings: {
-      entryFee: state.entryFee,
-      prizePct: state.prizePct * 100,
-      selectionSeconds: state.selectionSeconds,
-      callIntervalMs: state.callIntervalMs
-    }
-  });
+  res.json({ success: true, settings: {
+    entryFee: state.entryFee, prizePct: state.prizePct * 100,
+    selectionSeconds: state.selectionSeconds, callIntervalMs: state.callIntervalMs
+  }});
 });
 
-// Get current settings
 app.get('/api/admin/settings', adminAuth, (req, res) => {
-  res.json({
-    success: true,
-    settings: {
-      entryFee: state.entryFee,
-      prizePct: state.prizePct * 100,
-      selectionSeconds: state.selectionSeconds,
-      callIntervalMs: state.callIntervalMs
-    }
-  });
+  res.json({ success: true, settings: {
+    entryFee: state.entryFee, prizePct: state.prizePct * 100,
+    selectionSeconds: state.selectionSeconds, callIntervalMs: state.callIntervalMs
+  }});
 });
 
-// Force new round (restart selection)
 app.post('/api/admin/force-new-round', adminAuth, (req, res) => {
   clearInterval(state.callTimer);
   clearTimeout(state.phaseTimer);
@@ -678,7 +746,6 @@ app.post('/api/admin/force-new-round', adminAuth, (req, res) => {
   res.json({ success: true });
 });
 
-// Force start running (skip waiting)
 app.post('/api/admin/force-start', adminAuth, (req, res) => {
   if (state.phase === 'selection') {
     clearTimeout(state.phaseTimer);
@@ -687,7 +754,6 @@ app.post('/api/admin/force-start', adminAuth, (req, res) => {
   res.json({ success: true });
 });
 
-// Stop game — same as force new round
 app.post('/api/admin/stop-game', adminAuth, (req, res) => {
   clearInterval(state.callTimer);
   clearTimeout(state.phaseTimer);
@@ -710,8 +776,7 @@ io.on('connection', socket => {
 app.use((req, res) => {
   console.log(`❓ 404: ${req.method} ${req.url}`);
   res.status(404).send(`
-    <!DOCTYPE html>
-    <html><head><meta charset="utf-8"><title>Not Found</title>
+    <!DOCTYPE html><html><head><meta charset="utf-8"><title>Not Found</title>
     <style>body{font-family:system-ui;background:#0b0616;color:#f5f3ff;
       display:flex;min-height:100vh;align-items:center;justify-content:center;
       margin:0;padding:20px;text-align:center}
@@ -722,9 +787,8 @@ app.use((req, res) => {
     <div class="c">
       <h2 style="color:#ec4899">404 — Not Found</h2>
       <p style="color:#a78bfa;font-size:14px">Path: <code>${req.url}</code></p>
-      <p style="margin-top:16px"><a href="/">Home</a> · <a href="/api/health">Health</a> · <a href="/admin.html">Admin</a></p>
-    </div>
-    </body></html>
+      <p style="margin-top:16px"><a href="/">Home</a></p>
+    </div></body></html>
   `);
 });
 
@@ -733,8 +797,5 @@ app.use((req, res) => {
 // =============================================================
 server.listen(PORT, () => {
   console.log(`🚀 Server on port ${PORT}`);
-  console.log(`📁 Static: ${PUBLIC_DIR}`);
-  console.log(`🎮 Game:    /game?uid=123&name=Test`);
-  console.log(`👤 Profile: /profile.html?uid=123`);
-  console.log(`👑 Admin:   /admin.html`);
+  console.log(`👑 Admin secret path: ${ADMIN_SECRET_PATH}`);
 });
