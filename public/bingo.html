@@ -30,14 +30,14 @@
     -webkit-font-smoothing:antialiased;
   }
 
+  /* ============ SPLASH ============ */
   #splash{
     position:fixed;inset:0;z-index:500;
     background:
       radial-gradient(1200px 600px at 50% -100px, rgba(168,85,247,.28), transparent 60%),
       linear-gradient(160deg,var(--bg-0) 0%,var(--bg-1) 40%,var(--bg-2) 100%);
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:20px;text-align:center;padding:30px;
-    animation:fade-in .4s;
+    gap:20px;text-align:center;padding:30px;animation:fade-in .4s;
   }
   @keyframes fade-in{from{opacity:0}to{opacity:1}}
   #splash.hide{animation:fade-out .5s forwards}
@@ -47,8 +47,7 @@
     background:radial-gradient(circle at 30% 30%, #fff2b0, var(--neon-gold) 45%, #b45309 100%);
     display:flex;align-items:center;justify-content:center;
     font-size:40px;font-weight:900;color:#1a0a2e;
-    box-shadow:0 0 40px rgba(250,204,21,.6);
-    animation:spin-pulse 2s infinite;
+    box-shadow:0 0 40px rgba(250,204,21,.6);animation:spin-pulse 2s infinite;
   }
   @keyframes spin-pulse{
     0%,100%{transform:scale(1) rotate(0deg)}
@@ -75,6 +74,24 @@
   }
   .splash-status{font-size:11px;color:var(--muted);margin-top:6px;
                  font-family:monospace;letter-spacing:.5px}
+
+  /* ============ PAUSE OVERLAY ============ */
+  #pauseOverlay{
+    position:fixed;inset:0;z-index:450;
+    background:rgba(10,5,25,.92);backdrop-filter:blur(12px);
+    display:none;flex-direction:column;align-items:center;justify-content:center;
+    gap:16px;text-align:center;padding:30px;
+  }
+  #pauseOverlay.show{display:flex;animation:fade-in .3s}
+  #pauseOverlay .icon{font-size:64px;animation:spin-pulse 2s infinite}
+  #pauseOverlay h2{font-size:24px;font-weight:900;color:var(--neon-cyan)}
+  #pauseOverlay p{font-size:13px;color:var(--muted);max-width:260px}
+  #pauseOverlay button{
+    background:linear-gradient(135deg,var(--neon-green),#10b981);
+    color:#0b0616;border:none;padding:12px 28px;border-radius:12px;
+    font-weight:900;font-size:14px;cursor:pointer;
+    box-shadow:0 4px 16px rgba(34,197,94,.45);
+  }
 
   .container{
     width:100%; max-width:520px; margin:0 auto;
@@ -153,12 +170,9 @@
     min-height:0; overflow:hidden;
   }
 
-  /* MODE TOGGLE + STATUS + CALL — all in a compact row */
+  /* MODE TOGGLE ROW */
   .mode-row{
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap:4px;
-    flex-shrink:0;
+    display:grid;grid-template-columns:1fr 1fr;gap:4px;flex-shrink:0;
   }
   .mode-btn{
     display:flex;align-items:center;justify-content:center;gap:5px;
@@ -166,8 +180,7 @@
     font-size:10px;font-weight:900;letter-spacing:.5px;
     background:rgba(139,92,246,.12);
     border:1px solid var(--border);
-    color:var(--muted);
-    cursor:pointer;transition:all .2s;
+    color:var(--muted);cursor:pointer;transition:all .2s;
     text-transform:uppercase;
   }
   .mode-btn.on{
@@ -223,6 +236,7 @@
   }
   .call-badge.pop{transform:scale(1.15) rotate(-5deg)}
 
+  /* LAST CALLS — scrolls horizontally */
   .last-calls{
     background:linear-gradient(180deg,rgba(30,20,60,.55),rgba(20,12,40,.55));
     border:1px solid var(--border);border-radius:8px;
@@ -230,6 +244,7 @@
     flex-shrink:0;overflow-x:auto;overflow-y:hidden;
     white-space:nowrap;-webkit-overflow-scrolling:touch;
     scrollbar-width:none;min-height:28px;
+    scroll-behavior:smooth;
   }
   .last-calls::-webkit-scrollbar{display:none}
   .lc-chip{
@@ -247,18 +262,39 @@
     color:#1a0a2e;border-color:#fff;box-shadow:0 0 10px rgba(250,204,21,.6);
   }
   .lc-chip.marked-by-me{
-    opacity:.55;
-    text-decoration:line-through;
+    opacity:.55;text-decoration:line-through;
     text-decoration-thickness:1.5px;
   }
   @keyframes chip-in{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
   .lc-empty{font-size:10px;color:var(--muted);font-style:italic}
 
+  /* NEAR-WIN BANNER */
+  .near-win{
+    background:linear-gradient(135deg,#f97316,#dc2626);
+    border-radius:8px;
+    padding:5px 10px;
+    text-align:center;
+    font-size:11px;font-weight:900;letter-spacing:.5px;
+    color:#fff;
+    text-shadow:0 1px 2px rgba(0,0,0,.3);
+    box-shadow:0 0 16px rgba(249,115,22,.6);
+    animation:near-win-pulse 1s infinite;
+    display:none;
+    flex-shrink:0;
+  }
+  .near-win.show{display:block}
+  @keyframes near-win-pulse{
+    0%,100%{transform:scale(1)}
+    50%{transform:scale(1.03)}
+  }
+
+  /* MESSAGE AREA (holds cartelas) */
   .msg-area{
     flex:1 1 auto; min-height:0;
     background:linear-gradient(180deg,rgba(30,20,60,.55),rgba(20,12,40,.55));
     border:1px solid var(--border);border-radius:10px;
     padding:6px;display:flex;flex-direction:column;overflow:hidden;
+    position:relative;
   }
   .msg-default{
     flex:1;display:flex;align-items:center;justify-content:center;
@@ -266,20 +302,66 @@
     color:var(--muted);padding:20px 10px;line-height:1.5;
   }
 
+  /* ============================================================
+     CARTELAS — DYNAMIC AUTO-SCALING (1 → 4)
+     ============================================================ */
   .cartelas-list{
     flex:1;overflow-y:auto;
-    display:grid;grid-template-columns:repeat(2,1fr);
-    grid-auto-rows:min-content;gap:5px;
-    padding-right:2px;align-content:start;
+    display:grid;gap:5px;padding-right:2px;align-content:start;
+    grid-template-columns:1fr;grid-auto-rows:min-content;
   }
-  .cartelas-list[data-count="1"]{grid-template-columns:1fr}
   .cartelas-list::-webkit-scrollbar{width:3px}
   .cartelas-list::-webkit-scrollbar-thumb{
     background:rgba(167,139,250,.4);border-radius:3px;
   }
+
+  .cartelas-list[data-count="1"]{
+    grid-template-columns:1fr;grid-template-rows:1fr;gap:0;align-content:stretch;
+  }
+  .cartelas-list[data-count="1"] .cartela-card{padding:8px;display:flex;flex-direction:column}
+  .cartelas-list[data-count="1"] .cartela-grid{flex:1;gap:5px}
+  .cartelas-list[data-count="1"] .cell{font-size:22px;border-radius:7px;min-height:0;font-weight:900}
+
+  .cartelas-list[data-count="2"]{
+    grid-template-columns:1fr 1fr;grid-template-rows:1fr;align-content:stretch;
+  }
+  .cartelas-list[data-count="2"] .cartela-card{padding:6px;display:flex;flex-direction:column}
+  .cartelas-list[data-count="2"] .cartela-grid{flex:1;gap:3px}
+  .cartelas-list[data-count="2"] .cell{font-size:15px;border-radius:6px;min-height:0}
+
+  .cartelas-list[data-count="3"]{
+    grid-template-columns:1fr 1fr;grid-auto-rows:1fr;align-content:stretch;
+  }
+  .cartelas-list[data-count="3"] .cartela-card:nth-child(3){
+    grid-column:1 / -1;max-width:70%;margin:0 auto;width:100%;
+  }
+  .cartelas-list[data-count="3"] .cartela-card{padding:5px;display:flex;flex-direction:column}
+  .cartelas-list[data-count="3"] .cartela-grid{flex:1;gap:3px}
+  .cartelas-list[data-count="3"] .cell{font-size:12px;border-radius:5px;min-height:0}
+
+  .cartelas-list[data-count="4"]{
+    grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;align-content:stretch;
+  }
+  .cartelas-list[data-count="4"] .cartela-card{padding:4px;display:flex;flex-direction:column}
+  .cartelas-list[data-count="4"] .cartela-grid{flex:1;gap:2px}
+  .cartelas-list[data-count="4"] .cell{font-size:10px;border-radius:4px;min-height:0}
+
+  @media (max-height:700px){
+    .cartelas-list[data-count="1"] .cell{font-size:18px}
+    .cartelas-list[data-count="2"] .cell{font-size:13px}
+    .cartelas-list[data-count="3"] .cell{font-size:11px}
+    .cartelas-list[data-count="4"] .cell{font-size:9px}
+  }
+  @media (max-height:600px){
+    .cartelas-list[data-count="1"] .cell{font-size:15px}
+    .cartelas-list[data-count="2"] .cell{font-size:11px}
+    .cartelas-list[data-count="3"] .cell{font-size:9px}
+    .cartelas-list[data-count="4"] .cell{font-size:8px}
+  }
+
   .cartela-card{
     background:linear-gradient(180deg,rgba(30,20,60,.55),rgba(20,12,40,.55));
-    border:1px solid var(--border);border-radius:8px;padding:5px;
+    border:1px solid var(--border);border-radius:8px;
     transition:transform .2s, box-shadow .3s, border-color .3s;
   }
   .cartela-card.has-manual-win{
@@ -294,26 +376,21 @@
   .cartela-head{
     display:flex;justify-content:space-between;align-items:center;
     font-size:9px;color:var(--muted);font-weight:800;
-    letter-spacing:.4px;margin-bottom:4px;
+    letter-spacing:.4px;margin-bottom:3px;flex-shrink:0;
   }
   .cartela-head .id{color:var(--neon-cyan);font-size:10px}
   .cartela-grid{
     display:grid;grid-template-columns:repeat(5,1fr);
-    grid-template-rows:repeat(5,1fr);gap:3px;
+    grid-template-rows:repeat(5,1fr);aspect-ratio:1;
   }
   .cell{
-    aspect-ratio:1;display:flex;align-items:center;justify-content:center;
-    font-weight:800; font-size:13px;
-    border-radius:5px;
-    background:rgba(139,92,246,.10);
-    color:var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;border-radius:5px;
+    background:rgba(139,92,246,.10);color:var(--ink);
     border:1px solid rgba(167,139,250,.12);
-    transition:all .3s;
-    user-select:none; line-height:1;
-    min-height:22px;
-    cursor:default;
+    transition:all .3s;user-select:none;line-height:1;
+    min-height:0;cursor:default;position:relative;
   }
-  /* In manual mode, cells that are eligible to be tapped */
   .cell.tappable{
     cursor:pointer;
     border-color:rgba(34,211,238,.4);
@@ -343,10 +420,16 @@
     box-shadow:0 0 14px rgba(250,204,21,.9);
     font-weight:900;
   }
-
-  @media (max-height: 700px){
-    .cell{font-size:11px;min-height:18px}
-    .cartela-head{font-size:8px}
+  /* Daub ripple */
+  .cell .ripple{
+    position:absolute;inset:0;border-radius:inherit;
+    border:2px solid var(--neon-cyan);
+    pointer-events:none;
+    animation:ripple-out .6s ease-out;
+  }
+  @keyframes ripple-out{
+    0%{opacity:1;transform:scale(1)}
+    100%{opacity:0;transform:scale(1.6)}
   }
 
   .progress{
@@ -369,17 +452,10 @@
     box-shadow:0 3px 12px rgba(236,72,153,.5);letter-spacing:1px;
   }
   .btn-bingo:disabled{background:#3a2545;box-shadow:none;cursor:not-allowed;color:#7a6b99}
-  .btn-bingo.hot{
-    animation:pulse-bingo .8s infinite alternate;
-  }
+  .btn-bingo.hot{animation:pulse-bingo .8s infinite alternate}
   @keyframes pulse-bingo{
     from{box-shadow:0 3px 12px rgba(236,72,153,.5)}
     to{box-shadow:0 3px 24px rgba(236,72,153,1);transform:scale(1.03)}
-  }
-  .btn-ghost{
-    flex:0 0 auto;padding:9px 12px;
-    background:rgba(139,92,246,.15);color:var(--ink);
-    border:1px solid var(--border);
   }
 
   .icon-bar{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;flex-shrink:0}
@@ -393,10 +469,10 @@
   .icon-bar button small{font-size:7px;color:var(--muted);font-weight:700;letter-spacing:.3px}
   .icon-bar button:active{transform:scale(.95)}
 
+  /* PICKER */
   .picker-wrap{flex:1;display:flex;flex-direction:column;gap:5px;overflow:hidden}
   .picker-header{
-    display:flex;justify-content:space-between;align-items:center;
-    gap:8px;flex-shrink:0;
+    display:flex;justify-content:space-between;align-items:center;gap:8px;flex-shrink:0;
   }
   .picker-countdown{
     background:linear-gradient(135deg,var(--neon-cyan),var(--accent));
@@ -436,10 +512,8 @@
              color:#0b0616;border-color:transparent;
              box-shadow:0 0 12px rgba(34,211,238,.55)}
   .pick.disabled{
-    background:rgba(60,40,80,.35);
-    color:rgba(150,120,180,.5);
-    cursor:not-allowed;
-    opacity:.5;
+    background:rgba(60,40,80,.35);color:rgba(150,120,180,.5);
+    cursor:not-allowed;opacity:.5;
   }
   .action-btn{
     width:100%;padding:12px;
@@ -459,6 +533,7 @@
   }
   .msg.error{color:var(--neon-pink);border-color:rgba(236,72,153,.4)}
 
+  /* MODALS */
   .modal-bg{
     position:fixed;inset:0;background:rgba(10,5,25,.88);
     backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;
@@ -505,6 +580,28 @@
   .confetti{position:fixed;width:8px;height:8px;top:-20px;z-index:98;pointer-events:none;border-radius:2px}
   @keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
 
+  /* ============ 3-2-1 COUNTDOWN OVERLAY ============ */
+  #callCountdown{
+    position:absolute;inset:0;z-index:30;
+    display:none;align-items:center;justify-content:center;
+    background:rgba(10,5,25,.55);
+    backdrop-filter:blur(2px);
+    border-radius:10px;
+    pointer-events:none;
+  }
+  #callCountdown.show{display:flex}
+  #callCountdown .number{
+    font-size:90px;font-weight:900;
+    color:var(--neon-cyan);
+    text-shadow:0 0 40px rgba(34,211,238,.9);
+    animation:countdown-pop .9s ease-out;
+  }
+  @keyframes countdown-pop{
+    0%{transform:scale(.3);opacity:0}
+    50%{transform:scale(1.2);opacity:1}
+    100%{transform:scale(1);opacity:.7}
+  }
+
   .hidden{display:none !important}
 </style>
 </head>
@@ -516,6 +613,13 @@
   <div class="splash-sub">Connecting to the game server…</div>
   <div class="splash-loader"><span></span><span></span><span></span></div>
   <div class="splash-status" id="splashStatus">Initializing…</div>
+</div>
+
+<div id="pauseOverlay">
+  <div class="icon">⏸️</div>
+  <h2>PAUSED</h2>
+  <p>The game is paused while you're away. Tap Resume to continue.</p>
+  <button id="resumeBtn">▶ RESUME</button>
 </div>
 
 <script>
@@ -582,7 +686,6 @@
 
       <div class="control-column">
 
-        <!-- MODE TOGGLE -->
         <div class="mode-row">
           <div class="mode-btn manual" id="modeManualBtn" title="Tap numbers yourself">
             <span class="indicator"></span> MANUAL
@@ -606,11 +709,14 @@
           <div class="lc-empty">Waiting…</div>
         </div>
 
+        <div class="near-win" id="nearWin">🔥 1 TO GO!</div>
+
         <div class="msg-area">
           <div class="msg-default" id="msgDefault">
             Please wait for this game<br>to be completed
           </div>
           <div class="cartelas-list hidden" id="cartelasList"></div>
+          <div id="callCountdown"><div class="number" id="callCountdownNum">3</div></div>
         </div>
       </div>
     </div>
@@ -641,6 +747,7 @@
 <script>
 // ============ CONFIG ============
 const MAX_CARTELAS = 4;
+const NEAR_WIN_THRESHOLD = 1;   // show banner when 1 square away
 
 // ============ PARAMS ============
 const p = new URLSearchParams(location.search);
@@ -717,6 +824,10 @@ function chime(freq, dur, vol=0.06, type='sine'){
     o.start(); o.stop(ac.currentTime + dur);
   } catch(e){}
 }
+function playDaubSound(){
+  chime(1200, 0.08, 0.09, 'square');
+  setTimeout(()=>chime(1600, 0.06, 0.06, 'square'), 30);
+}
 function playWinSound(){
   [523, 659, 784, 1047, 1319].forEach((f,i)=>setTimeout(()=>chime(f, 0.28, 0.11, 'triangle'), i*130));
 }
@@ -747,11 +858,11 @@ let fee = 10;
 let selectionEndsAt = 0;
 let cdTimer = null;
 let userProfile = null;
-
-// ⬇️ NEW: player-toggled mode and per-cartela manual marks
-let playMode = localStorage.getItem('playMode') || 'manual';   // 'manual' | 'auto'
-// manMarks: Set of numbers the player has tapped themselves on their OWN cartelas
+let playMode = localStorage.getItem('playMode') || 'manual';
 let manMarks = new Set();
+let preCallCountdownTimer = null;
+let lastCallAt = 0;
+let winStreak = parseInt(localStorage.getItem('winStreak') || '0', 10);
 
 async function loadState(){
   try {
@@ -832,6 +943,7 @@ function applyState(s){
   updateColumnHighlights();
   updateMessageArea();
   updateModeUI();
+  updateNearWin();
   updateBingoBtn();
 }
 
@@ -900,7 +1012,6 @@ function renderPicker(){
   const bal = userProfile ? ((userProfile.balance || 0) + (userProfile.winBalance || 0)) : null;
   const maxAffordable = bal === null ? MAX_CARTELAS : Math.floor(bal / fee);
   const selectionCap = Math.min(MAX_CARTELAS, Math.max(1, maxAffordable));
-
   for (const d of el.children){
     const id = Number(d.dataset.id);
     const taken = takenSet.has(id);
@@ -944,33 +1055,26 @@ function onPickClick(id){
   renderPicker();
 }
 
-// ============ MODE TOGGLE ============
+// ============ MODE ============
 function updateModeUI(){
   const manBtn = document.getElementById('modeManualBtn');
   const autoBtn = document.getElementById('modeAutoBtn');
   manBtn.classList.toggle('on', playMode === 'manual');
   autoBtn.classList.toggle('on', playMode === 'auto');
-  // when switching to auto, immediately auto-mark all called numbers
-  if (playMode === 'auto') {
-    manMarks.clear();
-  }
+  if (playMode === 'auto') manMarks.clear();
 }
 document.getElementById('modeManualBtn').onclick = () => {
   if (playMode === 'manual') return;
   playMode = 'manual';
   localStorage.setItem('playMode', 'manual');
-  updateModeUI();
-  renderCartelas();
-  updateBingoBtn();
+  updateModeUI(); renderCartelas(); updateBingoBtn(); updateNearWin();
   showToast('👆 Manual — tap numbers yourself');
 };
 document.getElementById('modeAutoBtn').onclick = () => {
   if (playMode === 'auto') return;
   playMode = 'auto';
   localStorage.setItem('playMode', 'auto');
-  updateModeUI();
-  renderCartelas();
-  updateBingoBtn();
+  updateModeUI(); renderCartelas(); updateBingoBtn(); updateNearWin();
   checkAutoBingo();
   showToast('⚡ Auto — machine marks & claims');
 };
@@ -979,7 +1083,7 @@ document.getElementById('modeAutoBtn').onclick = () => {
 function renderCartelas(){
   const wrap = document.getElementById('cartelasList');
   if (!wrap) return;
-  wrap.dataset.count = String(Math.min(2, myCartelas.length));
+  wrap.dataset.count = String(Math.max(1, Math.min(4, myCartelas.length)));
   const sig = myCartelas.map(c=>c.id).join(',');
   if (wrap.dataset.sig === sig){
     myCartelas.forEach(updateCartelaCells);
@@ -1002,9 +1106,7 @@ function renderCartelas(){
         d.dataset.n = n;
         d.dataset.cartela = c.id;
         d.innerText = n === 0 ? '★' : n;
-        if (n !== 0) {
-          d.onclick = () => onCellClick(c.id, n, d);
-        }
+        if (n !== 0) d.onclick = () => onCellClick(c.id, n, d);
         grid.appendChild(d);
       }
     }
@@ -1018,37 +1120,22 @@ function renderCartelas(){
 function updateCartelaCells(cartela){
   const card = document.getElementById('cartela-' + cartela.id);
   if (!card) return;
-  const called = new Set(calledNumbers);
-  called.add(0);
-
+  const called = new Set(calledNumbers); called.add(0);
   card.querySelectorAll('.cell[data-n]').forEach(el => {
     const n = Number(el.dataset.n);
     const isFree = n === 0;
     const isCalled = called.has(n);
     const isManMark = manMarks.has(n);
-
-    // Determine final marked state:
-    // - AUTO mode: marked if number was called (or free)
-    // - MANUAL mode: marked only if the player tapped it (or free)
     let marked = isFree;
     if (playMode === 'auto') marked = marked || isCalled;
     else marked = marked || isManMark;
-
     el.classList.remove('auto-marked', 'marked', 'tappable');
-
-    if (marked) {
-      el.classList.add(playMode === 'auto' && isCalled && !isFree ? 'auto-marked' : 'marked');
-    } else if (playMode === 'manual' && isCalled && !isFree) {
-      // Available to be tapped by the player
-      el.classList.add('tappable');
-    }
+    if (marked) el.classList.add(playMode === 'auto' && isCalled && !isFree ? 'auto-marked' : 'marked');
+    else if (playMode === 'manual' && isCalled && !isFree) el.classList.add('tappable');
   });
-
-  // Check if this cartela's marks complete a line (for the glow)
   const playerMarks = getPlayerMarkSet();
   const winInfo = evaluateWinClient(cartela, playerMarks);
   if (winInfo){
-    // highlight winning cells
     card.querySelectorAll('.cell[data-n]').forEach(el => {
       const n = Number(el.dataset.n);
       if (winInfo.cells.includes(n)) el.classList.add('win');
@@ -1062,38 +1149,74 @@ function updateCartelaCells(cartela){
 }
 
 function getPlayerMarkSet(){
-  // In AUTO mode, use the server-called numbers.
-  // In MANUAL mode, use the numbers the player has tapped.
   const set = new Set();
-  set.add(0); // free
-  if (playMode === 'auto') {
-    for (const n of calledNumbers) set.add(n);
-  } else {
-    for (const n of manMarks) {
-      if (calledNumbers.includes(n)) set.add(n); // only count numbers that were actually called
-    }
-  }
+  set.add(0);
+  if (playMode === 'auto') for (const n of calledNumbers) set.add(n);
+  else for (const n of manMarks) if (calledNumbers.includes(n)) set.add(n);
   return set;
 }
 
 function onCellClick(cartelaId, n, el){
   if (phase !== 'running') return;
   if (playMode !== 'manual') return;
-  if (!calledNumbers.includes(n)) {
-    showToast('⚠️ Not called yet');
-    return;
-  }
+  if (!calledNumbers.includes(n)) { showToast('⚠️ Not called yet'); return; }
   if (manMarks.has(n)) {
-    // allow un-marking? Let's allow it with a second tap for flexibility
     manMarks.delete(n);
     chime(440, 0.08, 0.05, 'sine');
   } else {
     manMarks.add(n);
-    chime(880, 0.1, 0.07, 'triangle');
+    playDaubSound();
+    // ripple effect
+    const rip = document.createElement('div');
+    rip.className = 'ripple';
+    el.appendChild(rip);
+    setTimeout(() => rip.remove(), 700);
+    // vibrate if supported
+    if (navigator.vibrate) navigator.vibrate(15);
   }
   renderLastCalls();
   myCartelas.forEach(updateCartelaCells);
   updateBingoBtn();
+  updateNearWin();
+}
+
+// ============ NEAR-WIN ============
+function updateNearWin(){
+  const el = document.getElementById('nearWin');
+  if (!el) return;
+  if (phase !== 'running' || myCartelas.length === 0){
+    el.classList.remove('show');
+    return;
+  }
+  const marks = getPlayerMarkSet();
+  let best = 5;
+  for (const c of myCartelas){
+    const g = c.grid;
+    // check each row / col / diag
+    const lines = [];
+    for (let r=0;r<5;r++) lines.push(Array.from({length:5},(_,c2)=>g[r][c2]));
+    for (let c2=0;c2<5;c2++) lines.push(Array.from({length:5},(_,r)=>g[r][c2]));
+    lines.push(Array.from({length:5},(_,i)=>g[i][i]));
+    lines.push(Array.from({length:5},(_,i)=>g[i][4-i]));
+    for (const line of lines){
+      const unmarked = line.filter(n => n !== 0 && !marks.has(n)).length;
+      if (unmarked < best) best = unmarked;
+    }
+  }
+  if (best === 1) {
+    el.classList.add('show');
+    el.innerText = '🔥 1 TO GO!';
+  } else if (best === 2) {
+    el.classList.add('show');
+    el.innerText = '⚡ 2 TO GO!';
+    el.style.background = 'linear-gradient(135deg,#8b5cf6,#7e22ce)';
+    el.style.boxShadow = '0 0 16px rgba(139,92,246,.6)';
+    return;
+  } else {
+    el.classList.remove('show');
+  }
+  el.style.background = 'linear-gradient(135deg,#f97316,#dc2626)';
+  el.style.boxShadow = '0 0 16px rgba(249,115,22,.6)';
 }
 
 // ============ WIN CHECKER ============
@@ -1130,6 +1253,37 @@ function evaluateWinClient(cartela, markSet){
   return null;
 }
 
+// ============ PRE-CALL COUNTDOWN (3-2-1 before each number) ============
+function showPreCallCountdown(){
+  const overlay = document.getElementById('callCountdown');
+  const numEl = document.getElementById('callCountdownNum');
+  if (!overlay || !numEl) return;
+
+  // Don't show for the very first call (server also has 1s delay)
+  overlay.classList.add('show');
+  let n = 3;
+  numEl.innerText = n;
+  numEl.style.animation = 'none';
+  void numEl.offsetWidth;
+  numEl.style.animation = 'countdown-pop .9s ease-out';
+  chime(660, 0.15, 0.06);
+  preCallCountdownTimer = setInterval(() => {
+    n--;
+    if (n <= 0){
+      clearInterval(preCallCountdownTimer);
+      preCallCountdownTimer = null;
+      overlay.classList.remove('show');
+      chime(1200, 0.15, 0.08);
+      return;
+    }
+    numEl.innerText = n;
+    numEl.style.animation = 'none';
+    void numEl.offsetWidth;
+    numEl.style.animation = 'countdown-pop .9s ease-out';
+    chime(660 + (3 - n) * 100, 0.15, 0.06);
+  }, 900);
+}
+
 // ============ LIVE CALL ============
 function setLiveCall(num){
   const ball = document.getElementById('liveBall');
@@ -1149,11 +1303,12 @@ function renderLastCalls(){
   recent.forEach((n, idx) => {
     const d = document.createElement('div');
     d.className = 'lc-chip' + (idx === 0 ? ' newest' : '');
-    // mark visually if the player has marked this number manually (only in manual mode)
     if (playMode === 'manual' && manMarks.has(n)) d.classList.add('marked-by-me');
     d.innerText = letterOf(n) + n;
     el.appendChild(d);
   });
+  // Auto-scroll to the start so the newest chip is visible
+  requestAnimationFrame(() => { el.scrollLeft = 0; });
 }
 function updateProgress(){
   const f = document.getElementById('progressFill');
@@ -1212,6 +1367,7 @@ document.getElementById('joinBtn').onclick = async () => {
     renderNumberGrid();
     updateMessageArea();
     updateBingoBtn();
+    updateNearWin();
   } catch(e){
     document.getElementById('selMsg').innerText = '❌ Network error';
   }
@@ -1222,9 +1378,6 @@ document.getElementById('bingoBtn').onclick = () => tryClaimBingo();
 async function tryClaimBingo(){
   if (phase !== 'running') return;
   const playerMarks = getPlayerMarkSet();
-
-  // In manual mode: require that at least one cartela's line is fully marked
-  // on the player's own cartela (not just server side)
   for (const c of myCartelas){
     const w = evaluateWinClient(c, playerMarks);
     if (w){
@@ -1239,8 +1392,6 @@ async function tryClaimBingo(){
       return;
     }
   }
-
-  // Different messages per mode
   if (playMode === 'manual'){
     showToast('⚠️ Mark all numbers of a line first!');
   } else {
@@ -1266,13 +1417,9 @@ function updateBingoBtn(){
   const marks = getPlayerMarkSet();
   const has = myCartelas.some(c => evaluateWinClient(c, marks));
   const btn = document.getElementById('bingoBtn');
-  if (phase === 'running' && has && playMode === 'manual'){
+  if (phase === 'running' && has){
     btn.disabled = false;
-    btn.classList.add('hot');
-  } else if (phase === 'running' && has && playMode === 'auto'){
-    // auto will claim automatically — keep button enabled for safety
-    btn.disabled = false;
-    btn.classList.remove('hot');
+    btn.classList.toggle('hot', playMode === 'manual');
   } else {
     btn.disabled = true;
     btn.classList.remove('hot');
@@ -1281,12 +1428,25 @@ function updateBingoBtn(){
 
 // ============ WINNER ============
 function showWinnerModal(w){
+  const isMe = w.userId === userId;
+  if (isMe) {
+    winStreak++;
+    localStorage.setItem('winStreak', String(winStreak));
+  } else {
+    winStreak = 0;
+    localStorage.setItem('winStreak', '0');
+  }
+  const streakHTML = (isMe && winStreak >= 2)
+    ? `<div style="font-size:13px;color:var(--neon-orange);font-weight:900;margin-bottom:8px">🔥 ${winStreak} WIN STREAK!</div>`
+    : '';
+
   const div = document.createElement('div');
   div.className = 'modal-bg';
   div.innerHTML = `
     <div class="modal">
       <h1>GAME OVER</h1>
-      <div class="winner-badge">🏆 ${w.firstName}</div>
+      ${streakHTML}
+      <div class="winner-badge">🏆 ${w.firstName}${isMe ? ' (YOU)' : ''}</div>
       <div class="pool-label">TOTAL PRIZE</div>
       <div class="pool-amount">${w.prize}<small> ETB</small></div>
     </div>`;
@@ -1319,9 +1479,35 @@ function showToast(msg){
   setTimeout(()=>t.remove(), 3000);
 }
 
+// ============ PAUSE / RESUME ============
+let paused = false;
+const pauseOverlay = document.getElementById('pauseOverlay');
+const resumeBtn = document.getElementById('resumeBtn');
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && phase === 'running'){
+    paused = true;
+    pauseOverlay.classList.add('show');
+    // cancel any countdown
+    if (preCallCountdownTimer){ clearInterval(preCallCountdownTimer); preCallCountdownTimer = null; }
+    document.getElementById('callCountdown').classList.remove('show');
+    // cancel any pending audio
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+    // stop voice announcements
+    for (const a of audioCache.values()){ try { a.pause(); } catch(e){} }
+  }
+});
+resumeBtn.onclick = () => {
+  paused = false;
+  pauseOverlay.classList.remove('show');
+  // resync state
+  loadState();
+  loadMyCartelas();
+};
+
 // ============ SOCKETS ============
 socket.on('game-state', s => applyState(s));
 socket.on('number-called', ({number, all}) => {
+  if (paused) return;
   calledNumbers = all;
   setLiveCall(number);
   chime(880, 0.14, 0.08);
@@ -1332,7 +1518,8 @@ socket.on('number-called', ({number, all}) => {
   updateProgress();
   updateColumnHighlights();
   updateBingoBtn();
-  // auto mode: after refresh, check for win
+  updateNearWin();
+  // In auto mode, always check for win; in manual mode, wait for player
   if (playMode === 'auto') checkAutoBingo();
 });
 socket.on('round-finished', w => {
@@ -1344,6 +1531,7 @@ socket.on('round-finished', w => {
   document.getElementById('cartelasList').dataset.sig = '';
   updateBingoBtn();
   updateMessageArea();
+  updateNearWin();
   loadProfile();
 });
 socket.on('broadcast', ({message}) => { showToast('📢 ' + message); });
