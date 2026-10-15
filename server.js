@@ -348,8 +348,8 @@ app.post('/api/player/join', async (req, res) => {
     const cartelaIds = req.body.cartelaIds;
     if (state.phase !== 'selection')
       return res.status(400).json({ error: 'Selection closed - wait for next round' });
-    if (!Array.isArray(cartelaIds) || cartelaIds.length < 1 || cartelaIds.length > 6)
-      return res.status(400).json({ error: 'Choose 1 to 6 cartelas' });
+    if (!Array.isArray(cartelaIds) || cartelaIds.length < 1 || cartelaIds.length > 3)
+      return res.status(400).json({ error: 'Choose 1 to 3 cartelas' });
     if (state.players.has(userId))
       return res.status(400).json({ error: 'Already joined this round' });
 
@@ -359,12 +359,21 @@ app.post('/api/player/join', async (req, res) => {
       if (state.takenCartelas.has(id))
         return res.status(400).json({ error: 'Cartela ' + id + ' already taken' });
     }
-
     const total = state.entryFee * cartelaIds.length;
-    const u = await User.findOne({ telegramId: userId });
-    if (!u) return res.status(404).json({ error: 'User not found - send /start to bot' });
-    if (u.balance < total)
-      return res.status(400).json({ error: 'Need ' + total + ' ETB (you have ' + u.balance.toFixed(2) + ')' });
+    let u = await User.findOne({ telegramId: userId });
+    if (!u) {
+    // Auto-create user record with zero balance so they can be told to top up
+      u = await User.create({
+        telegramId: userId,
+        firstName: firstName || 'Player',
+        balance: 0,
+        winBalance: 0
+      });
+    }
+   if (u.balance < total)
+     return res.status(400).json({
+       error: `Need ${total} ETB — you have ${u.balance.toFixed(2)}. Send /start to the bot to top up.`
+   });
 
     u.balance -= total;
     u.totalGames = (u.totalGames || 0) + 1;
