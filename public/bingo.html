@@ -32,8 +32,7 @@
   .container{
     max-width:960px; width:100%; margin:0 auto;
     display:flex; flex-direction:column;
-    height:100%; overflow:hidden;
-    gap:6px;
+    height:100%; overflow:hidden; gap:6px;
   }
 
   /* TOP BAR */
@@ -441,30 +440,97 @@ const userId = Number(p.get('uid')) || 0;
 const firstName = p.get('name') || 'Player';
 const socket = io();
 
-// ============ VOICE ============
+// ============ VOICE — MALE ANNOUNCER ============
 let voiceEnabled = false;
-if ('speechSynthesis' in window) {
-  window.speechSynthesis.onvoiceschanged = () => {};
-  window.speechSynthesis.getVoices();
+let maleVoice = null;
+
+const MALE_VOICE_HINTS = [
+  'Google UK English Male',
+  'Google US English Male',
+  'Microsoft David',
+  'Microsoft Mark',
+  'Microsoft Guy',
+  'Microsoft Ryan',
+  'Daniel',
+  'Alex',
+  'Fred',
+  'Male'
+];
+
+function loadVoices(){
+  if (!('speechSynthesis' in window)) return;
+  const voices = speechSynthesis.getVoices();
+  if (!voices.length) return;
+
+  // Try exact name hints first
+  for (const hint of MALE_VOICE_HINTS) {
+    const found = voices.find(v => v.name.toLowerCase().includes(hint.toLowerCase()));
+    if (found) { maleVoice = found; break; }
+  }
+
+  // Regex fallback
+  if (!maleVoice) {
+    maleVoice = voices.find(v => /(male|david|mark|alex|daniel|fred|guy|ryan)/i.test(v.name));
+  }
+
+  // Any English voice
+  if (!maleVoice) {
+    maleVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+  }
+
+  if (maleVoice) console.log('🎙️ Using voice:', maleVoice.name, maleVoice.lang);
 }
-function speak(text, opts={}){
+
+if ('speechSynthesis' in window) {
+  loadVoices();
+  speechSynthesis.onvoiceschanged = loadVoices;
+  setTimeout(loadVoices, 1000);
+  setTimeout(loadVoices, 3000);
+}
+
+function speak(text, opts = {}){
   if (!voiceEnabled || !('speechSynthesis' in window)) return;
   try {
+    speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.rate = opts.rate || 0.95; u.pitch = opts.pitch || 1;
-    const voices = speechSynthesis.getVoices();
-    const en = voices.find(v => v.lang.startsWith('en')) || voices[0];
-    if (en) u.voice = en;
+    // Deeper pitch = more masculine sound
+    u.pitch  = opts.pitch  !== undefined ? opts.pitch  : 0.5;
+    u.rate   = opts.rate   !== undefined ? opts.rate   : 0.95;
+    u.volume = opts.volume !== undefined ? opts.volume : 1;
+    if (maleVoice) u.voice = maleVoice;
     speechSynthesis.speak(u);
-  } catch(e){}
+  } catch(e){ console.error('speak error:', e); }
 }
+
 document.getElementById('enableVoiceBtn').onclick = () => {
   voiceEnabled = true;
   document.getElementById('enableVoiceBtn').style.display = 'none';
-  speak('Voice enabled');
+  loadVoices();
+  // Small delay lets the voice list settle
+  setTimeout(() => speak('Voice enabled. Let\'s play bingo.', { rate: 0.95, pitch: 0.5 }), 100);
   chime(880, 0.15, 0.08);
-  showToast('🔊 Voice enabled');
+  showToast('🔊 Male voice enabled');
+  localStorage.setItem('voiceEnabled', '1');
 };
+
+// Auto-enable if previously enabled (needs user gesture)
+if (localStorage.getItem('voiceEnabled') === '1') {
+  const autoEnable = () => {
+    if (!voiceEnabled) {
+      voiceEnabled = true;
+      const btn = document.getElementById('enableVoiceBtn');
+      if (btn) btn.style.display = 'none';
+      loadVoices();
+      setTimeout(() => speak('Voice ready.'), 200);
+    }
+    document.removeEventListener('touchstart', autoEnable);
+    document.removeEventListener('click', autoEnable);
+  };
+  document.addEventListener('touchstart', autoEnable, { once: true });
+  document.addEventListener('click', autoEnable, { once: true });
+}
+
+// ============ TONE FALLBACKS ============
 function chime(freq, dur, vol=0.06, type='sine'){
   try {
     if (!window._ac) window._ac = new (window.AudioContext||window.webkitAudioContext)();
@@ -878,7 +944,7 @@ function showWinnerModal(w){
     </div>`;
   document.body.appendChild(div);
   fireConfetti();
-  speak(w.firstName + ' won ' + w.prize + ' ETB');
+  speak(w.firstName + ' won ' + w.prize + ' ETB', { rate: 0.9, pitch: 0.5 });
   setTimeout(()=>div.remove(), 7500);
 }
 function fireConfetti(){
@@ -911,7 +977,8 @@ socket.on('number-called', ({number, all}) => {
   calledNumbers = all;
   setLiveCall(number);
   chime(880, 0.14, 0.08);
-  speak(letterOf(number) + ' ' + number);
+  // Male voice announcing "B. 12" — low pitch for masculine timbre
+  speak(letterOf(number) + '. ' + number, { rate: 0.9, pitch: 0.5 });
   renderRecent();
   myCartelas.forEach(updateCartelaCells);
   updateProgress();
@@ -956,7 +1023,7 @@ document.getElementById('btnHelp').onclick = () => {
     <p style="font-size:12px;line-height:1.6;color:var(--ink);margin:10px 0">
     Complete <b>one full line</b> — row, column, or diagonal — to win.<br><br>
     ⚡ Turn on Auto-Bingo to claim automatically.<br>
-    🔊 Tap Enable Voice to hear every call.<br><br>
+    🔊 Tap Enable Voice to hear every call in a male voice.<br><br>
     Shortcuts: <b>B</b> Bingo · <b>A</b> Auto · <b>W</b> Wallet · <b>H</b> History · <b>?</b> Help
     </p>
     <button class="action-btn" onclick="this.closest('.modal-bg').remove()">Got it</button>
