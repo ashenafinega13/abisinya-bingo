@@ -35,9 +35,9 @@ const ADMIN_SECRET_PATH = (() => {
 })();
 
 console.log('\n' + '='.repeat(64));
-console.log('ADMIN DASHBOARD URL');
-console.log('https://abisinya-bingo-server.onrender.com' + ADMIN_SECRET_PATH);
-console.log('Save this URL! It changes if ADMIN_PASSWORD changes.');
+console.log('👑  ADMIN DASHBOARD URL');
+console.log(`👑  https://abisinya-bingo-server.onrender.com${ADMIN_SECRET_PATH}`);
+console.log('👑  Save this URL! It changes if ADMIN_PASSWORD changes.');
 console.log('='.repeat(64) + '\n');
 
 // =============================================================
@@ -47,10 +47,12 @@ app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
-console.log('Serving static files from:', PUBLIC_DIR);
+console.log('📁 Serving static files from:', PUBLIC_DIR);
 
+// Block plain /admin.html — admin only via secret path
 app.get('/admin.html', (req, res) => res.status(404).send('Not found'));
 
+// Serve admin.html ONLY at the secret path
 app.get(ADMIN_SECRET_PATH, (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
 });
@@ -61,8 +63,8 @@ app.use(express.static(PUBLIC_DIR));
 //                       MONGO
 // =============================================================
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(e => console.error('Mongo error:', e.message));
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(e => console.error('❌ Mongo error:', e.message));
 
 // =============================================================
 //                       ROUND ENGINE
@@ -73,6 +75,8 @@ const BETWEEN_ROUNDS_MS         = 8000;
 const CARTELA_COUNT             = 600;
 const DEFAULT_ENTRY_FEE         = 10;
 const DEFAULT_PRIZE_PERCENT     = 0.8;
+const LATE_JOIN_GRACE_MS        = 15000;   // ⬅️ NEW: 15s grace after start
+const JACKPOT_CONTRIBUTION_PCT  = 0.1;     // ⬅️ NEW: 10% of pool → jackpot
 
 const state = {
   roundId: 0,
@@ -88,10 +92,16 @@ const state = {
   callTimer: null,
   phaseTimer: null,
   roundHistory: [],
+
+  // Runtime-adjustable settings
   entryFee: DEFAULT_ENTRY_FEE,
   prizePct: DEFAULT_PRIZE_PERCENT,
   selectionSeconds: DEFAULT_SELECTION_SECONDS,
-  callIntervalMs: DEFAULT_CALL_INTERVAL_MS
+  callIntervalMs: DEFAULT_CALL_INTERVAL_MS,
+
+  // NEW
+  jackpot: 0,              // accumulates across rounds
+  startedAt: 0             // timestamp when running phase began
 };
 
 function generateCartela(cartelaId) {
@@ -115,9 +125,11 @@ function generateCartela(cartelaId) {
   return { id: cartelaId, grid };
 }
 
-console.log('Generating cartelas...');
-for (let id = 1; id <= CARTELA_COUNT; id++) state.cartelas.push(generateCartela(id));
-console.log(CARTELA_COUNT + ' cartelas ready');
+console.log('🎴 Generating 600 cartelas…');
+for (let id = 1; id <= CARTELA_COUNT; id++) {
+  state.cartelas.push(generateCartela(id));
+}
+console.log(`✅ ${CARTELA_COUNT} cartelas ready`);
 
 function letterOf(n) {
   if (n <= 15) return 'B';
@@ -127,6 +139,9 @@ function letterOf(n) {
   return 'O';
 }
 
+// =============================================================
+//                    WIN PATTERN CHECKER
+// =============================================================
 function evaluateWin(cartela, calledSet) {
   if (!cartela) return null;
   const g = cartela.grid;
@@ -185,7 +200,9 @@ function publicState() {
     takenCartelas: [...state.takenCartelas],
     winner: state.winner,
     roundHistory: state.roundHistory.slice(-5),
-    cartelaCount: CARTELA_COUNT
+    cartelaCount: CARTELA_COUNT,
+    jackpot: state.jackpot,               // ⬅️ NEW
+    startedAt: state.startedAt            // ⬅️ NEW
   };
 }
 function broadcastState() { io.emit('game-state', publicState()); }
@@ -199,25 +216,27 @@ function startSelectionPhase() {
   state.takenCartelas = new Set();
   state.prizePool = 0;
   state.winner = null;
+  state.startedAt = 0;
   state.roundId++;
   clearTimeout(state.phaseTimer);
   clearInterval(state.callTimer);
-  console.log('Round ' + state.roundId + ': selection (' + state.selectionSeconds + 's)');
+  console.log(`🟢 Round ${state.roundId}: selection (${state.selectionSeconds}s) · Jackpot: ${state.jackpot}`);
   broadcastState();
   state.phaseTimer = setTimeout(startRunningPhase, state.selectionSeconds * 1000);
 }
 
 function startRunningPhase() {
   if (state.players.size === 0) {
-    console.log('No players - extending selection');
+    console.log('⏳ No players — extending selection');
     state.selectionEndsAt = Date.now() + state.selectionSeconds * 1000;
     broadcastState();
     state.phaseTimer = setTimeout(startRunningPhase, state.selectionSeconds * 1000);
     return;
   }
   state.phase = 'running';
+  state.startedAt = Date.now();           // ⬅️ track when game actually started
   broadcastState();
-  console.log('Round ' + state.roundId + ': running (' + state.players.size + ' players)');
+  console.log(`▶️ Round ${state.roundId}: running (${state.players.size} players)`);
   clearInterval(state.callTimer);
   state.callTimer = setInterval(callNextNumber, state.callIntervalMs);
   setTimeout(callNextNumber, 1000);
@@ -233,7 +252,7 @@ function callNextNumber() {
   state.currentCall = n;
   io.emit('number-called', { number: n, all: state.calledNumbers });
   broadcastState();
-  console.log('Call: ' + letterOf(n) + '-' + n);
+  console.log(`📞 ${letterOf(n)}-${n}`);
 }
 
 async function finishRound(winnerInfo) {
@@ -273,11 +292,19 @@ async function finishRound(winnerInfo) {
         { headers: { 'x-bot-secret': BOT_API_SECRET }, timeout: 8000 })
         .catch(() => {});
     }
-    console.log('Winner: ' + winner.firstName + ' won ' + prize + ' (' + winner.pattern + ')');
+    console.log(`🏆 ${winner.firstName} won ${prize} (${winner.pattern})`);
   } else {
     io.emit('round-finished', null);
-    console.log('No winner');
+    console.log('😐 No winner');
   }
+
+  // ⬇️ NEW: accumulate jackpot from this round
+  const jackpotAdd = Math.floor(state.prizePool * JACKPOT_CONTRIBUTION_PCT);
+  if (jackpotAdd > 0) {
+    state.jackpot += jackpotAdd;
+    console.log(`💰 Jackpot +${jackpotAdd} → ${state.jackpot} ETB`);
+  }
+
   broadcastState();
   state.phaseTimer = setTimeout(startSelectionPhase, BETWEEN_ROUNDS_MS);
 }
@@ -320,6 +347,7 @@ app.get('/api/health', (req, res) => {
     phase: state.phase,
     players: state.players.size,
     cartelaCount: CARTELA_COUNT,
+    jackpot: state.jackpot,
     uptime: process.uptime()
   });
 });
@@ -341,17 +369,28 @@ app.get('/api/my-cartelas/:userId', (req, res) => {
   res.json({ success: true, cartelas: grids, player: p });
 });
 
+// ---------- Join (with late-join grace) ----------
 app.post('/api/player/join', async (req, res) => {
   try {
     const userId = req.body.userId;
     const firstName = req.body.firstName;
     const cartelaIds = req.body.cartelaIds;
-    if (state.phase !== 'selection')
-      return res.status(400).json({ error: 'Selection closed - wait for next round' });
-    if (!Array.isArray(cartelaIds) || cartelaIds.length < 1 || cartelaIds.length > 4)
+
+    // ⬇️ NEW: allow joining during first 15s of running phase
+    const graceActive =
+      state.phase === 'running' &&
+      state.startedAt &&
+      (Date.now() - state.startedAt) < LATE_JOIN_GRACE_MS;
+
+    if (state.phase !== 'selection' && !graceActive) {
+      return res.status(400).json({ error: 'Selection closed — wait for next round' });
+    }
+    if (!Array.isArray(cartelaIds) || cartelaIds.length < 1 || cartelaIds.length > 4) {
       return res.status(400).json({ error: 'Choose 1 to 4 cartelas' });
-    if (state.players.has(userId))
+    }
+    if (state.players.has(userId)) {
       return res.status(400).json({ error: 'Already joined this round' });
+    }
 
     for (const id of cartelaIds) {
       if (!Number.isInteger(id) || id < 1 || id > CARTELA_COUNT)
@@ -359,10 +398,11 @@ app.post('/api/player/join', async (req, res) => {
       if (state.takenCartelas.has(id))
         return res.status(400).json({ error: 'Cartela ' + id + ' already taken' });
     }
+
     const total = state.entryFee * cartelaIds.length;
     let u = await User.findOne({ telegramId: userId });
     if (!u) {
-    // Auto-create user record with zero balance so they can be told to top up
+      // auto-create a placeholder user with zero balance
       u = await User.create({
         telegramId: userId,
         firstName: firstName || 'Player',
@@ -370,10 +410,11 @@ app.post('/api/player/join', async (req, res) => {
         winBalance: 0
       });
     }
-   if (u.balance < total)
-     return res.status(400).json({
-       error: `Need ${total} ETB — you have ${u.balance.toFixed(2)}. Send /start to the bot to top up.`
-   });
+    if (u.balance < total) {
+      return res.status(400).json({
+        error: 'Need ' + total + ' ETB — you have ' + u.balance.toFixed(2) + '. Send /start to the bot to top up.'
+      });
+    }
 
     u.balance -= total;
     u.totalGames = (u.totalGames || 0) + 1;
@@ -397,6 +438,7 @@ app.post('/api/player/join', async (req, res) => {
   }
 });
 
+// ---------- Bingo claim ----------
 app.post('/api/player/bingo', async (req, res) => {
   try {
     const userId = req.body.userId;
@@ -607,7 +649,8 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
     pendingTx: await Transaction.countDocuments({ status: 'pending' }),
     round: state.roundId, phase: state.phase,
     players: state.players.size, prizePool: state.prizePool,
-    cartelaCount: CARTELA_COUNT
+    cartelaCount: CARTELA_COUNT,
+    jackpot: state.jackpot
   });
 });
 
@@ -738,12 +781,28 @@ app.post('/api/admin/stop-game', adminAuth, (req, res) => {
   res.json({ success: true });
 });
 
+// Reset jackpot manually
+app.post('/api/admin/reset-jackpot', adminAuth, (req, res) => {
+  state.jackpot = 0;
+  broadcastState();
+  res.json({ success: true });
+});
+
 // =============================================================
 //                       SOCKET.IO
 // =============================================================
 io.on('connection', socket => {
   socket.emit('game-state', publicState());
-  socket.on('join-room', () => socket.emit('game-state', publicState()));
+
+  socket.on('join-room', () => {
+    socket.emit('game-state', publicState());
+  });
+
+  // ⬇️ NEW: broadcast reactions to all players
+  socket.on('reaction', ({ emoji, name }) => {
+    io.emit('reaction', { emoji, name });
+  });
+
   socket.on('disconnect', () => {});
 });
 
@@ -751,7 +810,7 @@ io.on('connection', socket => {
 //                       404 FALLBACK
 // =============================================================
 app.use((req, res) => {
-  console.log('404: ' + req.method + ' ' + req.url);
+  console.log(`❓ 404: ${req.method} ${req.url}`);
   res.status(404).send(
     '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Not Found</title>' +
     '<style>body{font-family:system-ui;background:#0b0616;color:#f5f3ff;' +
@@ -771,6 +830,7 @@ app.use((req, res) => {
 //                       START
 // =============================================================
 server.listen(PORT, () => {
-  console.log('Server on port ' + PORT);
-  console.log('Admin URL: ' + ADMIN_SECRET_PATH);
+  console.log(`🚀 Server on port ${PORT}`);
+  console.log(`👑 Admin URL: ${ADMIN_SECRET_PATH}`);
+  console.log(`💰 Jackpot starting: ${state.jackpot} ETB`);
 });

@@ -30,7 +30,7 @@
     -webkit-font-smoothing:antialiased;
   }
 
-  /* ============ SPLASH ============ */
+  /* SPLASH */
   #splash{
     position:fixed;inset:0;z-index:500;
     background:
@@ -49,10 +49,7 @@
     font-size:40px;font-weight:900;color:#1a0a2e;
     box-shadow:0 0 40px rgba(250,204,21,.6);animation:spin-pulse 2s infinite;
   }
-  @keyframes spin-pulse{
-    0%,100%{transform:scale(1) rotate(0deg)}
-    50%{transform:scale(1.1) rotate(10deg)}
-  }
+  @keyframes spin-pulse{0%,100%{transform:scale(1) rotate(0deg)}50%{transform:scale(1.1) rotate(10deg)}}
   .splash-title{
     font-size:24px;font-weight:900;letter-spacing:1px;
     background:linear-gradient(135deg,var(--neon-gold),var(--neon-pink),var(--neon-cyan));
@@ -61,26 +58,19 @@
   }
   .splash-sub{font-size:12px;color:var(--muted);max-width:280px}
   .splash-loader{display:flex;gap:6px;margin-top:10px}
-  .splash-loader span{
-    width:10px;height:10px;border-radius:50%;background:var(--accent);
-    animation:dot-bounce 1.4s infinite ease-in-out both;
-  }
+  .splash-loader span{width:10px;height:10px;border-radius:50%;background:var(--accent);
+    animation:dot-bounce 1.4s infinite ease-in-out both}
   .splash-loader span:nth-child(1){animation-delay:-0.32s;background:var(--neon-pink)}
   .splash-loader span:nth-child(2){animation-delay:-0.16s;background:var(--neon-gold)}
   .splash-loader span:nth-child(3){animation-delay:0s;background:var(--neon-cyan)}
-  @keyframes dot-bounce{
-    0%,80%,100%{transform:scale(.5);opacity:.5}
-    40%{transform:scale(1.2);opacity:1}
-  }
-  .splash-status{font-size:11px;color:var(--muted);margin-top:6px;
-                 font-family:monospace;letter-spacing:.5px}
+  @keyframes dot-bounce{0%,80%,100%{transform:scale(.5);opacity:.5}40%{transform:scale(1.2);opacity:1}}
+  .splash-status{font-size:11px;color:var(--muted);margin-top:6px;font-family:monospace}
 
-  /* ============ PAUSE OVERLAY ============ */
+  /* PAUSE OVERLAY */
   #pauseOverlay{
-    position:fixed;inset:0;z-index:450;
-    background:rgba(10,5,25,.92);backdrop-filter:blur(12px);
-    display:none;flex-direction:column;align-items:center;justify-content:center;
-    gap:16px;text-align:center;padding:30px;
+    position:fixed;inset:0;z-index:450;background:rgba(10,5,25,.92);
+    backdrop-filter:blur(12px);display:none;flex-direction:column;align-items:center;
+    justify-content:center;gap:16px;text-align:center;padding:30px;
   }
   #pauseOverlay.show{display:flex;animation:fade-in .3s}
   #pauseOverlay .icon{font-size:64px;animation:spin-pulse 2s infinite}
@@ -89,14 +79,12 @@
   #pauseOverlay button{
     background:linear-gradient(135deg,var(--neon-green),#10b981);
     color:#0b0616;border:none;padding:12px 28px;border-radius:12px;
-    font-weight:900;font-size:14px;cursor:pointer;
-    box-shadow:0 4px 16px rgba(34,197,94,.45);
+    font-weight:900;font-size:14px;cursor:pointer;box-shadow:0 4px 16px rgba(34,197,94,.45);
   }
 
   .container{
     width:100%; max-width:520px; margin:0 auto;
-    display:flex; flex-direction:column;
-    height:100%; overflow:hidden; gap:4px;
+    display:flex; flex-direction:column;height:100%;overflow:hidden;gap:4px;
   }
 
   .topbar{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;flex-shrink:0}
@@ -106,20 +94,33 @@
     padding:4px 2px;text-align:center;
     display:flex;flex-direction:column;justify-content:center;min-height:38px;
   }
-  .stat small{
-    font-size:7px;color:var(--muted);font-weight:800;
-    letter-spacing:.3px;text-transform:uppercase;display:block;line-height:1;
-  }
-  .stat b{
-    font-size:11px;color:var(--ink);font-weight:900;display:block;
-    margin-top:2px;line-height:1;
-  }
+  .stat small{font-size:7px;color:var(--muted);font-weight:800;
+    letter-spacing:.3px;text-transform:uppercase;display:block;line-height:1}
+  .stat b{font-size:11px;color:var(--ink);font-weight:900;display:block;margin-top:2px;line-height:1}
   .stat.purple b{color:var(--neon-pink)}
+  .stat.gold b{color:var(--neon-gold)}
+
+  /* JACKPOT BAR */
+  .jackpot-bar{
+    background:linear-gradient(90deg,#f59e0b,#facc15,#f59e0b);
+    background-size:200% 100%;
+    border-radius:8px;padding:5px 10px;
+    display:flex;justify-content:space-between;align-items:center;
+    font-weight:900;font-size:11px;letter-spacing:.5px;
+    color:#1a0a2e;flex-shrink:0;
+    box-shadow:0 0 16px rgba(250,204,21,.5);
+    animation:jackpot-shine 3s linear infinite;
+  }
+  @keyframes jackpot-shine{
+    0%{background-position:0% 50%}
+    100%{background-position:200% 50%}
+  }
+  .jackpot-bar .lbl{font-size:10px;letter-spacing:1px}
+  .jackpot-bar .amt{font-size:14px}
 
   .main-split{
     flex:1 1 auto;min-height:0;
-    display:grid;grid-template-columns: 40% 1fr;
-    gap:5px;overflow:hidden;
+    display:grid;grid-template-columns: 40% 1fr;gap:5px;overflow:hidden;
   }
 
   .board-column{display:flex;flex-direction:column;gap:3px;min-height:0}
@@ -160,42 +161,31 @@
     box-shadow:0 0 12px rgba(250,204,21,.9);
     animation:pulse-latest .7s infinite alternate;
   }
-  @keyframes pulse-latest{
-    from{transform:scale(1)}
-    to{transform:scale(1.08)}
-  }
+  @keyframes pulse-latest{from{transform:scale(1)}to{transform:scale(1.08)}}
 
   .control-column{
-    display:flex;flex-direction:column;gap:4px;
-    min-height:0; overflow:hidden;
+    display:flex;flex-direction:column;gap:4px;min-height:0;overflow:hidden;
   }
 
   /* MODE TOGGLE ROW */
-  .mode-row{
-    display:grid;grid-template-columns:1fr 1fr;gap:4px;flex-shrink:0;
-  }
+  .mode-row{display:grid;grid-template-columns:1fr 1fr;gap:4px;flex-shrink:0}
   .mode-btn{
     display:flex;align-items:center;justify-content:center;gap:5px;
     padding:5px 6px;border-radius:8px;
     font-size:10px;font-weight:900;letter-spacing:.5px;
-    background:rgba(139,92,246,.12);
-    border:1px solid var(--border);
-    color:var(--muted);cursor:pointer;transition:all .2s;
-    text-transform:uppercase;
+    background:rgba(139,92,246,.12);border:1px solid var(--border);
+    color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;
   }
   .mode-btn.on{
     background:linear-gradient(135deg,var(--neon-green),#10b981);
-    color:#0b0616;border-color:transparent;
-    box-shadow:0 0 14px rgba(34,197,94,.45);
+    color:#0b0616;border-color:transparent;box-shadow:0 0 14px rgba(34,197,94,.45);
   }
   .mode-btn.on.manual{
     background:linear-gradient(135deg,var(--neon-cyan),#0891b2);
     color:#0b0616;box-shadow:0 0 14px rgba(34,211,238,.45);
   }
-  .mode-btn .indicator{
-    display:inline-block;width:7px;height:7px;border-radius:50%;
-    background:currentColor;opacity:.65;
-  }
+  .mode-btn .indicator{display:inline-block;width:7px;height:7px;border-radius:50%;
+    background:currentColor;opacity:.65}
   .mode-btn.on .indicator{opacity:1;background:#0b0616;box-shadow:0 0 6px #fff}
 
   .compact-top{
@@ -204,8 +194,7 @@
   }
   .status-box{
     background:linear-gradient(180deg,rgba(139,92,246,.16),rgba(139,92,246,.05));
-    border:1px solid rgba(167,139,250,.3);
-    border-radius:8px;padding:3px 8px;
+    border:1px solid rgba(167,139,250,.3);border-radius:8px;padding:3px 8px;
     display:flex;align-items:center;justify-content:center;min-height:28px;
   }
   .status-box .txt{
@@ -217,34 +206,28 @@
 
   .call-pill{
     background:linear-gradient(135deg,#6b2fb5,#8e44d0);
-    border-radius:8px;padding:3px 8px;
-    display:flex;align-items:center;gap:6px;
+    border-radius:8px;padding:3px 8px;display:flex;align-items:center;gap:6px;
     box-shadow:0 3px 12px rgba(107,47,181,.4);min-height:28px;
   }
-  .call-pill .lbl{
-    font-size:9px;font-weight:900;color:#fff;letter-spacing:.3px;
-    text-shadow:0 1px 2px rgba(0,0,0,.3);white-space:nowrap;
-  }
+  .call-pill .lbl{font-size:9px;font-weight:900;color:#fff;letter-spacing:.3px;
+    text-shadow:0 1px 2px rgba(0,0,0,.3);white-space:nowrap}
   .call-badge{
     width:26px;height:26px;border-radius:50%;
     background:radial-gradient(circle at 28% 28%, #fff2b0, var(--neon-gold) 45%, #b45309 100%);
     display:flex;align-items:center;justify-content:center;
     font-size:12px;font-weight:900;color:#1a0a2e;
     box-shadow:0 0 12px rgba(250,204,21,.65),inset 0 -2px 4px rgba(0,0,0,.2);
-    transition:transform .3s cubic-bezier(.2,1.6,.4,1);
-    flex-shrink:0;
+    transition:transform .3s cubic-bezier(.2,1.6,.4,1);flex-shrink:0;
   }
   .call-badge.pop{transform:scale(1.15) rotate(-5deg)}
 
-  /* LAST CALLS — scrolls horizontally */
   .last-calls{
     background:linear-gradient(180deg,rgba(30,20,60,.55),rgba(20,12,40,.55));
     border:1px solid var(--border);border-radius:8px;
     padding:4px 6px;display:flex;gap:4px;align-items:center;
     flex-shrink:0;overflow-x:auto;overflow-y:hidden;
     white-space:nowrap;-webkit-overflow-scrolling:touch;
-    scrollbar-width:none;min-height:28px;
-    scroll-behavior:smooth;
+    scrollbar-width:none;min-height:28px;scroll-behavior:smooth;
   }
   .last-calls::-webkit-scrollbar{display:none}
   .lc-chip{
@@ -261,34 +244,22 @@
     background:linear-gradient(135deg,var(--neon-gold),#eab308);
     color:#1a0a2e;border-color:#fff;box-shadow:0 0 10px rgba(250,204,21,.6);
   }
-  .lc-chip.marked-by-me{
-    opacity:.55;text-decoration:line-through;
-    text-decoration-thickness:1.5px;
-  }
+  .lc-chip.marked-by-me{opacity:.55;text-decoration:line-through;
+    text-decoration-thickness:1.5px}
   @keyframes chip-in{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
   .lc-empty{font-size:10px;color:var(--muted);font-style:italic}
 
-  /* NEAR-WIN BANNER */
   .near-win{
     background:linear-gradient(135deg,#f97316,#dc2626);
-    border-radius:8px;
-    padding:5px 10px;
-    text-align:center;
-    font-size:11px;font-weight:900;letter-spacing:.5px;
-    color:#fff;
+    border-radius:8px;padding:5px 10px;text-align:center;
+    font-size:11px;font-weight:900;letter-spacing:.5px;color:#fff;
     text-shadow:0 1px 2px rgba(0,0,0,.3);
     box-shadow:0 0 16px rgba(249,115,22,.6);
-    animation:near-win-pulse 1s infinite;
-    display:none;
-    flex-shrink:0;
+    animation:near-win-pulse 1s infinite;display:none;flex-shrink:0;
   }
   .near-win.show{display:block}
-  @keyframes near-win-pulse{
-    0%,100%{transform:scale(1)}
-    50%{transform:scale(1.03)}
-  }
+  @keyframes near-win-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
 
-  /* MESSAGE AREA (holds cartelas) */
   .msg-area{
     flex:1 1 auto; min-height:0;
     background:linear-gradient(180deg,rgba(30,20,60,.55),rgba(20,12,40,.55));
@@ -302,46 +273,32 @@
     color:var(--muted);padding:20px 10px;line-height:1.5;
   }
 
-  /* ============================================================
-     CARTELAS — DYNAMIC AUTO-SCALING (1 → 4)
-     ============================================================ */
+  /* CARTELAS — DYNAMIC SCALING */
   .cartelas-list{
     flex:1;overflow-y:auto;
     display:grid;gap:5px;padding-right:2px;align-content:start;
     grid-template-columns:1fr;grid-auto-rows:min-content;
   }
   .cartelas-list::-webkit-scrollbar{width:3px}
-  .cartelas-list::-webkit-scrollbar-thumb{
-    background:rgba(167,139,250,.4);border-radius:3px;
-  }
+  .cartelas-list::-webkit-scrollbar-thumb{background:rgba(167,139,250,.4);border-radius:3px}
 
-  .cartelas-list[data-count="1"]{
-    grid-template-columns:1fr;grid-template-rows:1fr;gap:0;align-content:stretch;
-  }
+  .cartelas-list[data-count="1"]{grid-template-columns:1fr;grid-template-rows:1fr;gap:0;align-content:stretch}
   .cartelas-list[data-count="1"] .cartela-card{padding:8px;display:flex;flex-direction:column}
   .cartelas-list[data-count="1"] .cartela-grid{flex:1;gap:5px}
   .cartelas-list[data-count="1"] .cell{font-size:22px;border-radius:7px;min-height:0;font-weight:900}
 
-  .cartelas-list[data-count="2"]{
-    grid-template-columns:1fr 1fr;grid-template-rows:1fr;align-content:stretch;
-  }
+  .cartelas-list[data-count="2"]{grid-template-columns:1fr 1fr;grid-template-rows:1fr;align-content:stretch}
   .cartelas-list[data-count="2"] .cartela-card{padding:6px;display:flex;flex-direction:column}
   .cartelas-list[data-count="2"] .cartela-grid{flex:1;gap:3px}
   .cartelas-list[data-count="2"] .cell{font-size:15px;border-radius:6px;min-height:0}
 
-  .cartelas-list[data-count="3"]{
-    grid-template-columns:1fr 1fr;grid-auto-rows:1fr;align-content:stretch;
-  }
-  .cartelas-list[data-count="3"] .cartela-card:nth-child(3){
-    grid-column:1 / -1;max-width:70%;margin:0 auto;width:100%;
-  }
+  .cartelas-list[data-count="3"]{grid-template-columns:1fr 1fr;grid-auto-rows:1fr;align-content:stretch}
+  .cartelas-list[data-count="3"] .cartela-card:nth-child(3){grid-column:1 / -1;max-width:70%;margin:0 auto;width:100%}
   .cartelas-list[data-count="3"] .cartela-card{padding:5px;display:flex;flex-direction:column}
   .cartelas-list[data-count="3"] .cartela-grid{flex:1;gap:3px}
   .cartelas-list[data-count="3"] .cell{font-size:12px;border-radius:5px;min-height:0}
 
-  .cartelas-list[data-count="4"]{
-    grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;align-content:stretch;
-  }
+  .cartelas-list[data-count="4"]{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;align-content:stretch}
   .cartelas-list[data-count="4"] .cartela-card{padding:4px;display:flex;flex-direction:column}
   .cartelas-list[data-count="4"] .cartela-grid{flex:1;gap:2px}
   .cartelas-list[data-count="4"] .cell{font-size:10px;border-radius:4px;min-height:0}
@@ -363,6 +320,7 @@
     background:linear-gradient(180deg,rgba(30,20,60,.55),rgba(20,12,40,.55));
     border:1px solid var(--border);border-radius:8px;
     transition:transform .2s, box-shadow .3s, border-color .3s;
+    position:relative;
   }
   .cartela-card.has-manual-win{
     border-color:var(--neon-gold);
@@ -379,6 +337,12 @@
     letter-spacing:.4px;margin-bottom:3px;flex-shrink:0;
   }
   .cartela-head .id{color:var(--neon-cyan);font-size:10px}
+  .fav-btn{
+    background:transparent;border:none;cursor:pointer;
+    font-size:13px;padding:2px 4px;line-height:1;
+    opacity:.4;transition:all .2s;
+  }
+  .fav-btn.on{opacity:1;filter:drop-shadow(0 0 4px var(--neon-gold))}
   .cartela-grid{
     display:grid;grid-template-columns:repeat(5,1fr);
     grid-template-rows:repeat(5,1fr);aspect-ratio:1;
@@ -392,8 +356,7 @@
     min-height:0;cursor:default;position:relative;
   }
   .cell.tappable{
-    cursor:pointer;
-    border-color:rgba(34,211,238,.4);
+    cursor:pointer;border-color:rgba(34,211,238,.4);
     box-shadow:inset 0 0 6px rgba(34,211,238,.2);
     animation:tappable-pulse 1.4s infinite;
   }
@@ -401,6 +364,10 @@
   @keyframes tappable-pulse{
     0%,100%{border-color:rgba(34,211,238,.35)}
     50%{border-color:rgba(34,211,238,.85);box-shadow:inset 0 0 10px rgba(34,211,238,.3)}
+  }
+  .cell.auto-assist{
+    background:rgba(34,211,238,.15);
+    border-color:rgba(34,211,238,.5);
   }
   .cell.marked{
     background:linear-gradient(135deg,var(--neon-orange),#ea580c);
@@ -417,20 +384,14 @@
   .cell.win{
     background:linear-gradient(135deg,var(--neon-gold),#eab308);
     color:#1a0a2e;border:1.5px solid #fff;
-    box-shadow:0 0 14px rgba(250,204,21,.9);
-    font-weight:900;
+    box-shadow:0 0 14px rgba(250,204,21,.9);font-weight:900;
   }
-  /* Daub ripple */
   .cell .ripple{
     position:absolute;inset:0;border-radius:inherit;
     border:2px solid var(--neon-cyan);
-    pointer-events:none;
-    animation:ripple-out .6s ease-out;
+    pointer-events:none;animation:ripple-out .6s ease-out;
   }
-  @keyframes ripple-out{
-    0%{opacity:1;transform:scale(1)}
-    100%{opacity:0;transform:scale(1.6)}
-  }
+  @keyframes ripple-out{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.6)}}
 
   .progress{
     height:3px;background:rgba(139,92,246,.15);border-radius:3px;
@@ -469,11 +430,66 @@
   .icon-bar button small{font-size:7px;color:var(--muted);font-weight:700;letter-spacing:.3px}
   .icon-bar button:active{transform:scale(.95)}
 
+  /* CHAT REACTIONS BAR */
+  .reactions-bar{
+    display:grid;grid-template-columns:repeat(6,1fr);gap:3px;flex-shrink:0;
+  }
+  .react-btn{
+    padding:6px 2px;border-radius:8px;
+    background:rgba(139,92,246,.10);border:1px solid var(--border);
+    color:var(--ink);font-size:16px;cursor:pointer;
+    transition:all .15s;text-align:center;
+  }
+  .react-btn:active{transform:scale(.88)}
+  .react-btn:hover{background:rgba(139,92,246,.2)}
+
+  /* FLOATING REACTIONS */
+  .floating-reactions{
+    position:fixed;inset:0;pointer-events:none;z-index:80;overflow:hidden;
+  }
+  .float-react{
+    position:absolute;
+    font-size:38px;
+    animation:float-up 2.4s ease-out forwards;
+    filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));
+  }
+  @keyframes float-up{
+    0%{transform:translateY(0) scale(.6);opacity:0}
+    15%{transform:translateY(-30px) scale(1.2);opacity:1}
+    100%{transform:translateY(-200px) scale(.8);opacity:0}
+  }
+
+  /* PATTERN PREVIEW */
+  .pattern-preview{
+    position:absolute;
+    top:6px;right:6px;
+    background:rgba(11,6,22,.9);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:4px;
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:1px;
+    z-index:5;
+    opacity:.85;
+    pointer-events:none;
+  }
+  .pattern-preview .p-cell{
+    width:9px;height:9px;border-radius:2px;
+    background:rgba(139,92,246,.15);
+  }
+  .pattern-preview .p-cell.hit{
+    background:linear-gradient(135deg,var(--neon-gold),#eab308);
+    box-shadow:0 0 4px rgba(250,204,21,.7);
+  }
+  .pattern-preview .p-cell.line-hint{
+    background:rgba(34,211,238,.5);
+    animation:pulse-latest .8s infinite alternate;
+  }
+
   /* PICKER */
   .picker-wrap{flex:1;display:flex;flex-direction:column;gap:5px;overflow:hidden}
-  .picker-header{
-    display:flex;justify-content:space-between;align-items:center;gap:8px;flex-shrink:0;
-  }
+  .picker-header{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-shrink:0}
   .picker-countdown{
     background:linear-gradient(135deg,var(--neon-cyan),var(--accent));
     color:#0b0616;border-radius:10px;padding:8px 20px;
@@ -498,7 +514,7 @@
     padding:7px 0;background:rgba(139,92,246,.10);
     border:1px solid rgba(167,139,250,.15);border-radius:6px;
     text-align:center;font-weight:800;font-size:11px;color:var(--ink);
-    cursor:pointer;transition:all .15s;user-select:none;
+    cursor:pointer;transition:all .15s;user-select:none;position:relative;
   }
   .pick:active{transform:scale(.94)}
   .pick.sel{
@@ -507,13 +523,15 @@
     box-shadow:0 0 12px rgba(236,72,153,.65);
   }
   .pick.taken{background:rgba(34,197,94,.15);color:rgba(34,197,94,.65);
-              border-color:rgba(34,197,94,.3);cursor:not-allowed;text-decoration:line-through}
+    border-color:rgba(34,197,94,.3);cursor:not-allowed;text-decoration:line-through}
   .pick.mine{background:linear-gradient(135deg,var(--neon-cyan),var(--accent));
-             color:#0b0616;border-color:transparent;
-             box-shadow:0 0 12px rgba(34,211,238,.55)}
-  .pick.disabled{
-    background:rgba(60,40,80,.35);color:rgba(150,120,180,.5);
-    cursor:not-allowed;opacity:.5;
+    color:#0b0616;border-color:transparent;box-shadow:0 0 12px rgba(34,211,238,.55)}
+  .pick.disabled{background:rgba(60,40,80,.35);color:rgba(150,120,180,.5);
+    cursor:not-allowed;opacity:.5}
+  .pick.fav::after{
+    content:"★";position:absolute;top:-2px;right:2px;
+    font-size:9px;color:var(--neon-gold);
+    filter:drop-shadow(0 0 4px var(--neon-gold));
   }
   .action-btn{
     width:100%;padding:12px;
@@ -580,19 +598,15 @@
   .confetti{position:fixed;width:8px;height:8px;top:-20px;z-index:98;pointer-events:none;border-radius:2px}
   @keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
 
-  /* ============ 3-2-1 COUNTDOWN OVERLAY ============ */
   #callCountdown{
     position:absolute;inset:0;z-index:30;
     display:none;align-items:center;justify-content:center;
-    background:rgba(10,5,25,.55);
-    backdrop-filter:blur(2px);
-    border-radius:10px;
-    pointer-events:none;
+    background:rgba(10,5,25,.55);backdrop-filter:blur(2px);
+    border-radius:10px;pointer-events:none;
   }
   #callCountdown.show{display:flex}
   #callCountdown .number{
-    font-size:90px;font-weight:900;
-    color:var(--neon-cyan);
+    font-size:90px;font-weight:900;color:var(--neon-cyan);
     text-shadow:0 0 40px rgba(34,211,238,.9);
     animation:countdown-pop .9s ease-out;
   }
@@ -609,18 +623,20 @@
 
 <div id="splash">
   <div class="splash-logo">🎯</div>
-  <div class="splash-title">Welcome to<br>Abyssinia Bingo Bot</div>
-  <div class="splash-sub">Connecting to the game server…</div>
+  <div class="splash-title" id="splashTitle">Welcome to<br>Abyssinia Bingo Bot</div>
+  <div class="splash-sub" id="splashSub">Connecting to the game server…</div>
   <div class="splash-loader"><span></span><span></span><span></span></div>
   <div class="splash-status" id="splashStatus">Initializing…</div>
 </div>
 
 <div id="pauseOverlay">
   <div class="icon">⏸️</div>
-  <h2>PAUSED</h2>
-  <p>The game is paused while you're away. Tap Resume to continue.</p>
+  <h2 id="pauseTitle">PAUSED</h2>
+  <p id="pauseText">The game is paused while you're away. Tap Resume to continue.</p>
   <button id="resumeBtn">▶ RESUME</button>
 </div>
+
+<div class="floating-reactions" id="floatingReactions"></div>
 
 <script>
   if (window.Telegram && window.Telegram.WebApp) {
@@ -649,25 +665,30 @@
 <div class="container">
 
   <div class="topbar">
-    <div class="stat purple"><small>DERASH</small><b id="derashLbl">0</b></div>
-    <div class="stat"><small>PLAYERS</small><b id="playersLbl">0</b></div>
-    <div class="stat"><small>BET</small><b id="betLbl">10</b></div>
-    <div class="stat"><small>CALL</small><b id="callLbl">--</b></div>
-    <div class="stat"><small>GAME №</small><b id="gameNoLbl">1</b></div>
+    <div class="stat purple"><small id="lbl-derash">DERASH</small><b id="derashLbl">0</b></div>
+    <div class="stat"><small id="lbl-players">PLAYERS</small><b id="playersLbl">0</b></div>
+    <div class="stat"><small id="lbl-bet">BET</small><b id="betLbl">10</b></div>
+    <div class="stat"><small id="lbl-call">CALL</small><b id="callLbl">--</b></div>
+    <div class="stat"><small id="lbl-game">GAME №</small><b id="gameNoLbl">1</b></div>
+  </div>
+
+  <div class="jackpot-bar">
+    <span class="lbl">💰 <span id="lbl-jackpot">JACKPOT</span></span>
+    <span class="amt"><span id="jackpotAmt">0</span> ETB</span>
   </div>
 
   <div id="selectScreen" class="picker-wrap hidden">
     <div class="picker-header">
       <div style="flex:1">
-        <div style="font-size:11px;color:var(--muted);font-weight:800;letter-spacing:.6px;text-transform:uppercase">Choose Cartelas</div>
+        <div style="font-size:11px;color:var(--muted);font-weight:800;letter-spacing:.6px;text-transform:uppercase" id="lbl-choose">Choose Cartelas</div>
         <div style="font-size:14px;font-weight:900;color:var(--ink);margin-top:2px">
-          <span id="selCount">0</span>/4 · Balance: <span id="balanceSel" style="color:var(--neon-cyan)">--</span> · Pool: <span id="prizeSelLbl" style="color:var(--neon-gold)">0 ETB</span>
+          <span id="selCount">0</span>/4 · <span id="lbl-balance">Balance</span>: <span id="balanceSel" style="color:var(--neon-cyan)">--</span> · <span id="lbl-pool">Pool</span>: <span id="prizeSelLbl" style="color:var(--neon-gold)">0 ETB</span>
         </div>
       </div>
       <div class="picker-countdown" id="countdownBtn">--</div>
     </div>
     <div class="picker" id="picker"></div>
-    <button class="action-btn" id="joinBtn" disabled>🎯 JOIN GAME</button>
+    <button class="action-btn" id="joinBtn" disabled>🎯 <span id="lbl-join">JOIN GAME</span></button>
     <div class="msg" id="selMsg">Pick 1–4 cartelas then tap JOIN</div>
   </div>
 
@@ -688,10 +709,10 @@
 
         <div class="mode-row">
           <div class="mode-btn manual" id="modeManualBtn" title="Tap numbers yourself">
-            <span class="indicator"></span> MANUAL
+            <span class="indicator"></span> <span id="lbl-manual">MANUAL</span>
           </div>
           <div class="mode-btn" id="modeAutoBtn" title="Auto mark & claim">
-            <span class="indicator"></span> AUTO
+            <span class="indicator"></span> <span id="lbl-auto">AUTO</span>
           </div>
         </div>
 
@@ -700,20 +721,20 @@
             <div class="txt" id="statusTxt">WAITING</div>
           </div>
           <div class="call-pill">
-            <span class="lbl">Call</span>
+            <span class="lbl" id="lbl-callshort">Call</span>
             <div class="call-badge" id="liveBall">--</div>
           </div>
         </div>
 
         <div class="last-calls" id="lastCalls">
-          <div class="lc-empty">Waiting…</div>
+          <div class="lc-empty" id="lbl-waiting">Waiting…</div>
         </div>
 
         <div class="near-win" id="nearWin">🔥 1 TO GO!</div>
 
         <div class="msg-area">
           <div class="msg-default" id="msgDefault">
-            Please wait for this game<br>to be completed
+            <span id="lbl-pleasewait">Please wait for this game<br>to be completed</span>
           </div>
           <div class="cartelas-list hidden" id="cartelasList"></div>
           <div id="callCountdown"><div class="number" id="callCountdownNum">3</div></div>
@@ -724,16 +745,25 @@
     <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
 
     <div class="bottom-bar">
-      <button class="btn-bingo" id="bingoBtn" disabled>🎉 BINGO!</button>
+      <button class="btn-bingo" id="bingoBtn" disabled>🎉 <span id="lbl-bingo">BINGO!</span></button>
+    </div>
+
+    <div class="reactions-bar">
+      <button class="react-btn" data-emoji="👍">👍</button>
+      <button class="react-btn" data-emoji="🎉">🎉</button>
+      <button class="react-btn" data-emoji="🔥">🔥</button>
+      <button class="react-btn" data-emoji="😂">😂</button>
+      <button class="react-btn" data-emoji="😱">😱</button>
+      <button class="react-btn" data-emoji="💰">💰</button>
     </div>
 
     <div class="icon-bar">
-      <button id="btnWallet"><span>💼</span><small>Wallet</small></button>
-      <button id="btnBalance"><span>💵</span><small>Balance</small></button>
-      <button id="btnHistory"><span>📜</span><small>History</small></button>
-      <button id="btnInvite"><span>🎁</span><small>Invite</small></button>
-      <button id="btnLang"><span>🌐</span><small>Lang</small></button>
-      <button id="btnHelp"><span>❓</span><small>Help</small></button>
+      <button id="btnWallet"><span>💼</span><small id="lbl-wallet">Wallet</small></button>
+      <button id="btnBalance"><span>💵</span><small id="lbl-bal">Balance</small></button>
+      <button id="btnHistory"><span>📜</span><small id="lbl-hist">History</small></button>
+      <button id="btnInvite"><span>🎁</span><small id="lbl-inv">Invite</small></button>
+      <button id="btnLang"><span>🌐</span><small id="lbl-lang">Lang</small></button>
+      <button id="btnHelp"><span>❓</span><small id="lbl-help">Help</small></button>
     </div>
   </div>
 </div>
@@ -741,21 +771,171 @@
 <button id="enableVoiceBtn" style="position:fixed;top:6px;right:6px;z-index:200;
   background:linear-gradient(135deg,var(--neon-green),#10b981);color:#0b0616;
   border:none;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">
-  🔊 Enable Voice
+  🔊 <span id="lbl-voice">Enable Voice</span>
 </button>
 
 <script>
-// ============ CONFIG ============
+// ================================================================
+// CONFIG
+// ================================================================
 const MAX_CARTELAS = 4;
-const NEAR_WIN_THRESHOLD = 1;   // show banner when 1 square away
+const LATE_JOIN_GRACE_MS = 15000; // 15s grace period after start
+const AUTO_DAUB_ASSIST_MS = 3000; // 3s until auto-assist hint
 
-// ============ PARAMS ============
+// ================================================================
+// i18n
+// ================================================================
+const STRINGS = {
+  en: {
+    derash:'DERASH', players:'PLAYERS', bet:'BET', call:'CALL', game:'GAME №',
+    jackpot:'JACKPOT', choose:'Choose Cartelas', balance:'Balance', pool:'Pool',
+    join:'JOIN GAME', manual:'MANUAL', auto:'AUTO', callshort:'Call',
+    waiting:'Waiting…', pleasewait:'Please wait for this game\nto be completed',
+    bingo:'BINGO!', wallet:'Wallet', bal:'Balance', hist:'History',
+    inv:'Invite', lang:'Lang', help:'Help', voice:'Enable Voice',
+    status_started:'STARTED', status_waiting:'WAITING', status_finished:'FINISHED',
+    pick_hint:'Pick 1–4 cartelas then tap JOIN',
+    pick_selected:n => `${n}/4 selected — tap JOIN`,
+    pick_total:n => `${n} selected · ${n*10} ETB`,
+    paused:'PAUSED', pausetext:'The game is paused while you\'re away. Tap Resume to continue.',
+    resume:'▶ RESUME', onetogo:'🔥 1 TO GO!', twotogo:'⚡ 2 TO GO!',
+    manual_on:'👆 Manual — tap numbers yourself',
+    auto_on:'⚡ Auto — machine marks & claims',
+    voice_on:'🔊 Voice enabled', joined:'✅ Joined!', not_called:'⚠️ Not called yet',
+    cartela_taken:'⚠️ Cartela taken', already_yours:'Already yours',
+    nfc:'⚠️ Not called yet', wintitle:'GAME OVER', prize:'TOTAL PRIZE', you:' (YOU)',
+    favorited:'★ Added to favorites', unfavorited:'☆ Removed from favorites',
+    help_title:'How to Play',
+    help_body:'Complete one full line — row, column, or diagonal — to win.\n\n👆 MANUAL mode: When a number is called, tap it on your cartela to mark it.\n⚡ AUTO mode: Numbers are marked automatically and BINGO is claimed for you.\n\n⭐ Tap the star on a cartela to auto-pick it next round.\n💬 Tap emoji buttons to send reactions to everyone.\nPick up to 4 cartelas per game.\n🔊 Tap Enable Voice to hear every call.',
+    gotit:'Got it',
+  },
+  am: {
+    derash:'ድርሻ', players:'ተጫዋቾች', bet:'ውርርድ', call:'ጥሪ', game:'ጨዋታ №',
+    jackpot:'ጃክፖት', choose:'ካርቴላ ይምረጡ', balance:'ቀሪ ሂሳብ', pool:'ሽልማት',
+    join:'ጨዋታ ተቀላቀል', manual:'በእጅ', auto:'ራስ-ሰር', callshort:'ጥሪ',
+    waiting:'በመጠበቅ…', pleasewait:'ጨዋታው እስኪጠናቀቅ\nይጠብቁ',
+    bingo:'ቢንጎ!', wallet:'ዋሌት', bal:'ቀሪ', hist:'ታሪክ',
+    inv:'ጋብዝ', lang:'ቋንቋ', help:'እርዳታ', voice:'ድምጽ አብራ',
+    status_started:'ተጀምሯል', status_waiting:'ይጠብቃል', status_finished:'ተጠናቅቋል',
+    pick_hint:'1–4 ካርቴላ ይምረጡ ከዚያ JOIN ይጫኑ',
+    pick_selected:n => `${n}/4 ተመርጠዋል — JOIN ይጫኑ`,
+    pick_total:n => `${n} ተመርጠዋል · ${n*10} ብር`,
+    paused:'ቆሟል', pausetext:'ጨዋታው ቆሟል። ለመቀጠል Resume ይጫኑ።',
+    resume:'▶ ቀጥል', onetogo:'🔥 1 ብቻ!', twotogo:'⚡ 2 ብቻ!',
+    manual_on:'👆 በእጅ — ቁጥሮቹን ራስዎ ይጫኑ',
+    auto_on:'⚡ ራስ-ሰር — ማሽኑ ይጫናል እና ያሸንፋል',
+    voice_on:'🔊 ድምጽ ተብርቷል', joined:'✅ ተቀላቅለዋል!', not_called:'⚠️ ገና አልተጠራም',
+    cartela_taken:'⚠️ ካርቴላ ተይዟል', already_yours:'የእርስዎ ነው',
+    nfc:'⚠️ ገና አልተጠራም', wintitle:'ጨዋታ አለቀ', prize:'ጠቅላላ ሽልማት', you:' (እርስዎ)',
+    favorited:'★ ወደ ተወዳጆች ተጨምሯል', unfavorited:'☆ ከተወዳጆች ተወግዷል',
+    help_title:'እንዴት እንደሚጫወቱ',
+    help_body:'አንድ ሙሉ መስመር ያሸንፉ — ረድፍ፣ አምድ ወይም ማዕዘን።\n\n👆 በእጅ ሁኔታ: ቁጥር ሲጠራ ካርቴላዎ ላይ ይጫኑት።\n⚡ ራስ-ሰር ሁኔታ: ማሽኑ ራሱ ይጫናል።\n\n⭐ ኮከቡን ተጭነው ለቀጣዩ ዙር በራስ-ሰር ይመረጣል።\n💬 ኢሞጂ በመጫን ለሁሉም ምላሽ ይላኩ።\nእስከ 4 ካርቴላ ይምረጡ።\n🔊 ድምጽ ለመስማት ድምጽ አብራ ይጫኑ።',
+    gotit:'ገባኝ',
+  },
+  om: {
+    derash:'QOODINSAA', players:'TAPHTOOTAA', bet:'QUBEE', call:'WAMICHA', game:'TAPHAA №',
+    jackpot:'JAKPOOT', choose:'KAARDII FILADHU', balance:'HAFEENYA', pool:'MINDAA',
+    join:'TAPHAA SEENI', manual:'HOMMAAN', auto:'OFTAA', callshort:'WAMICHA',
+    waiting:'Eeggachaa…', pleasewait:'Taphni xumuramuu\nqopheessi',
+    bingo:'BINGO!', wallet:'WALLEET', bal:'HAFEENYA', hist:'SEENAA',
+    inv:'AFFEERI', lang:'AFAAAN', help:'GARGAARSA', voice:'Sagalee bani',
+    status_started:'JALQABE', status_waiting:'EEGGA', status_finished:'XUMURAME',
+    pick_hint:'Kaardii 1–4 filadhu, JOIN tuqi',
+    pick_selected:n => `${n}/4 filatame — JOIN tuqi`,
+    pick_total:n => `${n} filatame · ${n*10} ETB`,
+    paused:'DHAABBATE', pausetext:'Taphni dhaabbate. Itti fufuuf Resume tuqi.',
+    resume:'▶ ITTI FUFI', onetogo:'🔥 1 HAFE!', twotogo:'⚡ 2 HAFE!',
+    manual_on:'👆 Homaan — lakk. ofii keetuu tuqi',
+    auto_on:'⚡ Ofataa — maashiniin tuqa',
+    voice_on:'🔊 Sagaleen baname', joined:'✅ Seente!', not_called:'⚠️ Hin wamfamne',
+    cartela_taken:'⚠️ Kaardiin qabame', already_yours:'Kan kee',
+    nfc:'⚠️ Hin wamfamne', wintitle:'TAPHAAN XUMURAME', prize:'MINDAA WALIIGALA', you:' (ATI)',
+    favorited:'★ Jaallatamtoota keessa', unfavorited:'☆ Jaallatamtoota keessaa bahe',
+    help_title:'Akkamitti taphatu',
+    help_body:'Sarara guutuu tokko xumuri — tarree, utubaa, ykn diagonaalii.\n\n👆 HOMMAAN: Lakkoofsi yeroo wamametti kaardii kee irratti tuqi.\n⚡ OFTAA: Maashiniin ofumaan tuqa.\n\n⭐ Urjii tuqi — kaardii next round ofumaan filatama.\n💬 Emoji tuqi — hundaaf ergaa.\nHanga kaardii 4 filadhu.\n🔊 Sagalee dhaggeeffachuuf "Sagalee bani" tuqi.',
+    gotit:'NAGAA',
+  },
+  ti: {
+    derash:'ድርሻ', players:'ተጻወትቲ', bet:'ውርርድ', call:'ጻውዒት', game:'ጸወታ №',
+    jackpot:'ጃክፖት', choose:'ካርቴላ ምረጹ', balance:'ተረፍ ገንዘብ', pool:'ሽልማት',
+    join:'ጸወታ ተጸምበሩ', manual:'ብኢድ', auto:'ቀጥታ', callshort:'ጻውዒት',
+    waiting:'ይጽበ…', pleasewait:'ጸወታ ክሳብ ይውዳእ\nተጸበዩ',
+    bingo:'ቢንጎ!', wallet:'ዋሌት', bal:'ተረፍ', hist:'ታሪኽ',
+    inv:'ዓድሙ', lang:'ቋንቋ', help:'ሓገዝ', voice:'ድምጺ ኣብሩ',
+    status_started:'ተጀመረ', status_waiting:'ይጽበ', status_finished:'ተወዲኡ',
+    pick_hint:'1–4 ካርቴላ ምረጹ፣ JOIN ጠውቑ',
+    pick_selected:n => `${n}/4 ተመሪጹ — JOIN ጠውቑ`,
+    pick_total:n => `${n} ተመሪጹ · ${n*10} ብር`,
+    paused:'ተቋሪጹ', pausetext:'ጸወታ ተቋሪጹ። ንምቕጻል Resume ጠውቑ።',
+    resume:'▶ ቀጽሉ', onetogo:'🔥 1 ጥራይ!', twotogo:'⚡ 2 ጥራይ!',
+    manual_on:'👆 ብኢድ — ቁጽሪ ባዕልኹም ጠውቑ',
+    auto_on:'⚡ ቀጥታ — ማሽን ይጠውቕ',
+    voice_on:'🔊 ድምጺ ተኸፊቱ', joined:'✅ ተጸምቢርኩም!', not_called:'⚠️ ኣይተጸውዐን',
+    cartela_taken:'⚠️ ካርቴላ ተታሒዙ', already_yours:'ናትኩም',
+    nfc:'⚠️ ኣይተጸውዐን', wintitle:'ጸወታ ተወዲኡ', prize:'ጠቕላላ ሽልማት', you:' (ንስኹም)',
+    favorited:'★ ናብ ተፈተውቲ ተወሲኹ', unfavorited:'☆ ካብ ተፈተውቲ ተኣውጸ',
+    help_title:'ከመይ ኢልኩም ትጻወቱ',
+    help_body:'ሓደ ምሉእ መስመር ውደኡ — ረድፊ፣ ዓምዲ ወይ ማዕዘን።\n\n👆 ብኢድ: ቁጽሪ ምስ ተጸውዐ ኣብ ካርቴላኹም ጠውቑ።\n⚡ ቀጥታ: ማሽን ባዕሉ ይጠውቕ።\n\n⭐ ኮኾብ ጠውቑ — ንዝቕጽል ዙር ባዕሉ ይምረጽ።\n💬 ኢሞጂ ጠውቑ — ንኹሉ ምላሽ ስደዱ።\nክሳብ 4 ካርቴላ ምረጹ።\n🔊 ድምጺ ንምስማዕ "ድምጺ ኣብሩ" ጠውቑ።',
+    gotit:'ተረዲኡኒ',
+  }
+};
+let LANG = localStorage.getItem('lang') || 'am';
+function T(k){
+  const dict = STRINGS[LANG] || STRINGS.am;
+  const v = dict[k];
+  if (typeof v === 'function') return v(...Array.prototype.slice.call(arguments, 1));
+  return v !== undefined ? v : (STRINGS.en[k] !== undefined ? STRINGS.en[k] : k);
+}
+function applyLang(){
+  document.getElementById('lbl-derash').innerText  = T('derash');
+  document.getElementById('lbl-players').innerText = T('players');
+  document.getElementById('lbl-bet').innerText     = T('bet');
+  document.getElementById('lbl-call').innerText    = T('call');
+  document.getElementById('lbl-game').innerText    = T('game');
+  document.getElementById('lbl-jackpot').innerText = T('jackpot');
+  document.getElementById('lbl-choose').innerText  = T('choose');
+  document.getElementById('lbl-balance').innerText = T('balance');
+  document.getElementById('lbl-pool').innerText    = T('pool');
+  document.getElementById('lbl-join').innerText    = T('join');
+  document.getElementById('lbl-manual').innerText  = T('manual');
+  document.getElementById('lbl-auto').innerText    = T('auto');
+  document.getElementById('lbl-callshort').innerText = T('callshort');
+  document.getElementById('lbl-waiting').innerText = T('waiting');
+  document.getElementById('lbl-pleasewait').innerHTML = T('pleasewait').replace(/\n/g,'<br>');
+  document.getElementById('lbl-bingo').innerText   = T('bingo');
+  document.getElementById('lbl-wallet').innerText  = T('wallet');
+  document.getElementById('lbl-bal').innerText     = T('bal');
+  document.getElementById('lbl-hist').innerText    = T('hist');
+  document.getElementById('lbl-inv').innerText     = T('inv');
+  document.getElementById('lbl-lang').innerText    = T('lang');
+  document.getElementById('lbl-help').innerText    = T('help');
+  document.getElementById('lbl-voice').innerText   = T('voice');
+  document.getElementById('pauseTitle').innerText  = T('paused');
+  document.getElementById('pauseText').innerText   = T('pausetext');
+  document.getElementById('resumeBtn').innerText   = T('resume');
+  document.getElementById('splashTitle').innerHTML = LANG === 'en'
+    ? 'Welcome to<br>Abyssinia Bingo Bot'
+    : (LANG === 'am' ? 'እንኳን ወደ<br>Abisinya Bingo በደህና መጡ' : 'Welcome to<br>Abyssinia Bingo Bot');
+  // update status if rendered
+  if (document.getElementById('statusTxt')){
+    const cur = document.getElementById('statusTxt').innerText;
+    if (cur === 'WAITING' || cur === 'ይጠብቃል' || cur === 'EEGGA' || cur === 'ይጽበ') statusTxt.innerText = T('status_waiting');
+    else if (cur === 'STARTED' || cur === 'ተጀምሯል' || cur === 'JALQABE' || cur === 'ተጀመረ') statusTxt.innerText = T('status_started');
+    else if (cur === 'FINISHED' || cur === 'ተጠናቅቋል' || cur === 'XUMURAME' || cur === 'ተወዲኡ') statusTxt.innerText = T('status_finished');
+  }
+}
+
+// ================================================================
+// PARAMS
+// ================================================================
 const p = new URLSearchParams(location.search);
 const userId = Number(p.get('uid')) || 0;
 const firstName = p.get('name') || 'Player';
 const socket = io();
 
-// ============ VOICE ============
+// ================================================================
+// VOICE
+// ================================================================
 let voiceEnabled = false;
 const audioCache = new Map();
 function preloadAudio(num){
@@ -772,8 +952,7 @@ function playCall(number){
   if (!voiceEnabled) return;
   try {
     const a = preloadAudio(number);
-    a.currentTime = 0;
-    a.volume = 1.0;
+    a.currentTime = 0; a.volume = 1.0;
     const pr = a.play();
     if (pr && pr.catch) pr.catch(()=>{});
   } catch(e){}
@@ -794,7 +973,7 @@ document.getElementById('enableVoiceBtn').onclick = () => {
   document.getElementById('enableVoiceBtn').style.display = 'none';
   chime(880, 0.15, 0.08);
   setTimeout(() => playCall(12), 300);
-  showToast('🔊 Voice enabled');
+  showToast(T('voice_on'));
   localStorage.setItem('voiceEnabled', '1');
 };
 if (localStorage.getItem('voiceEnabled') === '1') {
@@ -811,7 +990,9 @@ if (localStorage.getItem('voiceEnabled') === '1') {
   document.addEventListener('click', autoEnable, { once: true });
 }
 
-// ============ TONES ============
+// ================================================================
+// TONES
+// ================================================================
 function chime(freq, dur, vol=0.06, type='sine'){
   try {
     if (!window._ac) window._ac = new (window.AudioContext||window.webkitAudioContext)();
@@ -840,14 +1021,18 @@ function letterOf(n){
   return 'O';
 }
 
-// ============ SOCKET ============
+// ================================================================
+// SOCKET
+// ================================================================
 socket.on('connect', () => {
   socket.emit('join-room');
   loadState();
   loadMyCartelas();
 });
 
-// ============ STATE ============
+// ================================================================
+// STATE
+// ================================================================
 let phase = 'selection';
 let selected = [];
 let myCartelas = [];
@@ -861,15 +1046,20 @@ let userProfile = null;
 let playMode = localStorage.getItem('playMode') || 'manual';
 let manMarks = new Set();
 let preCallCountdownTimer = null;
-let lastCallAt = 0;
 let winStreak = parseInt(localStorage.getItem('winStreak') || '0', 10);
+let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+let jackpotAmount = 0;
+let gameStartedAt = 0;
+let autoAssistTimers = new Map(); // number -> timerId
 
 async function loadState(){
   try {
     const r = await fetch('/api/game').then(x=>x.json());
     fee = r.entryFee || 10;
     availableCartelas = r.cartelaCount || 600;
+    jackpotAmount = r.jackpot || 0;
     document.getElementById('betLbl').innerText = fee;
+    document.getElementById('jackpotAmt').innerText = jackpotAmount;
     applyState(r);
   } catch(e){}
 }
@@ -906,6 +1096,11 @@ function applyState(s){
   takenSet = new Set(s.takenCartelas || []);
   calledNumbers = s.calledNumbers || [];
   selectionEndsAt = s.selectionEndsAt || 0;
+  if (s.jackpot !== undefined){
+    jackpotAmount = s.jackpot;
+    document.getElementById('jackpotAmt').innerText = jackpotAmount;
+  }
+  if (s.startedAt) gameStartedAt = s.startedAt;
 
   document.getElementById('playersLbl').innerText = s.playerCount || 0;
   document.getElementById('derashLbl').innerText = (s.prizePool||0);
@@ -916,9 +1111,9 @@ function applyState(s){
   const statusBox = document.getElementById('statusBox');
   const statusTxt = document.getElementById('statusTxt');
   statusBox.className = 'status-box';
-  if (phase === 'running'){ statusTxt.innerText = 'STARTED'; statusBox.classList.add('started'); }
-  else if (phase === 'selection'){ statusTxt.innerText = 'WAITING'; statusBox.classList.add('waiting'); }
-  else { statusTxt.innerText = 'FINISHED'; statusBox.classList.add('finished'); }
+  if (phase === 'running'){ statusTxt.innerText = T('status_started'); statusBox.classList.add('started'); }
+  else if (phase === 'selection'){ statusTxt.innerText = T('status_waiting'); statusBox.classList.add('waiting'); }
+  else { statusTxt.innerText = T('status_finished'); statusBox.classList.add('finished'); }
 
   if (phase === 'selection'){
     if (myCartelas.length === 0){
@@ -996,7 +1191,9 @@ function renderNumberGrid(){
   }
 }
 
-// ============ PICKER ============
+// ================================================================
+// PICKER + FAVORITES
+// ================================================================
 function renderPicker(){
   const el = document.getElementById('picker');
   if (!el) return;
@@ -1017,7 +1214,9 @@ function renderPicker(){
     const taken = takenSet.has(id);
     const mine = myCartelas.some(c => c.id === id);
     const sel = selected.includes(id);
+    const isFav = favorites.includes(id);
     d.className = 'pick';
+    if (isFav) d.classList.add('fav');
     if (mine) d.classList.add('mine');
     else if (taken) d.classList.add('taken');
     else if (sel) d.classList.add('sel');
@@ -1033,29 +1232,31 @@ function renderPicker(){
   msgEl.classList.remove('error');
   if (bal !== null && bal < fee){
     msgEl.classList.add('error');
-    msgEl.innerText = `❌ ቀሪ ሂሳብ አይበቃም · Balance: ${bal.toFixed(2)} ETB · Need ${fee} ETB per cartela. Send /start to top up.`;
+    msgEl.innerText = `❌ Balance too low: ${bal.toFixed(2)} ETB (need ${fee}). Send /start to top up.`;
   } else if (selected.length === 0){
-    msgEl.innerText = `Pick 1–${selectionCap} cartelas then tap JOIN · ${fee} ETB each`;
+    msgEl.innerText = T('pick_hint');
   } else {
-    msgEl.innerText = `${selected.length}/${selectionCap} selected · Total: ${selected.length * fee} ETB — tap JOIN`;
+    msgEl.innerText = T('pick_total', selected.length);
   }
 }
 function onPickClick(id){
   if (phase !== 'selection') return;
-  if (takenSet.has(id)) { showToast('⚠️ Cartela taken'); return; }
-  if (myCartelas.some(c => c.id === id)) { showToast('Already yours'); return; }
+  if (takenSet.has(id)) { showToast(T('cartela_taken')); return; }
+  if (myCartelas.some(c => c.id === id)) { showToast(T('already_yours')); return; }
   const bal = userProfile ? ((userProfile.balance || 0) + (userProfile.winBalance || 0)) : null;
   const maxAffordable = bal === null ? MAX_CARTELAS : Math.floor(bal / fee);
   const cap = Math.min(MAX_CARTELAS, Math.max(1, maxAffordable));
   const i = selected.indexOf(id);
   if (i >= 0) selected.splice(i, 1);
-  else if (selected.length >= cap) { showToast(`⚠️ Max ${cap} cartela${cap > 1 ? 's' : ''}`); return; }
+  else if (selected.length >= cap) { showToast(`⚠️ Max ${cap}`); return; }
   else selected.push(id);
   chime(660, 0.1, 0.05, 'triangle');
   renderPicker();
 }
 
-// ============ MODE ============
+// ================================================================
+// MODE
+// ================================================================
 function updateModeUI(){
   const manBtn = document.getElementById('modeManualBtn');
   const autoBtn = document.getElementById('modeAutoBtn');
@@ -1068,7 +1269,7 @@ document.getElementById('modeManualBtn').onclick = () => {
   playMode = 'manual';
   localStorage.setItem('playMode', 'manual');
   updateModeUI(); renderCartelas(); updateBingoBtn(); updateNearWin();
-  showToast('👆 Manual — tap numbers yourself');
+  showToast(T('manual_on'));
 };
 document.getElementById('modeAutoBtn').onclick = () => {
   if (playMode === 'auto') return;
@@ -1076,10 +1277,12 @@ document.getElementById('modeAutoBtn').onclick = () => {
   localStorage.setItem('playMode', 'auto');
   updateModeUI(); renderCartelas(); updateBingoBtn(); updateNearWin();
   checkAutoBingo();
-  showToast('⚡ Auto — machine marks & claims');
+  showToast(T('auto_on'));
 };
 
-// ============ CARTELAS ============
+// ================================================================
+// CARTELAS
+// ================================================================
 function renderCartelas(){
   const wrap = document.getElementById('cartelasList');
   if (!wrap) return;
@@ -1092,10 +1295,15 @@ function renderCartelas(){
   wrap.innerHTML = '';
   wrap.dataset.sig = sig;
   myCartelas.forEach(c => {
+    const isFav = favorites.includes(c.id);
     const card = document.createElement('div');
     card.className = 'cartela-card';
     card.id = 'cartela-' + c.id;
-    card.innerHTML = `<div class="cartela-head"><span>CARTELA</span><span class="id">#${c.id}</span></div>`;
+    card.innerHTML = `
+      <div class="cartela-head">
+        <span>CARTELA <span class="id">#${c.id}</span></span>
+        <button class="fav-btn ${isFav?'on':''}" data-fav="${c.id}">${isFav?'★':'☆'}</button>
+      </div>`;
     const grid = document.createElement('div');
     grid.className = 'cartela-grid';
     for (let r = 0; r < 5; r++){
@@ -1111,7 +1319,32 @@ function renderCartelas(){
       }
     }
     card.appendChild(grid);
+
+    // pattern preview badge
+    const preview = document.createElement('div');
+    preview.className = 'pattern-preview';
+    preview.id = 'preview-' + c.id;
+    for (let i = 0; i < 25; i++){
+      const pc = document.createElement('div');
+      pc.className = 'p-cell';
+      preview.appendChild(pc);
+    }
+    card.appendChild(preview);
+
     wrap.appendChild(card);
+
+    // fav button handler
+    card.querySelector('.fav-btn').onclick = (ev) => {
+      ev.stopPropagation();
+      const idNum = Number(ev.currentTarget.dataset.fav);
+      const idx = favorites.indexOf(idNum);
+      if (idx >= 0){ favorites.splice(idx, 1); showToast(T('unfavorited')); }
+      else { favorites.push(idNum); showToast(T('favorited')); }
+      localStorage.setItem('favorites', JSON.stringify(favorites));
+      renderCartelas();
+      renderPicker();
+    };
+
     updateCartelaCells(c);
   });
   updateMessageArea();
@@ -1129,7 +1362,7 @@ function updateCartelaCells(cartela){
     let marked = isFree;
     if (playMode === 'auto') marked = marked || isCalled;
     else marked = marked || isManMark;
-    el.classList.remove('auto-marked', 'marked', 'tappable');
+    el.classList.remove('auto-marked', 'marked', 'tappable', 'auto-assist');
     if (marked) el.classList.add(playMode === 'auto' && isCalled && !isFree ? 'auto-marked' : 'marked');
     else if (playMode === 'manual' && isCalled && !isFree) el.classList.add('tappable');
   });
@@ -1146,8 +1379,99 @@ function updateCartelaCells(cartela){
     card.querySelectorAll('.cell.win').forEach(el => el.classList.remove('win'));
     card.classList.remove('has-manual-win');
   }
+  // update pattern preview
+  updatePatternPreview(cartela);
 }
 
+// ================================================================
+// PATTERN PREVIEW
+// ================================================================
+function updatePatternPreview(cartela){
+  const preview = document.getElementById('preview-' + cartela.id);
+  if (!preview) return;
+  const marks = getPlayerMarkSet();
+  const g = cartela.grid;
+  const cells = preview.children;
+
+  // reset
+  for (const c of cells){ c.classList.remove('hit', 'line-hint'); }
+
+  // show called hits
+  for (let r=0;r<5;r++){
+    for (let c=0;c<5;c++){
+      const n = g[r][c];
+      if (n === 0 || marks.has(n)){
+        cells[r*5 + c].classList.add('hit');
+      }
+    }
+  }
+
+  // find best line (closest to complete) and highlight its remaining cells
+  let best = null;
+  const lines = [];
+  for (let r=0;r<5;r++) lines.push({ idx: Array.from({length:5},(_,c)=>r*5+c) });
+  for (let c=0;c<5;c++) lines.push({ idx: Array.from({length:5},(_,r)=>r*5+c) });
+  lines.push({ idx: [0,6,12,18,24] });
+  lines.push({ idx: [4,8,12,16,20] });
+  let bestGap = 6;
+  for (const line of lines){
+    let gap = 0;
+    for (const i of line.idx){
+      const r = Math.floor(i/5), c = i%5;
+      const n = g[r][c];
+      if (n !== 0 && !marks.has(n)) gap++;
+    }
+    if (gap < bestGap){ bestGap = gap; best = line; }
+  }
+  if (best && bestGap <= 2){
+    for (const i of best.idx){
+      const r = Math.floor(i/5), c = i%5;
+      const n = g[r][c];
+      if (n !== 0 && !marks.has(n)){
+        cells[i].classList.add('line-hint');
+      }
+    }
+  }
+}
+
+// ================================================================
+// AUTO-DAUB ASSIST
+// ================================================================
+function scheduleAutoAssist(number){
+  if (playMode !== 'manual') return;
+  if (manMarks.has(number)) return;
+  if (autoAssistTimers.has(number)) return;
+  const t = setTimeout(() => {
+    if (playMode !== 'manual') return;
+    if (manMarks.has(number)) return;
+    // find cells in myCartelas with this number and add hint
+    myCartelas.forEach(c => {
+      const card = document.getElementById('cartela-' + c.id);
+      if (!card) return;
+      card.querySelectorAll('.cell[data-n="' + number + '"]').forEach(el => {
+        if (!el.classList.contains('marked')) el.classList.add('auto-assist');
+      });
+    });
+  }, AUTO_DAUB_ASSIST_MS);
+  autoAssistTimers.set(number, t);
+}
+function clearAutoAssist(number){
+  if (autoAssistTimers.has(number)){
+    clearTimeout(autoAssistTimers.get(number));
+    autoAssistTimers.delete(number);
+  }
+  myCartelas.forEach(c => {
+    const card = document.getElementById('cartela-' + c.id);
+    if (!card) return;
+    card.querySelectorAll('.cell[data-n="' + number + '"]').forEach(el => {
+      el.classList.remove('auto-assist');
+    });
+  });
+}
+
+// ================================================================
+// PLAYER MARK SET
+// ================================================================
 function getPlayerMarkSet(){
   const set = new Set();
   set.add(0);
@@ -1159,19 +1483,18 @@ function getPlayerMarkSet(){
 function onCellClick(cartelaId, n, el){
   if (phase !== 'running') return;
   if (playMode !== 'manual') return;
-  if (!calledNumbers.includes(n)) { showToast('⚠️ Not called yet'); return; }
+  if (!calledNumbers.includes(n)) { showToast(T('not_called')); return; }
   if (manMarks.has(n)) {
     manMarks.delete(n);
     chime(440, 0.08, 0.05, 'sine');
   } else {
     manMarks.add(n);
     playDaubSound();
-    // ripple effect
+    clearAutoAssist(n);
     const rip = document.createElement('div');
     rip.className = 'ripple';
     el.appendChild(rip);
     setTimeout(() => rip.remove(), 700);
-    // vibrate if supported
     if (navigator.vibrate) navigator.vibrate(15);
   }
   renderLastCalls();
@@ -1180,7 +1503,9 @@ function onCellClick(cartelaId, n, el){
   updateNearWin();
 }
 
-// ============ NEAR-WIN ============
+// ================================================================
+// NEAR-WIN
+// ================================================================
 function updateNearWin(){
   const el = document.getElementById('nearWin');
   if (!el) return;
@@ -1192,7 +1517,6 @@ function updateNearWin(){
   let best = 5;
   for (const c of myCartelas){
     const g = c.grid;
-    // check each row / col / diag
     const lines = [];
     for (let r=0;r<5;r++) lines.push(Array.from({length:5},(_,c2)=>g[r][c2]));
     for (let c2=0;c2<5;c2++) lines.push(Array.from({length:5},(_,r)=>g[r][c2]));
@@ -1203,23 +1527,24 @@ function updateNearWin(){
       if (unmarked < best) best = unmarked;
     }
   }
-  if (best === 1) {
+  if (best === 1){
     el.classList.add('show');
-    el.innerText = '🔥 1 TO GO!';
-  } else if (best === 2) {
+    el.innerText = T('onetogo');
+    el.style.background = 'linear-gradient(135deg,#f97316,#dc2626)';
+    el.style.boxShadow = '0 0 16px rgba(249,115,22,.6)';
+  } else if (best === 2){
     el.classList.add('show');
-    el.innerText = '⚡ 2 TO GO!';
+    el.innerText = T('twotogo');
     el.style.background = 'linear-gradient(135deg,#8b5cf6,#7e22ce)';
     el.style.boxShadow = '0 0 16px rgba(139,92,246,.6)';
-    return;
   } else {
     el.classList.remove('show');
   }
-  el.style.background = 'linear-gradient(135deg,#f97316,#dc2626)';
-  el.style.boxShadow = '0 0 16px rgba(249,115,22,.6)';
 }
 
-// ============ WIN CHECKER ============
+// ================================================================
+// WIN CHECKER
+// ================================================================
 function evaluateWinClient(cartela, markSet){
   const g = cartela.grid;
   for (let r=0;r<5;r++){
@@ -1253,38 +1578,9 @@ function evaluateWinClient(cartela, markSet){
   return null;
 }
 
-// ============ PRE-CALL COUNTDOWN (3-2-1 before each number) ============
-function showPreCallCountdown(){
-  const overlay = document.getElementById('callCountdown');
-  const numEl = document.getElementById('callCountdownNum');
-  if (!overlay || !numEl) return;
-
-  // Don't show for the very first call (server also has 1s delay)
-  overlay.classList.add('show');
-  let n = 3;
-  numEl.innerText = n;
-  numEl.style.animation = 'none';
-  void numEl.offsetWidth;
-  numEl.style.animation = 'countdown-pop .9s ease-out';
-  chime(660, 0.15, 0.06);
-  preCallCountdownTimer = setInterval(() => {
-    n--;
-    if (n <= 0){
-      clearInterval(preCallCountdownTimer);
-      preCallCountdownTimer = null;
-      overlay.classList.remove('show');
-      chime(1200, 0.15, 0.08);
-      return;
-    }
-    numEl.innerText = n;
-    numEl.style.animation = 'none';
-    void numEl.offsetWidth;
-    numEl.style.animation = 'countdown-pop .9s ease-out';
-    chime(660 + (3 - n) * 100, 0.15, 0.06);
-  }, 900);
-}
-
-// ============ LIVE CALL ============
+// ================================================================
+// LIVE CALL
+// ================================================================
 function setLiveCall(num){
   const ball = document.getElementById('liveBall');
   ball.innerText = num;
@@ -1296,7 +1592,7 @@ function renderLastCalls(){
   if (!el) return;
   el.innerHTML = '';
   if (calledNumbers.length === 0){
-    el.innerHTML = '<div class="lc-empty">Waiting…</div>';
+    el.innerHTML = '<div class="lc-empty">' + T('waiting') + '</div>';
     return;
   }
   const recent = calledNumbers.slice(-10).reverse();
@@ -1307,7 +1603,6 @@ function renderLastCalls(){
     d.innerText = letterOf(n) + n;
     el.appendChild(d);
   });
-  // Auto-scroll to the start so the newest chip is visible
   requestAnimationFrame(() => { el.scrollLeft = 0; });
 }
 function updateProgress(){
@@ -1324,7 +1619,9 @@ function updateColumnHighlights(){
   });
 }
 
-// ============ SCREENS ============
+// ================================================================
+// SCREENS
+// ================================================================
 function showSelectionScreen(){
   document.getElementById('selectScreen').classList.remove('hidden');
   document.getElementById('selectScreen').style.display = 'flex';
@@ -1338,7 +1635,9 @@ function showGameScreen(){
   document.getElementById('gameScreen').style.display = 'flex';
 }
 
-// ============ JOIN ============
+// ================================================================
+// JOIN
+// ================================================================
 document.getElementById('joinBtn').onclick = async () => {
   if (selected.length === 0) return;
   document.getElementById('selMsg').innerText = 'Joining…';
@@ -1351,7 +1650,7 @@ document.getElementById('joinBtn').onclick = async () => {
       const errEl = document.getElementById('selMsg');
       errEl.classList.add('error');
       if (r.error && r.error.includes('User not found')) {
-        errEl.innerText = `❌ Please send /start to @AbissinaBingobot first, then come back.`;
+        errEl.innerText = `❌ Please send /start to @AbissinaBingobot first.`;
       } else {
         errEl.innerText = '❌ ' + r.error;
       }
@@ -1361,7 +1660,7 @@ document.getElementById('joinBtn').onclick = async () => {
     manMarks.clear();
     loadProfile();
     chime(660, 0.14, 0.08, 'triangle');
-    showToast('✅ Joined!');
+    showToast(T('joined'));
     showGameScreen();
     renderCartelas();
     renderNumberGrid();
@@ -1373,7 +1672,9 @@ document.getElementById('joinBtn').onclick = async () => {
   }
 };
 
-// ============ BINGO ============
+// ================================================================
+// BINGO
+// ================================================================
 document.getElementById('bingoBtn').onclick = () => tryClaimBingo();
 async function tryClaimBingo(){
   if (phase !== 'running') return;
@@ -1426,10 +1727,12 @@ function updateBingoBtn(){
   }
 }
 
-// ============ WINNER ============
+// ================================================================
+// WINNER
+// ================================================================
 function showWinnerModal(w){
   const isMe = w.userId === userId;
-  if (isMe) {
+  if (isMe){
     winStreak++;
     localStorage.setItem('winStreak', String(winStreak));
   } else {
@@ -1444,34 +1747,63 @@ function showWinnerModal(w){
   div.className = 'modal-bg';
   div.innerHTML = `
     <div class="modal">
-      <h1>GAME OVER</h1>
+      <h1>${T('wintitle')}</h1>
       ${streakHTML}
-      <div class="winner-badge">🏆 ${w.firstName}${isMe ? ' (YOU)' : ''}</div>
-      <div class="pool-label">TOTAL PRIZE</div>
+      <div class="winner-badge">🏆 ${w.firstName}${isMe ? T('you') : ''}</div>
+      <div class="pool-label">${T('prize')}</div>
       <div class="pool-amount">${w.prize}<small> ETB</small></div>
     </div>`;
   document.body.appendChild(div);
   fireConfetti();
+  fireConfetti(); // double burst
   playEventAudio(w.firstName + ' won ' + w.prize + ' birr');
   setTimeout(()=>div.remove(), 7500);
 }
 function fireConfetti(){
   const colors = ['#ec4899','#a855f7','#22d3ee','#facc15','#22c55e','#fb923c'];
-  for (let i = 0; i < 70; i++){
+  for (let i = 0; i < 80; i++){
     const c = document.createElement('div');
     c.className = 'confetti';
     c.style.left = Math.random() * 100 + 'vw';
     c.style.background = colors[i % colors.length];
     c.style.animation = `fall ${2 + Math.random()*2}s linear forwards`;
-    c.style.animationDelay = (Math.random()*0.6) + 's';
-    c.style.width = (5 + Math.random()*6) + 'px';
-    c.style.height = (5 + Math.random()*6) + 'px';
+    c.style.animationDelay = (Math.random()*0.8) + 's';
+    c.style.width = (5 + Math.random()*8) + 'px';
+    c.style.height = (5 + Math.random()*8) + 'px';
+    c.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
     document.body.appendChild(c);
     setTimeout(()=>c.remove(), 5000);
   }
 }
 
-// ============ TOAST ============
+// ================================================================
+// REACTIONS
+// ================================================================
+document.querySelectorAll('.react-btn').forEach(b => {
+  b.onclick = () => {
+    const emoji = b.dataset.emoji;
+    // emit to server so all players see it
+    socket.emit('reaction', { emoji, name: firstName });
+    // show locally too
+    showFloatingReaction(emoji);
+    chime(1000, 0.05, 0.05, 'triangle');
+  };
+});
+function showFloatingReaction(emoji, name){
+  const wrap = document.getElementById('floatingReactions');
+  if (!wrap) return;
+  const el = document.createElement('div');
+  el.className = 'float-react';
+  el.innerText = emoji;
+  el.style.left = (10 + Math.random() * 70) + '%';
+  el.style.bottom = '20%';
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 2400);
+}
+
+// ================================================================
+// TOAST
+// ================================================================
 function showToast(msg){
   const t = document.createElement('div');
   t.className = 'toast'; t.innerText = msg;
@@ -1479,7 +1811,9 @@ function showToast(msg){
   setTimeout(()=>t.remove(), 3000);
 }
 
-// ============ PAUSE / RESUME ============
+// ================================================================
+// PAUSE
+// ================================================================
 let paused = false;
 const pauseOverlay = document.getElementById('pauseOverlay');
 const resumeBtn = document.getElementById('resumeBtn');
@@ -1487,24 +1821,22 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden && phase === 'running'){
     paused = true;
     pauseOverlay.classList.add('show');
-    // cancel any countdown
     if (preCallCountdownTimer){ clearInterval(preCallCountdownTimer); preCallCountdownTimer = null; }
     document.getElementById('callCountdown').classList.remove('show');
-    // cancel any pending audio
     if ('speechSynthesis' in window) speechSynthesis.cancel();
-    // stop voice announcements
     for (const a of audioCache.values()){ try { a.pause(); } catch(e){} }
   }
 });
 resumeBtn.onclick = () => {
   paused = false;
   pauseOverlay.classList.remove('show');
-  // resync state
   loadState();
   loadMyCartelas();
 };
 
-// ============ SOCKETS ============
+// ================================================================
+// SOCKETS
+// ================================================================
 socket.on('game-state', s => applyState(s));
 socket.on('number-called', ({number, all}) => {
   if (paused) return;
@@ -1519,7 +1851,7 @@ socket.on('number-called', ({number, all}) => {
   updateColumnHighlights();
   updateBingoBtn();
   updateNearWin();
-  // In auto mode, always check for win; in manual mode, wait for player
+  if (playMode === 'manual') scheduleAutoAssist(number);
   if (playMode === 'auto') checkAutoBingo();
 });
 socket.on('round-finished', w => {
@@ -1527,16 +1859,25 @@ socket.on('round-finished', w => {
   myCartelas = [];
   selected = [];
   manMarks.clear();
+  autoAssistTimers.forEach(t => clearTimeout(t));
+  autoAssistTimers.clear();
   document.getElementById('cartelasList').innerHTML = '';
   document.getElementById('cartelasList').dataset.sig = '';
   updateBingoBtn();
   updateMessageArea();
   updateNearWin();
   loadProfile();
+  // reload jackpot
+  loadState();
 });
 socket.on('broadcast', ({message}) => { showToast('📢 ' + message); });
+socket.on('reaction', ({emoji, name}) => {
+  showFloatingReaction(emoji, name);
+});
 
-// ============ ICON BAR ============
+// ================================================================
+// ICON BAR
+// ================================================================
 document.getElementById('btnWallet').onclick = () => location.href = '/profile.html?uid=' + userId;
 document.getElementById('btnBalance').onclick = async () => {
   await loadProfile();
@@ -1552,26 +1893,31 @@ document.getElementById('btnInvite').onclick = async () => {
     try { await navigator.share({title:'Abyssinia Bingo', text:'Join me!', url:link}); } catch(e){}
   }
 };
-document.getElementById('btnLang').onclick = () => showToast('🌐 Language: አማርኛ');
+document.getElementById('btnLang').onclick = () => {
+  const order = ['en','am','om','ti'];
+  const idx = order.indexOf(LANG);
+  LANG = order[(idx+1) % order.length];
+  localStorage.setItem('lang', LANG);
+  applyLang();
+  renderLastCalls();
+  updateNearWin();
+  showToast('🌐 ' + LANG.toUpperCase());
+};
 document.getElementById('btnHelp').onclick = () => {
   const ov = document.createElement('div');
   ov.className = 'modal-bg';
   ov.innerHTML = `<div class="modal" style="text-align:left">
-    <h1 style="text-align:center">How to Play</h1>
-    <p style="font-size:12px;line-height:1.6;color:var(--ink);margin:10px 0">
-    Complete <b>one full line</b> — row, column, or diagonal — to win.<br><br>
-    <b>👆 MANUAL mode:</b> When a number is called, tap it on your cartela to mark it. Complete a line and tap BINGO!<br>
-    <b>⚡ AUTO mode:</b> Numbers are marked automatically and BINGO is claimed for you.<br><br>
-    Pick up to <b>4 cartelas</b> per game.<br>
-    🔊 Tap Enable Voice to hear every call.
-    </p>
-    <button class="action-btn" onclick="this.closest('.modal-bg').remove()">Got it</button>
+    <h1 style="text-align:center">${T('help_title')}</h1>
+    <p style="font-size:12px;line-height:1.6;color:var(--ink);margin:10px 0;white-space:pre-line">${T('help_body')}</p>
+    <button class="action-btn" onclick="this.closest('.modal-bg').remove()">${T('gotit')}</button>
   </div>`;
   document.body.appendChild(ov);
   ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
 };
 
-// ============ KEYBOARD ============
+// ================================================================
+// KEYBOARD
+// ================================================================
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
   const k = e.key.toLowerCase();
@@ -1583,9 +1929,12 @@ document.addEventListener('keydown', e => {
   else if (k === '?') document.getElementById('btnHelp').click();
 });
 
-// ============ BOOT ============
+// ================================================================
+// BOOT
+// ================================================================
 async function boot(){
   try {
+    applyLang();
     updateModeUI();
     await Promise.all([loadState(), loadProfile(), loadMyCartelas()]);
   } catch(e){ console.error('boot error:', e); }
