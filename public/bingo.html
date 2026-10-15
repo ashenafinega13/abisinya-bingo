@@ -440,78 +440,70 @@ const userId = Number(p.get('uid')) || 0;
 const firstName = p.get('name') || 'Player';
 const socket = io();
 
-// ============ VOICE — MALE ANNOUNCER ============
+// ============ VOICE — PRE-RECORDED MALE MP3s ============
 let voiceEnabled = false;
-let maleVoice = null;
+const audioCache = new Map();
 
-const MALE_VOICE_HINTS = [
-  'Google UK English Male',
-  'Google US English Male',
-  'Microsoft David',
-  'Microsoft Mark',
-  'Microsoft Guy',
-  'Microsoft Ryan',
-  'Daniel',
-  'Alex',
-  'Fred',
-  'Male'
-];
-
-function loadVoices(){
-  if (!('speechSynthesis' in window)) return;
-  const voices = speechSynthesis.getVoices();
-  if (!voices.length) return;
-
-  // Try exact name hints first
-  for (const hint of MALE_VOICE_HINTS) {
-    const found = voices.find(v => v.name.toLowerCase().includes(hint.toLowerCase()));
-    if (found) { maleVoice = found; break; }
-  }
-
-  // Regex fallback
-  if (!maleVoice) {
-    maleVoice = voices.find(v => /(male|david|mark|alex|daniel|fred|guy|ryan)/i.test(v.name));
-  }
-
-  // Any English voice
-  if (!maleVoice) {
-    maleVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
-  }
-
-  if (maleVoice) console.log('🎙️ Using voice:', maleVoice.name, maleVoice.lang);
+function preloadAudio(num){
+  if (audioCache.has(num)) return audioCache.get(num);
+  const a = new Audio('/audio/call_' + num + '.mp3');
+  a.preload = 'auto';
+  audioCache.set(num, a);
+  return a;
 }
 
-if ('speechSynthesis' in window) {
-  loadVoices();
-  speechSynthesis.onvoiceschanged = loadVoices;
-  setTimeout(loadVoices, 1000);
-  setTimeout(loadVoices, 3000);
-}
+// Preload all 75 in the background after 2s
+setTimeout(() => {
+  for (let n = 1; n <= 75; n++) preloadAudio(n);
+  console.log('🎙️ Preloaded 75 MP3 announcements');
+}, 2000);
 
-function speak(text, opts = {}){
-  if (!voiceEnabled || !('speechSynthesis' in window)) return;
+function playCall(number){
+  if (!voiceEnabled) return;
   try {
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    // Deeper pitch = more masculine sound
-    u.pitch  = opts.pitch  !== undefined ? opts.pitch  : 0.5;
-    u.rate   = opts.rate   !== undefined ? opts.rate   : 0.95;
-    u.volume = opts.volume !== undefined ? opts.volume : 1;
-    if (maleVoice) u.voice = maleVoice;
-    speechSynthesis.speak(u);
-  } catch(e){ console.error('speak error:', e); }
+    const a = preloadAudio(number);
+    a.currentTime = 0;
+    a.volume = 1.0;
+    const p = a.play();
+    if (p && p.catch) p.catch(err => console.log('audio play err:', err.message));
+  } catch(e){ console.error('playCall:', e); }
+}
+
+function playEventAudio(text){
+  if (!voiceEnabled) return;
+  if ('speechSynthesis' in window) {
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.pitch = 0.5;
+      u.rate = 0.95;
+      speechSynthesis.speak(u);
+    } catch(e){}
+  }
 }
 
 document.getElementById('enableVoiceBtn').onclick = () => {
   voiceEnabled = true;
   document.getElementById('enableVoiceBtn').style.display = 'none';
-  loadVoices();
-  // Small delay lets the voice list settle
-  setTimeout(() => speak('Voice enabled. Let\'s play bingo.', { rate: 0.95, pitch: 0.5 }), 100);
   chime(880, 0.15, 0.08);
-  showToast('🔊 Male voice enabled');
+  setTimeout(() => playCall(12), 300);
+  showToast('🔊 Voice enabled');
   localStorage.setItem('voiceEnabled', '1');
 };
+
+if (localStorage.getItem('voiceEnabled') === '1') {
+  const autoEnable = () => {
+    if (!voiceEnabled) {
+      voiceEnabled = true;
+      const btn = document.getElementById('enableVoiceBtn');
+      if (btn) btn.style.display = 'none';
+    }
+    document.removeEventListener('touchstart', autoEnable);
+    document.removeEventListener('click', autoEnable);
+  };
+  document.addEventListener('touchstart', autoEnable, { once: true });
+  document.addEventListener('click', autoEnable, { once: true });
+}
 
 // Auto-enable if previously enabled (needs user gesture)
 if (localStorage.getItem('voiceEnabled') === '1') {
@@ -863,7 +855,7 @@ async function tryClaimBingo(){
           method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({userId, cartelaId: c.id})
         }).then(x=>x.json());
-        if (r.success) speak('Bingo!');
+        if (r.success) playEventAudio('Bingo!');
         else showToast('❌ ' + r.error);
       } catch(e){}
       return;
@@ -944,7 +936,7 @@ function showWinnerModal(w){
     </div>`;
   document.body.appendChild(div);
   fireConfetti();
-  speak(w.firstName + ' won ' + w.prize + ' ETB', { rate: 0.9, pitch: 0.5 });
+  playEventAudio(w.firstName + ' won ' + w.prize + ' birr');
   setTimeout(()=>div.remove(), 7500);
 }
 function fireConfetti(){
@@ -978,7 +970,7 @@ socket.on('number-called', ({number, all}) => {
   setLiveCall(number);
   chime(880, 0.14, 0.08);
   // Male voice announcing "B. 12" — low pitch for masculine timbre
-  speak(letterOf(number) + '. ' + number, { rate: 0.9, pitch: 0.5 });
+  playCall(number);
   renderRecent();
   myCartelas.forEach(updateCartelaCells);
   updateProgress();
