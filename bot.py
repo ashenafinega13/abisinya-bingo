@@ -204,7 +204,7 @@ async def balance_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     usr = sv_user(u.id) or {}
     play = usr.get("balance", 0); win = usr.get("winBalance", 0)
     await update.message.reply_text(
-        f"💼 *የእርስዎ ዋሌት*\n\n🎯 Playable: *{play:.2f} ብር*\n🏆 Winnings: *{win:.2f} ብር*\n💵 *ጠቅላላ: {play+win:.2f} ብር*",
+        f"💼 *የእርስዎ ዋሌት*\n\n🎯 Playable: *{play:.2f} ብር*\n🏆 Winnings: *{win:.2f} ብር*\n💵 *ጠቅላላ: {play+win:.2f} ብር}*",
         parse_mode="Markdown")
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -217,6 +217,40 @@ async def debug_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"🔧 *DEBUG*\n\n`SERVER_URL` = `{SERVER_URL}`\n`WEBAPP_URL` = `{WEBAPP_URL}`\n`BOT_USERNAME` = `{BOT_USERNAME}`\n\n*Play:* `{game_url(u.id, u.first_name or 'Player')}`",
         parse_mode="Markdown")
+
+# ================================================================
+#                        DEDICATED COMMAND HANDLERS
+# ================================================================
+async def cmd_register(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    u = update.effective_user
+    user_states[u.id] = {"action": "register"}
+    await update.message.reply_text(
+        "📱 *ስልክ ቁጥር ምዝገባ*\n\nከታች ያለውን *📱 Share My Contact* ይጫኑ ወይም ስልክ ቁጥርዎን ይላኩ።",
+        parse_mode="Markdown", reply_markup=contact_kb()
+    )
+
+async def cmd_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "💰 *ገንዘብ ማስገባት*\n\nየክፍያ አማራጭ ይምረጡ:",
+        parse_mode="Markdown", reply_markup=deposit_kb()
+    )
+
+async def cmd_withdraw(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "📤 *የወጭ አማራጭ ይምረጡ:*",
+        parse_mode="Markdown", reply_markup=withdraw_kb()
+    )
+
+async def cmd_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    u = update.effective_user
+    link = f"https://t.me/{BOT_USERNAME}?start={u.id}"
+    await update.message.reply_text(f"👥 *የግብዣ ሊንክ*\n\n`{link}`", parse_mode="Markdown")
+
+async def cmd_support(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("💬 *ድጋፍ*\n\n👤 @Tazikes", parse_mode="Markdown")
+
+async def cmd_leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🏆 👤 *My Profile* → 🏆 Leaderboard ን ይጫኑ።", parse_mode="Markdown")
 
 # ================================================================
 #                        MESSAGE HANDLER
@@ -243,7 +277,6 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
     state = user_states.get(u.id, {})
     action = state.get("action")
 
-    # Menu click
     if txt == "☰  Menu" or txt == "☰ Menu":
         user_states.pop(u.id, None)
         await update.message.reply_text(
@@ -251,7 +284,6 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown", reply_markup=menu_kb())
         return
 
-    # Register
     if action == "register":
         phone = txt.strip()
         if not re.match(r"^\+?\d{9,15}$", phone):
@@ -265,7 +297,6 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=main_kb(u.id, u.first_name or "Player"))
         return
 
-    # Deposit
     if action == "deposit":
         m = re.search(r"(\d+(?:[.,]\d+)?)", txt)
         amount = float(m.group(1).replace(",", "")) if m else 0
@@ -288,7 +319,6 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown", reply_markup=main_kb(u.id, u.first_name or "Player"))
         return
 
-    # Withdraw amount
     if action == "withdraw_amount":
         if not txt.isdigit():
             await update.message.reply_text("⚠️ ቁጥር ብቻ ያስገቡ"); return
@@ -304,7 +334,6 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("📱 የስልክ ቁጥርዎን ያስገቡ:")
         return
 
-    # Withdraw phone
     if action == "withdraw_phone":
         phone = txt.strip()
         amount = state.get("amount", 0); method = state.get("method", "unknown")
@@ -332,7 +361,7 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=main_kb(u.id, u.first_name or "Player"))
 
 # ================================================================
-#                        BUTTON HANDLER
+#                        BUTTON HANDLER (Inline)
 # ================================================================
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
@@ -370,7 +399,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         usr = sv_user(u.id) or {}
         play = usr.get("balance", 0); win = usr.get("winBalance", 0)
         await q.edit_message_text(
-            f"💼 *የእርስዎ ዋሌት*\n\n🎯 Playable: *{play:.2f} ብር*\n🏆 Winnings: *{win:.2f} ብር*\n💵 *ጠቅላላ: {play+win:.2f} ብር*",
+            f"💼 *የእርስዎ ዋሌት*\n\n🎯 Playable: *{play:.2f} ብር*\n🏆 Winnings: *{win:.2f} ብር*\n💵 *ጠቅላላ: {play+win:.2f} ብር}*",
             parse_mode="Markdown")
     elif data == "m_invite":
         link = f"https://t.me/{BOT_USERNAME}?start={u.id}"
@@ -452,12 +481,12 @@ async def winner_handler(request):
 #                        MAIN
 # ================================================================
 async def post_init(app):
-    """Register commands so the blue Menu button works."""
+    """Register the native Telegram menu commands."""
     commands = [
-        BotCommand("register", "መመዝገብ (Register)"),
         BotCommand("start", "ቀኑ ይጀምሩ (Start)"),
         BotCommand("play", "ጨዋታ ይጫወቱ (Play)"),
-        BotCommand("balance", "የማህደር ሂሳብ ይመልከቱ (Balance)"),
+        BotCommand("register", "መመዝገብ (Register)"),
+        BotCommand("balance", "የማህደር ሂሳብ (Balance)"),
         BotCommand("deposit", "ገንዘብ ያስገቡ (Deposit)"),
         BotCommand("withdraw", "ገንዘብ ያውጡ (Withdraw)"),
         BotCommand("invite", "ጓደኛ ይጋብዙ (Invite)"),
@@ -476,20 +505,19 @@ async def main():
 
     tg = ApplicationBuilder().token(TOKEN).post_init(post_init).build()
     
-    tg.add_handler(CommandHandler("start",   start))
-    tg.add_handler(CommandHandler("play",    play_cmd))
+    # Register all commands properly
+    tg.add_handler(CommandHandler("start", start))
+    tg.add_handler(CommandHandler("play", play_cmd))
+    tg.add_handler(CommandHandler("register", cmd_register))
     tg.add_handler(CommandHandler("balance", balance_cmd))
-    tg.add_handler(CommandHandler("help",    help_cmd))
-    tg.add_handler(CommandHandler("debug",   debug_cmd))
+    tg.add_handler(CommandHandler("deposit", cmd_deposit))
+    tg.add_handler(CommandHandler("withdraw", cmd_withdraw))
+    tg.add_handler(CommandHandler("invite", cmd_invite))
+    tg.add_handler(CommandHandler("support", cmd_support))
+    tg.add_handler(CommandHandler("leaderboard", cmd_leaderboard))
+    tg.add_handler(CommandHandler("help", help_cmd))
+    tg.add_handler(CommandHandler("debug", debug_cmd))
     
-    # Map other commands to open the menu or respective flows
-    tg.add_handler(CommandHandler("register", lambda u, c: button_handler(Update(0, callback_query=type('obj', (object,), {'data': 'm_register', 'from_user': u.effective_user, 'answer': lambda: None, 'edit_message_text': lambda t, **k: u.message.reply_text(t, **k)})(), ), c))
-    tg.add_handler(CommandHandler("deposit", lambda u, c: button_handler(Update(0, callback_query=type('obj', (object,), {'data': 'm_deposit', 'from_user': u.effective_user, 'answer': lambda: None, 'edit_message_text': lambda t, **k: u.message.reply_text(t, **k)})(), ), c))
-    tg.add_handler(CommandHandler("withdraw", lambda u, c: button_handler(Update(0, callback_query=type('obj', (object,), {'data': 'm_withdraw', 'from_user': u.effective_user, 'answer': lambda: None, 'edit_message_text': lambda t, **k: u.message.reply_text(t, **k)})(), ), c))
-    tg.add_handler(CommandHandler("invite", lambda u, c: button_handler(Update(0, callback_query=type('obj', (object,), {'data': 'm_invite', 'from_user': u.effective_user, 'answer': lambda: None, 'edit_message_text': lambda t, **k: u.message.reply_text(t, **k)})(), ), c))
-    tg.add_handler(CommandHandler("support", lambda u, c: button_handler(Update(0, callback_query=type('obj', (object,), {'data': 'm_support', 'from_user': u.effective_user, 'answer': lambda: None, 'edit_message_text': lambda t, **k: u.message.reply_text(t, **k)})(), ), c))
-    tg.add_handler(CommandHandler("leaderboard", lambda u, c: button_handler(Update(0, callback_query=type('obj', (object,), {'data': 'm_leaderboard', 'from_user': u.effective_user, 'answer': lambda: None, 'edit_message_text': lambda t, **k: u.message.reply_text(t, **k)})(), ), c))
-
     tg.add_handler(MessageHandler(filters.CONTACT, handle_msg))
     tg.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_msg))
     tg.add_handler(CallbackQueryHandler(button_handler))
