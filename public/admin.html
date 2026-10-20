@@ -1,909 +1,234 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Admin · Abisinya Bingo</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="/socket.io/socket.io.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel</title>
 <style>
-  :root{
-    --bg-0:#0b0616; --bg-1:#130c26; --bg-2:#1a1035; --bg-3:#241649;
-    --ink:#f5f3ff; --muted:#a78bfa; --accent:#8b5cf6; --accent-2:#a855f7;
-    --neon-pink:#ec4899; --neon-cyan:#22d3ee; --neon-green:#22c55e;
-    --neon-orange:#fb923c; --neon-gold:#facc15; --neon-red:#ef4444;
-    --border:rgba(167,139,250,.18);
-  }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  body{
-    font-family:'Inter','Segoe UI',sans-serif;
-    background:
-      radial-gradient(1200px 600px at 50% -100px, rgba(168,85,247,.18), transparent 60%),
-      linear-gradient(160deg,var(--bg-0) 0%,var(--bg-1) 40%,var(--bg-2) 100%);
-    background-attachment:fixed;
-    color:var(--ink);
-    min-height:100vh;
-    margin:0;
-    padding:14px;
-  }
-  .card{
-    background:linear-gradient(180deg,rgba(139,92,246,.10),rgba(139,92,246,.03));
-    border:1px solid var(--border);
-    border-radius:14px;
-    padding:16px;
-    backdrop-filter:blur(10px);
-  }
-  .btn{
-    padding:9px 16px;border-radius:10px;font-weight:700;font-size:13px;
-    border:none;cursor:pointer;transition:all .15s;
-    display:inline-flex;align-items:center;gap:6px;
-    white-space:nowrap;
-  }
-  .btn:active{transform:scale(.96)}
-  .btn:disabled{opacity:.4;cursor:not-allowed}
-  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff}
-  .btn-success{background:linear-gradient(135deg,#22c55e,#15803d);color:#fff}
-  .btn-warn{background:linear-gradient(135deg,#fb923c,#c2410c);color:#fff}
-  .btn-danger{background:linear-gradient(135deg,#ef4444,#991b1b);color:#fff}
-  .btn-ghost{background:rgba(139,92,246,.14);color:var(--ink);border:1px solid var(--border)}
-  .btn-cyan{background:linear-gradient(135deg,#22d3ee,#0891b2);color:#0b0616}
-
-  .input, .select{
-    padding:9px 12px;border-radius:10px;
-    background:rgba(11,6,22,.7);
-    border:1px solid var(--border);
-    color:var(--ink);font-size:13px;
-    width:100%;
-  }
-  .input:focus, .select:focus{
-    outline:none;border-color:var(--accent);
-    box-shadow:0 0 0 3px rgba(139,92,246,.15);
-  }
-  .label{font-size:11px;font-weight:800;text-transform:uppercase;
-         letter-spacing:.6px;color:var(--muted);margin-bottom:4px;display:block}
-
-  .stat-card{
-    background:linear-gradient(180deg,rgba(139,92,246,.14),rgba(139,92,246,.04));
-    border:1px solid var(--border);
-    border-radius:12px;padding:12px;
-  }
-  .stat-card small{font-size:10px;font-weight:800;letter-spacing:.6px;
-                   text-transform:uppercase;color:var(--muted);display:block}
-  .stat-card b{font-size:22px;font-weight:900;display:block;margin-top:4px}
-
-  table{width:100%;border-collapse:collapse;font-size:12px}
-  th,td{padding:8px 6px;text-align:left;border-bottom:1px solid rgba(167,139,250,.10)}
-  th{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;
-     color:var(--muted)}
-  tr:hover td{background:rgba(139,92,246,.05)}
-  .badge{
-    display:inline-block;padding:2px 8px;border-radius:6px;
-    font-size:10px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;
-  }
-  .badge.approved{background:rgba(34,197,94,.18);color:#22c55e}
-  .badge.pending{background:rgba(251,146,60,.18);color:#fb923c}
-  .badge.rejected{background:rgba(236,72,153,.18);color:#ec4899}
-  .badge.win{background:rgba(250,204,21,.18);color:#facc15}
-  .badge.deposit{background:rgba(34,211,238,.18);color:#22d3ee}
-  .badge.withdraw{background:rgba(168,85,247,.20);color:#a855f7}
-  .badge.bet{background:rgba(139,92,246,.18);color:#a78bfa}
-  .badge.active{background:rgba(34,197,94,.18);color:#22c55e}
-
-  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
-  .tab-btn{
-    padding:10px 14px;border-radius:10px;font-weight:700;font-size:12px;
-    background:rgba(139,92,246,.10);border:1px solid var(--border);
-    color:var(--muted);cursor:pointer;transition:all .2s;
-  }
-  .tab-btn.active{
-    background:linear-gradient(135deg,var(--accent),var(--neon-pink));
-    color:#fff;border-color:transparent;
-    box-shadow:0 4px 16px rgba(168,85,247,.35);
-  }
-
-  /* Live call display */
-  .live-call-display{
-    background:
-      radial-gradient(circle at 30% 50%, rgba(168,85,247,.25), transparent 60%),
-      linear-gradient(135deg, rgba(30,20,60,.9), rgba(20,12,40,.9));
-    border:1px solid rgba(168,85,247,.45);
-    border-radius:16px;
-    padding:20px;
-    text-align:center;
-    box-shadow:0 0 32px rgba(168,85,247,.35);
-  }
-  .big-ball{
-    width:100px;height:100px;border-radius:50%;
-    background:radial-gradient(circle at 30% 30%, #fff2b0, var(--neon-gold) 45%, #b45309 100%);
-    display:inline-flex;align-items:center;justify-content:center;
-    font-size:44px;font-weight:900;color:#1a0a2e;
-    box-shadow:0 0 40px rgba(250,204,21,.75),inset 0 -4px 12px rgba(0,0,0,.25);
-    margin:10px 0;
-  }
-  .called-grid{
-    display:flex;flex-wrap:wrap;gap:5px;max-height:120px;overflow-y:auto;
-    padding:8px;background:rgba(11,6,22,.5);border-radius:10px;margin-top:10px;
-  }
-  .called-chip{
-    padding:5px 10px;border-radius:8px;
-    background:rgba(139,92,246,.18);
-    font-size:12px;font-weight:800;
-    border:1px solid var(--border);
-  }
-  .called-chip.recent{
-    background:linear-gradient(135deg,var(--neon-gold),#eab308);
-    color:#1a0a2e;border-color:transparent;
-    box-shadow:0 0 12px rgba(250,204,21,.5);
-  }
-
-  .toast{
-    position:fixed;top:20px;right:20px;
-    background:rgba(20,10,40,.95);
-    border:1px solid var(--border);
-    color:var(--ink);padding:12px 18px;
-    border-radius:12px;font-size:13px;font-weight:700;
-    box-shadow:0 8px 24px rgba(0,0,0,.5);
-    animation:slide-in .3s;z-index:100;max-width:320px;
-  }
-  .toast.success{border-color:rgba(34,197,94,.4);background:rgba(20,40,25,.95)}
-  .toast.error{border-color:rgba(239,68,68,.4);background:rgba(40,15,20,.95)}
-  @keyframes slide-in{from{transform:translateX(30px);opacity:0}to{transform:translateX(0);opacity:1}}
-
-  .conn-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px}
-  .conn-dot.on{background:var(--neon-green);box-shadow:0 0 10px var(--neon-green)}
-  .conn-dot.off{background:var(--neon-red);box-shadow:0 0 10px var(--neon-red)}
-
-  @media (max-width: 640px){
-    .stat-card b{font-size:18px}
-    .btn{padding:8px 12px;font-size:12px}
-    table{font-size:11px}
-    th,td{padding:6px 4px}
-  }
+  :root { --bg:#0b0616; --card:#131b2e; --ink:#f5f3ff; --muted:#a78bfa; --accent:#8b5cf6; --border:#2a1b54; --green:#22c55e; --red:#ef4444; }
+  * { box-sizing:border-box; margin:0; padding:0; font-family:'Segoe UI',sans-serif; }
+  body { background:var(--bg); color:var(--ink); padding:20px; }
+  .container { max-width:1000px; margin:0 auto; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:20px; }
+  h1 { color:var(--muted); margin-bottom:20px; }
+  h2 { font-size:18px; margin-bottom:15px; color:#fff; }
+  .tabs { display:flex; gap:10px; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:10px; overflow-x:auto; }
+  .tab { background:none; border:none; color:var(--muted); font-weight:bold; font-size:14px; cursor:pointer; padding:10px 15px; border-radius:6px; }
+  .tab.active { background:var(--accent); color:#fff; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px; }
+  .stat { background:rgba(255,255,255,0.05); padding:15px; border-radius:8px; text-align:center; }
+  .stat b { display:block; font-size:24px; color:#fff; margin-top:5px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { padding:12px; text-align:left; border-bottom:1px solid var(--border); }
+  th { color:var(--muted); }
+  input, button { padding:10px; border-radius:6px; border:1px solid var(--border); background:#0d1625; color:#fff; outline:none; }
+  button { background:var(--accent); color:#fff; border:none; cursor:pointer; font-weight:bold; }
+  button:hover { opacity:0.9; }
+  .btn-green { background:var(--green); } .btn-red { background:var(--red); }
+  .hidden { display:none !important; }
+  .login { max-width:300px; margin:100px auto; text-align:center; }
+  .tag { padding:4px 8px; border-radius:4px; font-size:11px; font-weight:bold; }
+  .tag-pending { background:#f59e0b; color:#000; }
+  .tag-approved { background:var(--green); color:#000; }
 </style>
 </head>
 <body>
 
-<!-- LOGIN GATE -->
-<div id="loginGate" class="max-w-md mx-auto mt-20">
+<div id="loginScreen" class="login">
   <div class="card">
-    <h1 class="text-2xl font-black mb-1">👑 Admin Login</h1>
-    <p class="text-xs mb-4" style="color:var(--muted)">Enter the admin password to continue</p>
-    <label class="label">Password</label>
-    <input id="pwd" type="password" class="input mb-3" placeholder="••••••••"
-           onkeydown="if(event.key==='Enter') doLogin()"/>
-    <button class="btn btn-primary w-full justify-center" onclick="doLogin()">
-      🔓 Unlock Dashboard
-    </button>
-    <div class="text-xs mt-3" id="loginMsg" style="color:var(--neon-red)"></div>
+    <h2>Admin Login</h2>
+    <input id="pwd" type="password" placeholder="Password" style="width:100%; margin-bottom:10px;">
+    <button onclick="login()" style="width:100%;">Login</button>
   </div>
 </div>
 
-<!-- MAIN DASHBOARD -->
-<div id="dashboard" class="hidden max-w-7xl mx-auto">
-
-  <!-- HEADER -->
-  <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-    <div>
-      <h1 class="text-2xl font-black">👑 Admin Dashboard</h1>
-      <div class="text-xs mt-1" style="color:var(--muted)">
-        <span class="conn-dot off" id="connDot"></span>
-        <span id="connText">Connecting…</span>
-        · Round <b id="hdrRound">–</b>
-        · Phase <b id="hdrPhase">–</b>
-      </div>
-    </div>
-    <div class="flex gap-2 flex-wrap">
-      <button class="btn btn-ghost" onclick="refreshAll()">🔄 Refresh</button>
-      <button class="btn btn-danger" onclick="logout()">🚪 Logout</button>
-    </div>
-  </div>
-
-  <!-- STATS ROW -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-    <div class="stat-card">
-      <small>Total Users</small>
-      <b id="statUsers">–</b>
-    </div>
-    <div class="stat-card">
-      <small>Pending Tx</small>
-      <b id="statPending" style="color:var(--neon-orange)">–</b>
-    </div>
-    <div class="stat-card">
-      <small>Players in Round</small>
-      <b id="statPlayers" style="color:var(--neon-cyan)">–</b>
-    </div>
-    <div class="stat-card">
-      <small>Prize Pool</small>
-      <b id="statPrize" style="color:var(--neon-gold)">–</b>
-    </div>
-  </div>
-
-  <!-- TABS -->
+<div id="dashboard" class="container hidden">
+  <h1>👑 Admin Dashboard</h1>
+  
   <div class="tabs">
-    <button class="tab-btn active" data-tab="live" onclick="switchTab('live')">🎮 Live Game</button>
-    <button class="tab-btn" data-tab="tx" onclick="switchTab('tx')">💳 Transactions <span id="txBadge" class="hidden"></span></button>
-    <button class="tab-btn" data-tab="users" onclick="switchTab('users')">👥 Users</button>
-    <button class="tab-btn" data-tab="broadcast" onclick="switchTab('broadcast')">📢 Broadcast</button>
-    <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">⚙️ Settings</button>
+    <button class="tab active" onclick="switchTab('overview')">Overview</button>
+    <button class="tab" onclick="switchTab('withdrawals')">Withdrawals</button>
+    <button class="tab" onclick="switchTab('deposits')">Deposits</button>
+    <button class="tab" onclick="switchTab('users')">Users</button>
+    <button class="tab" onclick="switchTab('settings')">Settings</button>
+    <button class="tab" onclick="logout()" style="margin-left:auto; color:#ef4444">Logout</button>
   </div>
 
-  <!-- =================== TAB: LIVE =================== -->
-  <div id="tab-live" class="tab-content">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-
-      <!-- Live call display -->
-      <div class="card">
-        <div class="live-call-display">
-          <div class="text-xs font-bold tracking-widest" style="color:var(--muted)">CURRENT CALL</div>
-          <div><div class="big-ball" id="liveBall">--</div></div>
-          <div class="text-lg font-black" id="liveLetter" style="color:var(--neon-cyan)">Waiting…</div>
-          <div class="text-xs mt-2" style="color:var(--muted)">
-            <span id="calledCount">0</span> / 75 numbers called
-          </div>
-          <div class="called-grid" id="calledGrid"></div>
-        </div>
-      </div>
-
-      <!-- Controls -->
-      <div class="card">
-        <div class="label mb-3">GAME CONTROLS</div>
-
-        <div class="grid grid-cols-2 gap-2 mb-3">
-          <button class="btn btn-success justify-center" onclick="apiAdmin('force-start')">
-            ▶️ Start Running
-          </button>
-          <button class="btn btn-cyan justify-center" onclick="apiAdmin('call-one')">
-            📞 Call Next
-          </button>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2 mb-3">
-          <button class="btn btn-warn justify-center" onclick="apiAdmin('force-new-round')">
-            🔄 New Round
-          </button>
-          <button class="btn btn-danger justify-center" onclick="stopGame()">
-            ⏹️ Stop Game
-          </button>
-        </div>
-
-        <div class="label mt-4 mb-2">AUTO-CALL</div>
-        <div class="flex items-center gap-3 p-3 rounded-xl"
-             style="background:rgba(11,6,22,.5);border:1px solid var(--border)">
-          <label class="switch inline-flex items-center gap-3 cursor-pointer flex-1">
-            <input type="checkbox" id="autoCallToggle" class="hidden" onchange="toggleAutoCall()"/>
-            <span class="text-sm font-bold flex-1">Auto-call every 4 seconds</span>
-            <span id="autoCallPill" class="badge" style="background:rgba(139,92,246,.2);color:var(--muted)">OFF</span>
-          </label>
-        </div>
-
-        <div class="label mt-4 mb-2">SPEED</div>
-        <select id="callSpeed" class="select" onchange="setSpeed(this.value)">
-          <option value="2000">Fast (2s)</option>
-          <option value="4000" selected>Normal (4s)</option>
-          <option value="6000">Slow (6s)</option>
-          <option value="10000">Very Slow (10s)</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Players in current round -->
-    <div class="card mt-3">
-      <div class="label mb-3">PLAYERS IN CURRENT ROUND</div>
-      <div style="overflow-x:auto">
-        <table>
-          <thead>
-            <tr><th>Name</th><th>User ID</th><th>Cartelas</th><th>Has Bingo?</th></tr>
-          </thead>
-          <tbody id="playersTable">
-            <tr><td colspan="4" class="text-center" style="color:var(--muted);padding:20px">No players yet</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+  <!-- OVERVIEW -->
+  <div id="tab-overview" class="tab-content">
+    <div class="stats" id="overviewStats"></div>
   </div>
 
-  <!-- =================== TAB: TRANSACTIONS =================== -->
-  <div id="tab-tx" class="tab-content hidden">
-    <div class="card mb-3">
-      <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
-        <div class="label">PENDING REQUESTS</div>
-        <button class="btn btn-ghost" onclick="loadTransactions()">🔄 Refresh</button>
-      </div>
-      <div style="overflow-x:auto">
-        <table>
-          <thead>
-            <tr>
-              <th>User</th><th>Type</th><th>Amount</th><th>Method</th>
-              <th>Phone/SMS</th><th>Time</th><th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="pendingTable">
-            <tr><td colspan="7" class="text-center" style="color:var(--muted);padding:20px">Loading…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
+  <!-- WITHDRAWALS -->
+  <div id="tab-withdrawals" class="tab-content hidden">
     <div class="card">
-      <div class="label mb-3">ALL TRANSACTIONS (recent 200)</div>
-      <div style="overflow-x:auto">
-        <table>
-          <thead>
-            <tr>
-              <th>User</th><th>Type</th><th>Amount</th><th>Method</th>
-              <th>Status</th><th>Time</th>
-            </tr>
-          </thead>
-          <tbody id="allTxTable"></tbody>
-        </table>
-      </div>
+      <table><thead><tr><th>User ID</th><th>Amount</th><th>Phone</th><th>Status</th><th>Date</th><th>Action</th></tr></thead><tbody id="withdrawTable"></tbody></table>
     </div>
   </div>
 
-  <!-- =================== TAB: USERS =================== -->
+  <!-- DEPOSITS -->
+  <div id="tab-deposits" class="tab-content hidden">
+    <div class="card">
+      <table><thead><tr><th>User ID</th><th>Amount</th><th>SMS</th><th>Status</th><th>Date</th><th>Action</th></tr></thead><tbody id="depositTable"></tbody></table>
+    </div>
+  </div>
+
+  <!-- USERS (Search & View) -->
   <div id="tab-users" class="tab-content hidden">
     <div class="card">
-      <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
-        <div class="label">ALL USERS</div>
-        <div class="flex gap-2">
-          <input id="userSearch" class="input" style="max-width:200px"
-                 placeholder="Search name or ID…" oninput="filterUsers()"/>
-          <button class="btn btn-ghost" onclick="loadUsers()">🔄 Refresh</button>
-        </div>
+      <h2>Search User by Telegram ID</h2>
+      <div style="display:flex; gap:10px; margin-bottom:20px;">
+        <input id="searchUid" placeholder="e.g. 715580610" style="flex:1;">
+        <button onclick="searchUser()">Search</button>
       </div>
-      <div style="overflow-x:auto">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th><th>Name</th><th>Username</th><th>Phone</th>
-              <th>Balance</th><th>Wins</th><th>Earned</th><th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="usersTable"></tbody>
-        </table>
+      <div id="userResult" class="hidden">
+        <div class="stats" id="userStats"></div>
+        <h2 style="margin-top:20px;">Recent History</h2>
+        <table><thead><tr><th>Type</th><th>Amount</th><th>Date</th></tr></thead><tbody id="userHistory"></tbody></table>
       </div>
     </div>
   </div>
 
-  <!-- =================== TAB: BROADCAST =================== -->
-  <div id="tab-broadcast" class="tab-content hidden">
-    <div class="card">
-      <div class="label mb-3">SEND MESSAGE TO ALL USERS</div>
-      <textarea id="bcastMsg" class="input" rows="5"
-                placeholder="Type your message here…"></textarea>
-      <div class="flex gap-2 mt-3 flex-wrap">
-        <button class="btn btn-primary" onclick="sendBroadcast()">
-          📢 Send to Everyone
-        </button>
-        <button class="btn btn-ghost" onclick="document.getElementById('bcastMsg').value=''">
-          Clear
-        </button>
-      </div>
-      <div class="text-xs mt-3" style="color:var(--muted)">
-        This sends to all connected game clients <b>and</b> all Telegram users via the bot.
-      </div>
-
-      <div class="label mt-6 mb-3">QUICK TEMPLATES</div>
-      <div class="flex gap-2 flex-wrap">
-        <button class="btn btn-ghost" onclick="setTemplate('🎉 Round starting in 30 seconds — get your cartelas!')">
-          Round starting
-        </button>
-        <button class="btn btn-ghost" onclick="setTemplate('⏰ 10 seconds left to join — hurry!')">
-          Last 10s
-        </button>
-        <button class="btn btn-ghost" onclick="setTemplate('🎊 Big prize this round! Join now.')">
-          Big prize
-        </button>
-        <button class="btn btn-ghost" onclick="setTemplate('⚠️ Service maintenance in 5 minutes. Please finish your game.')">
-          Maintenance
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- =================== TAB: SETTINGS =================== -->
+  <!-- SETTINGS -->
   <div id="tab-settings" class="tab-content hidden">
     <div class="card">
-      <div class="label mb-3">GAME SETTINGS</div>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div>
-          <label class="label">Entry Fee (ETB per cartela)</label>
-          <input id="setFee" class="input" type="number" value="10"/>
-        </div>
-        <div>
-          <label class="label">Prize % (of pool)</label>
-          <input id="setPrizePct" class="input" type="number" value="80"/>
-        </div>
-        <div>
-          <label class="label">Selection Time (seconds)</label>
-          <input id="setSelTime" class="input" type="number" value="30"/>
-        </div>
+      <h2>Game Settings</h2>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+        <div><label>Entry Fee (ETB)</label><input id="setFee" type="number" style="width:100%; margin-top:5px;"></div>
+        <div><label>Prize % (e.g. 80)</label><input id="setPct" type="number" style="width:100%; margin-top:5px;"></div>
+        <div><label>Selection Time (Sec)</label><input id="setTime" type="number" style="width:100%; margin-top:5px;"></div>
       </div>
-      <div class="flex gap-2 mt-4">
-        <button class="btn btn-success" onclick="saveSettings()">💾 Save Settings</button>
-      </div>
-      <div class="text-xs mt-3" style="color:var(--muted)">
-        Some settings take effect on the next round.
-      </div>
+      <button onclick="saveSettings()" style="margin-top:15px;">Save Settings</button>
     </div>
-
-    <div class="card mt-3">
-      <div class="label mb-3">DANGER ZONE</div>
-      <div class="flex gap-2 flex-wrap">
-        <button class="btn btn-danger" onclick="clearRound()">
-          🗑️ Clear Current Round
-        </button>
-        <button class="btn btn-danger" onclick="resetRoundCounter()">
-          🔢 Reset Round Counter
-        </button>
-      </div>
-    </div>
-
-    <div class="card mt-3">
-      <div class="label mb-3">SYSTEM INFO</div>
-      <div class="text-sm" id="systemInfo" style="color:var(--muted)">Loading…</div>
+    <div class="card">
+      <h2>Danger Zone</h2>
+      <p style="color:var(--muted); margin-bottom:10px;">Permanently delete transaction history.</p>
+      <button class="btn-red" onclick="clearHistory('deposits')">Clear Deposits</button>
+      <button class="btn-red" onclick="clearHistory('withdrawals')">Clear Withdrawals</button>
+      <button class="btn-red" onclick="clearHistory('all')">Clear ALL History</button>
     </div>
   </div>
-
 </div>
 
 <script>
-// =========================================================
-// STATE
-// =========================================================
-let PWD = '';
-let socket = null;
-let autoCallInterval = null;
-let autoCallSpeed = 4000;
-let allUsers = [];
+let pwd = localStorage.getItem('admin_pwd');
 
-const H = () => ({ 'Content-Type': 'application/json', 'x-admin-pass': PWD });
-
-// =========================================================
-// LOGIN
-// =========================================================
-async function doLogin(){
-  const p = document.getElementById('pwd').value;
-  if (!p) return;
-  try {
-    const r = await fetch('/api/admin/stats', {
-      headers: { 'x-admin-pass': p }
-    });
-    const d = await r.json();
-    if (!r.ok || d.error) {
-      document.getElementById('loginMsg').innerText = '❌ Wrong password';
-      return;
-    }
-    PWD = p;
-    sessionStorage.setItem('adm_pwd', p);
-    document.getElementById('loginGate').classList.add('hidden');
-    document.getElementById('dashboard').classList.remove('hidden');
-    boot();
-  } catch(e){
-    document.getElementById('loginMsg').innerText = '❌ Network error';
-  }
+async function login() {
+  pwd = document.getElementById('pwd').value;
+  const res = await fetch('/api/admin/stats', { headers: { 'x-admin-pass': pwd } });
+  if (res.ok) { localStorage.setItem('admin_pwd', pwd); showDashboard(); } 
+  else alert('Wrong password');
 }
-function logout(){
-  sessionStorage.removeItem('adm_pwd');
-  location.reload();
+function logout() { localStorage.removeItem('admin_pwd'); location.reload(); }
+
+function showDashboard() {
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('dashboard').classList.remove('hidden');
+  loadOverview(); loadDeposits(); loadWithdrawals(); loadSettings();
 }
 
-// Auto-login from session
-window.addEventListener('load', () => {
-  const saved = sessionStorage.getItem('adm_pwd');
-  if (saved) {
-    document.getElementById('pwd').value = saved;
-    doLogin();
-  }
-});
-
-// =========================================================
-// BOOT
-// =========================================================
-function boot(){
-  refreshAll();
-  connectSocket();
-  setInterval(refreshStats, 10000);
-}
-async function refreshAll(){
-  await Promise.all([refreshStats(), loadTransactions(), loadUsers(), loadSystemInfo()]);
-  loadLiveState();
+function switchTab(t) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.remove('hidden');
+  event.target.classList.add('active');
 }
 
-// =========================================================
-// SOCKET
-// =========================================================
-function connectSocket(){
-  socket = io();
-
-  socket.on('connect', () => {
-    document.getElementById('connDot').className = 'conn-dot on';
-    document.getElementById('connText').innerText = 'Connected';
-  });
-  socket.on('disconnect', () => {
-    document.getElementById('connDot').className = 'conn-dot off';
-    document.getElementById('connText').innerText = 'Disconnected';
-  });
-
-  socket.on('game-state', s => applyGameState(s));
-  socket.on('number-called', ({ number, all }) => {
-    updateLiveCall(number, all);
-    loadLiveState();
-  });
-  socket.on('round-finished', w => {
-    toast(w ? `🏆 ${w.firstName} won ${w.prize} ETB` : '😐 Round ended — no winner', 'success');
-    loadLiveState();
-  });
-  socket.on('broadcast', ({ message }) => toast('📢 ' + message));
+async function loadOverview() {
+  const res = await fetch('/api/admin/stats', { headers: { 'x-admin-pass': pwd } });
+  const d = await res.json();
+  document.getElementById('overviewStats').innerHTML = `
+    <div class="stat"><small>Total Users</small><b>${d.users}</b></div>
+    <div class="stat"><small>Active Players</small><b>${d.players}</b></div>
+    <div class="stat"><small>Current Round</small><b>#${d.round}</b></div>
+    <div class="stat"><small>Total Deposits</small><b style="color:var(--green)">${d.revenue.toFixed(0)} ETB</b></div>
+    <div class="stat"><small>Total Withdrawals</small><b style="color:var(--red)">${d.payouts.toFixed(0)} ETB</b></div>
+    <div class="stat"><small>Total Game Wins</small><b style="color:var(--muted)">${d.winsPaid.toFixed(0)} ETB</b></div>
+    <div class="stat"><small>Current Jackpot</small><b style="color:#facc15">${d.jackpot} ETB</b></div>
+  `;
 }
 
-// =========================================================
-// STATS
-// =========================================================
-async function refreshStats(){
-  try {
-    const d = await fetch('/api/admin/stats', { headers: H() }).then(r=>r.json());
-    if (!d.success) return;
-    document.getElementById('statUsers').innerText = d.users;
-    document.getElementById('statPending').innerText = d.pendingTx;
-    document.getElementById('statPlayers').innerText = d.players;
-    document.getElementById('statPrize').innerText = d.prizePool + ' ETB';
-    document.getElementById('hdrRound').innerText = '#' + d.round;
-    document.getElementById('hdrPhase').innerText = d.phase;
-    const badge = document.getElementById('txBadge');
-    if (d.pendingTx > 0){
-      badge.innerText = d.pendingTx;
-      badge.className = 'badge rejected';
-      badge.style.marginLeft = '6px';
-    } else {
-      badge.className = 'hidden';
-    }
-  } catch(e){}
-}
-
-async function loadSystemInfo(){
-  try {
-    const h = await fetch('/api/health').then(r=>r.json());
-    document.getElementById('systemInfo').innerHTML = `
-      Status: <b style="color:var(--neon-green)">${h.status}</b><br>
-      Round: <b>#${h.round}</b> · Phase: <b>${h.phase}</b><br>
-      Players: <b>${h.players}</b> · Cartelas: <b>${h.cartelaCount}</b><br>
-      Uptime: <b>${Math.floor(h.uptime/60)}m ${Math.floor(h.uptime%60)}s</b>
-    `;
-  } catch(e){}
-}
-
-// =========================================================
-// LIVE GAME STATE
-// =========================================================
-let currentGameState = null;
-
-function applyGameState(s){
-  currentGameState = s;
-  document.getElementById('hdrRound').innerText = '#' + s.roundId;
-  document.getElementById('hdrPhase').innerText = s.phase;
-  document.getElementById('statPlayers').innerText = s.playerCount;
-  document.getElementById('statPrize').innerText = s.prizePool + ' ETB';
-  renderPlayers(s);
-  if (s.calledNumbers) updateLiveCall(s.currentCall, s.calledNumbers);
-}
-
-async function loadLiveState(){
-  try {
-    const s = await fetch('/api/game').then(r=>r.json());
-    applyGameState(s);
-  } catch(e){}
-}
-
-function updateLiveCall(num, all){
-  const ball = document.getElementById('liveBall');
-  const letter = document.getElementById('liveLetter');
-  const count = document.getElementById('calledCount');
-
-  if (num){
-    ball.innerText = num;
-    letter.innerText = letterOf(num) + ' - ' + num;
-  } else {
-    ball.innerText = '--';
-    letter.innerText = 'Waiting…';
-  }
-  count.innerText = (all || []).length;
-
-  const grid = document.getElementById('calledGrid');
-  grid.innerHTML = '';
-  const recent = (all || []).slice(-6).reverse();
-  const recentSet = new Set(recent);
-  (all || []).forEach(n => {
-    const d = document.createElement('div');
-    d.className = 'called-chip' + (recentSet.has(n) ? ' recent' : '');
-    d.innerText = n;
-    grid.appendChild(d);
-  });
-}
-
-function renderPlayers(s){
-  const tbody = document.getElementById('playersTable');
-  const players = s.players || [];
-  if (!players.length){
-    tbody.innerHTML = '<tr><td colspan="4" class="text-center" style="color:var(--muted);padding:20px">No players yet</td></tr>';
-    return;
-  }
-  tbody.innerHTML = players.map(p => `
+async function loadWithdrawals() {
+  const res = await fetch('/api/admin/withdrawals', { headers: { 'x-admin-pass': pwd } });
+  const d = await res.json();
+  document.getElementById('withdrawTable').innerHTML = d.txs.map(t => `
     <tr>
-      <td>${p.firstName || '-'}</td>
-      <td><code style="font-size:11px">${p.userId}</code></td>
-      <td>${p.cartelas.join(', ')}</td>
-      <td>${p.hasBingo ? '<span class="badge approved">YES</span>' : '—'}</td>
+      <td>${t.userId}</td><td>${t.amount} ETB</td><td>${t.phone || '-'}</td>
+      <td><span class="tag tag-${t.status}">${t.status}</span></td>
+      <td>${new Date(t.createdAt).toLocaleString()}</td>
+      <td>${t.status === 'pending' ? `<button class="btn-green" onclick="approve('${t._id}', true)">Approve</button> <button class="btn-red" onclick="approve('${t._id}', false)">Reject</button>` : '-'}</td>
     </tr>
   `).join('');
 }
 
-function letterOf(n){
-  if (n <= 15) return 'B';
-  if (n <= 30) return 'I';
-  if (n <= 45) return 'N';
-  if (n <= 60) return 'G';
-  return 'O';
-}
-
-// =========================================================
-// GAME CONTROL ACTIONS
-// =========================================================
-async function apiAdmin(action){
-  try {
-    const r = await fetch('/api/admin/' + action, {
-      method: 'POST', headers: H()
-    }).then(r=>r.json());
-    if (r.success) toast('✅ ' + action.replace('-', ' '), 'success');
-    else toast('❌ ' + (r.error || r.message || 'failed'), 'error');
-    setTimeout(loadLiveState, 500);
-  } catch(e){ toast('❌ Network error', 'error'); }
-}
-
-async function stopGame(){
-  if (!confirm('Stop the current game and start a new selection phase?')) return;
-  apiAdmin('force-new-round');
-}
-
-// =========================================================
-// AUTO CALL
-// =========================================================
-function toggleAutoCall(){
-  const on = document.getElementById('autoCallToggle').checked;
-  const pill = document.getElementById('autoCallPill');
-  if (on){
-    pill.innerText = 'ON';
-    pill.style.background = 'rgba(34,197,94,.18)';
-    pill.style.color = 'var(--neon-green)';
-    startAutoCallLoop();
-  } else {
-    pill.innerText = 'OFF';
-    pill.style.background = 'rgba(139,92,246,.2)';
-    pill.style.color = 'var(--muted)';
-    stopAutoCallLoop();
-  }
-}
-function startAutoCallLoop(){
-  stopAutoCallLoop();
-  autoCallInterval = setInterval(async () => {
-    // Only call if server is in running phase
-    if (currentGameState && currentGameState.phase === 'running'){
-      await apiAdmin('call-one');
-    }
-  }, autoCallSpeed);
-}
-function stopAutoCallLoop(){
-  if (autoCallInterval){ clearInterval(autoCallInterval); autoCallInterval = null; }
-}
-function setSpeed(ms){
-  autoCallSpeed = Number(ms);
-  if (autoCallInterval) startAutoCallLoop();
-  toast(`⚡ Speed: ${ms/1000}s`, 'success');
-}
-
-// =========================================================
-// TRANSACTIONS
-// =========================================================
-async function loadTransactions(){
-  try {
-    const d = await fetch('/api/admin/transactions', { headers: H() }).then(r=>r.json());
-    if (!d.success) return;
-    const txs = d.txs || [];
-
-    // Pending
-    const pending = txs.filter(t => t.status === 'pending');
-    const pt = document.getElementById('pendingTable');
-    if (!pending.length){
-      pt.innerHTML = '<tr><td colspan="7" class="text-center" style="color:var(--muted);padding:20px">No pending requests</td></tr>';
-    } else {
-      pt.innerHTML = pending.map(t => `
-        <tr>
-          <td><code style="font-size:11px">${t.userId}</code></td>
-          <td><span class="badge ${t.type}">${t.type}</span></td>
-          <td><b style="color:var(--neon-gold)">${t.amount.toFixed(2)}</b></td>
-          <td>${t.method || '-'}</td>
-          <td style="max-width:200px;font-size:11px;color:var(--muted)">
-            ${t.phone || t.sms || '-'}
-          </td>
-          <td style="font-size:11px;color:var(--muted)">
-            ${new Date(t.createdAt).toLocaleString()}
-          </td>
-          <td>
-            <div class="flex gap-1">
-              <button class="btn btn-success" style="padding:5px 10px;font-size:11px"
-                      onclick="approveTx('${t._id}', true)">✅</button>
-              <button class="btn btn-danger" style="padding:5px 10px;font-size:11px"
-                      onclick="approveTx('${t._id}', false)">❌</button>
-            </div>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    // All
-    const at = document.getElementById('allTxTable');
-    at.innerHTML = txs.slice(0, 100).map(t => `
-      <tr>
-        <td><code style="font-size:11px">${t.userId}</code></td>
-        <td><span class="badge ${t.type}">${t.type}</span></td>
-        <td>${t.amount.toFixed(2)}</td>
-        <td>${t.method || '-'}</td>
-        <td><span class="badge ${t.status}">${t.status}</span></td>
-        <td style="font-size:11px;color:var(--muted)">
-          ${new Date(t.createdAt).toLocaleString()}
-        </td>
-      </tr>
-    `).join('') || '<tr><td colspan="6" class="text-center" style="color:var(--muted);padding:20px">No transactions</td></tr>';
-
-    refreshStats();
-  } catch(e){ console.error(e); }
-}
-
-async function approveTx(id, approve){
-  try {
-    const r = await fetch('/api/admin/transaction/' + id, {
-      method: 'POST', headers: H(),
-      body: JSON.stringify({ action: approve ? 'approve' : 'reject' })
-    }).then(r=>r.json());
-    if (r.success){
-      toast(approve ? '✅ Approved' : '❌ Rejected', 'success');
-      loadTransactions();
-    } else toast('❌ ' + (r.error || 'failed'), 'error');
-  } catch(e){ toast('❌ Network error', 'error'); }
-}
-
-// =========================================================
-// USERS
-// =========================================================
-async function loadUsers(){
-  try {
-    const d = await fetch('/api/admin/users', { headers: H() }).then(r=>r.json());
-    if (!d.success) return;
-    allUsers = d.users || [];
-    renderUsers();
-  } catch(e){}
-}
-function filterUsers(){ renderUsers(); }
-function renderUsers(){
-  const q = document.getElementById('userSearch').value.trim().toLowerCase();
-  const list = !q ? allUsers : allUsers.filter(u =>
-    (u.firstName || '').toLowerCase().includes(q) ||
-    (u.username || '').toLowerCase().includes(q) ||
-    String(u.telegramId).includes(q)
-  );
-  const tbody = document.getElementById('usersTable');
-  if (!list.length){
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center" style="color:var(--muted);padding:20px">No users</td></tr>';
-    return;
-  }
-  tbody.innerHTML = list.map(u => `
+async function loadDeposits() {
+  const res = await fetch('/api/admin/deposits', { headers: { 'x-admin-pass': pwd } });
+  const d = await res.json();
+  document.getElementById('depositTable').innerHTML = d.txs.map(t => `
     <tr>
-      <td><code style="font-size:11px">${u.telegramId}</code></td>
-      <td>${u.firstName || '-'}</td>
-      <td style="color:var(--muted)">@${u.username || '-'}</td>
-      <td style="color:var(--muted);font-size:11px">${u.phone || '-'}</td>
-      <td><b style="color:var(--neon-cyan)">${(u.balance||0).toFixed(2)}</b></td>
-      <td><b style="color:var(--neon-pink)">${u.totalWins||0}</b></td>
-      <td><b style="color:var(--neon-gold)">${(u.totalEarnings||0).toFixed(0)}</b></td>
-      <td>
-        <button class="btn btn-ghost" style="padding:5px 8px;font-size:11px"
-                onclick="adjustBalance('${u.telegramId}', 'balance')">💰</button>
-        <button class="btn btn-ghost" style="padding:5px 8px;font-size:11px"
-                onclick="adjustBalance('${u.telegramId}', 'winBalance')">🏆</button>
-      </td>
+      <td>${t.userId}</td><td>${t.amount} ETB</td><td>${t.sms || '-'}</td>
+      <td><span class="tag tag-${t.status}">${t.status}</span></td>
+      <td>${new Date(t.createdAt).toLocaleString()}</td>
+      <td>${t.status === 'pending' ? `<button class="btn-green" onclick="approve('${t._id}', true)">Approve</button> <button class="btn-red" onclick="approve('${t._id}', false)">Reject</button>` : '-'}</td>
     </tr>
   `).join('');
 }
 
-async function adjustBalance(uid, field){
-  const amount = prompt(`Amount to add/subtract to ${field}?\n\nUse positive number to add, negative to subtract.`, '0');
-  if (!amount) return;
-  const delta = parseFloat(amount);
-  if (isNaN(delta)) return toast('❌ Invalid number', 'error');
-
-  try {
-    const r = await fetch(`/api/admin/user/${uid}/adjust`, {
-      method: 'POST', headers: H(),
-      body: JSON.stringify({ field, delta })
-    }).then(r=>r.json());
-    if (r.success){
-      toast(`✅ ${delta > 0 ? '+' : ''}${delta} ETB`, 'success');
-      loadUsers();
-    } else toast('❌ ' + (r.error || 'failed'), 'error');
-  } catch(e){ toast('❌ Network error', 'error'); }
+async function approve(id, isApprove) {
+  await fetch('/api/admin/transaction/' + id, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pass': pwd },
+    body: JSON.stringify({ action: isApprove ? 'approve' : 'reject' })
+  });
+  loadDeposits(); loadWithdrawals(); loadOverview();
 }
 
-// =========================================================
-// BROADCAST
-// =========================================================
-function setTemplate(txt){
-  document.getElementById('bcastMsg').value = txt;
-}
-async function sendBroadcast(){
-  const message = document.getElementById('bcastMsg').value.trim();
-  if (!message) return toast('⚠️ Message is empty', 'error');
-  if (!confirm('Send to ALL users?')) return;
-  try {
-    const r = await fetch('/api/admin/broadcast', {
-      method: 'POST', headers: H(),
-      body: JSON.stringify({ message })
-    }).then(r=>r.json());
-    if (r.success){
-      toast('✅ Broadcast sent', 'success');
-      document.getElementById('bcastMsg').value = '';
-    } else toast('❌ ' + (r.error || 'failed'), 'error');
-  } catch(e){ toast('❌ Network error', 'error'); }
+async function searchUser() {
+  const uid = document.getElementById('searchUid').value;
+  const res = await fetch('/api/admin/user/' + uid, { headers: { 'x-admin-pass': pwd } });
+  const d = await res.json();
+  if (d.error) return alert(d.error);
+  
+  document.getElementById('userResult').classList.remove('hidden');
+  document.getElementById('userStats').innerHTML = `
+    <div class="stat"><small>Name</small><b>${d.user.firstName}</b></div>
+    <div class="stat"><small>Balance</small><b>${d.user.balance.toFixed(2)} ETB</b></div>
+    <div class="stat"><small>Winnings</small><b>${d.user.winBalance.toFixed(2)} ETB</b></div>
+  `;
+  document.getElementById('userHistory').innerHTML = d.txs.map(t => `
+    <tr><td>${t.type}</td><td>${t.amount} ETB</td><td>${new Date(t.createdAt).toLocaleString()}</td></tr>
+  `).join('');
 }
 
-// =========================================================
-// SETTINGS
-// =========================================================
-async function saveSettings(){
-  const entryFee = Number(document.getElementById('setFee').value);
-  const prizePct = Number(document.getElementById('setPrizePct').value);
-  const selectionSeconds = Number(document.getElementById('setSelTime').value);
-
-  try {
-    const r = await fetch('/api/admin/settings', {
-      method: 'POST', headers: H(),
-      body: JSON.stringify({ entryFee, prizePct, selectionSeconds })
-    }).then(r=>r.json());
-    if (r.success) toast('✅ Settings saved', 'success');
-    else toast('❌ ' + (r.error || 'failed'), 'error');
-  } catch(e){ toast('❌ Network error', 'error'); }
+async function loadSettings() {
+  const res = await fetch('/api/admin/settings', { headers: { 'x-admin-pass': pwd } });
+  const d = await res.json();
+  document.getElementById('setFee').value = d.settings.entryFee;
+  document.getElementById('setPct').value = d.settings.prizePct;
+  document.getElementById('setTime').value = d.settings.selectionSeconds;
 }
 
-async function clearRound(){
-  if (!confirm('Clear the current round? All players will be reset.')) return;
-  apiAdmin('force-new-round');
-}
-function resetRoundCounter(){
-  if (!confirm('Reset round counter to #1? Only do this on a fresh install.')) return;
-  toast('⚠️ Not implemented in this version', 'error');
-}
-
-// =========================================================
-// TABS
-// =========================================================
-function switchTab(name){
-  document.querySelectorAll('.tab-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.tab === name));
-  document.querySelectorAll('.tab-content').forEach(c =>
-    c.classList.toggle('hidden', c.id !== 'tab-' + name));
-  if (name === 'tx') loadTransactions();
-  if (name === 'users') loadUsers();
+async function saveSettings() {
+  await fetch('/api/admin/settings', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pass': pwd },
+    body: JSON.stringify({
+      entryFee: Number(document.getElementById('setFee').value),
+      prizePct: Number(document.getElementById('setPct').value),
+      selectionSeconds: Number(document.getElementById('setTime').value)
+    })
+  });
+  alert('Settings saved!');
 }
 
-// =========================================================
-// TOASTS
-// =========================================================
-function toast(msg, type){
-  const t = document.createElement('div');
-  t.className = 'toast ' + (type || '');
-  t.innerText = msg;
-  document.body.appendChild(t);
-  setTimeout(()=>t.remove(), 3500);
+async function clearHistory(type) {
+  if (!confirm('Are you sure you want to delete history? This cannot be undone.')) return;
+  await fetch('/api/admin/clear-history', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pass': pwd },
+    body: JSON.stringify({ type })
+  });
+  alert('History cleared'); loadDeposits(); loadWithdrawals(); loadOverview();
 }
+
+if (pwd) showDashboard();
 </script>
 </body>
 </html>
