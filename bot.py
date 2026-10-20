@@ -204,7 +204,7 @@ async def balance_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     usr = sv_user(u.id) or {}
     play = usr.get("balance", 0); win = usr.get("winBalance", 0)
     await update.message.reply_text(
-        f"💼 *የእርስዎ ዋሌት*\n\n🎯 Playable: *{play:.2f} ብር*\n🏆 Winnings: *{win:.2f} ብር*\n💵 *ጠቅላላ: {play+win:.2f} ብር}*",
+        f"💼 *የእርስዎ ዋሌት*\n\n🎯 Playable: *{play:.2f} ብር*\n🏆 Winnings: *{win:.2f} ብር*\n💵 *ጠቅላላ: {play+win:.2f} ብር*",
         parse_mode="Markdown")
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
