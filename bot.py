@@ -102,7 +102,6 @@ def profile_url(uid, tab="history"):
 #                        KEYBOARDS
 # ================================================================
 def main_kb(uid, name):
-    """Only 2 buttons: Play Game and Menu"""
     keyboard = [
         [KeyboardButton("🎯  Play Abisinya Bingo",
                         web_app=WebAppInfo(url=game_url(uid, name)))],
@@ -116,7 +115,6 @@ def main_kb(uid, name):
     )
 
 def menu_kb():
-    """Inline buttons that appear when Menu is clicked."""
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("💵 Check Balance",   callback_data="m_balance"),
          InlineKeyboardButton("📱 Register",        callback_data="m_register")],
@@ -203,8 +201,9 @@ async def balance_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user
     usr = sv_user(u.id) or {}
     play = usr.get("balance", 0); win = usr.get("winBalance", 0)
+    total = play + win
     await update.message.reply_text(
-        f"💼 *የእርስዎ ዋሌት*\n\n🎯 Playable: *{play:.2f} ብር*\n🏆 Winnings: *{win:.2f} ብር*\n💵 *ጠቅላላ: {play+win:.2f} ብር}*",
+        f"💼 *የእርስዎ ዋሌት*\n\n🎯 Playable: *{play:.2f} ብር*\n🏆 Winnings: *{win:.2f} ብር*\n💵 *ጠቅላላ: {total:.2f} ብር*",
         parse_mode="Markdown")
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -218,9 +217,6 @@ async def debug_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🔧 *DEBUG*\n\n`SERVER_URL` = `{SERVER_URL}`\n`WEBAPP_URL` = `{WEBAPP_URL}`\n`BOT_USERNAME` = `{BOT_USERNAME}`\n\n*Play:* `{game_url(u.id, u.first_name or 'Player')}`",
         parse_mode="Markdown")
 
-# ================================================================
-#                        DEDICATED COMMAND HANDLERS
-# ================================================================
 async def cmd_register(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user
     user_states[u.id] = {"action": "register"}
@@ -361,7 +357,7 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=main_kb(u.id, u.first_name or "Player"))
 
 # ================================================================
-#                        BUTTON HANDLER (Inline)
+#                        BUTTON HANDLER
 # ================================================================
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
@@ -399,7 +395,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         usr = sv_user(u.id) or {}
         play = usr.get("balance", 0); win = usr.get("winBalance", 0)
         await q.edit_message_text(
-            f"💼 *የእርስዎ ዋሌት*\n\n🎯 Playable: *{play:.2f} ብር*\n🏆 Winnings: *{win:.2f} ብር*\n💵 *ጠቅላላ: {play+win:.2f} ብር}*",
+            f"💼 *የእርስዎ ዋሌት*\n\n🎯 Playable: *{play:.2f} ብር*\n🏆 Winnings: *{win:.2f} ብር*\n💵 *ጠቅላላ: {play+win:.2f} ብር*",
             parse_mode="Markdown")
     elif data == "m_invite":
         link = f"https://t.me/{BOT_USERNAME}?start={u.id}"
@@ -481,7 +477,6 @@ async def winner_handler(request):
 #                        MAIN
 # ================================================================
 async def post_init(app):
-    """Register the native Telegram menu commands."""
     commands = [
         BotCommand("start", "ቀኑ ይጀምሩ (Start)"),
         BotCommand("play", "ጨዋታ ይጫወቱ (Play)"),
@@ -505,7 +500,6 @@ async def main():
 
     tg = ApplicationBuilder().token(TOKEN).post_init(post_init).build()
     
-    # Register all commands properly
     tg.add_handler(CommandHandler("start", start))
     tg.add_handler(CommandHandler("play", play_cmd))
     tg.add_handler(CommandHandler("register", cmd_register))
