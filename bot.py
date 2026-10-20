@@ -72,7 +72,6 @@ def sv_set_tx_status(tx_id, status):
     except: pass
 
 def game_url(uid, name): 
-    # Direct link for fast loading (no redirects)
     return f"{WEBAPP_URL}/bingo.html?uid={uid}&name={name}"
 
 def profile_url(uid): 
@@ -82,7 +81,6 @@ def profile_url(uid):
 # KEYBOARDS
 # ================================================================
 def main_kb(uid, name):
-    """The persistent bottom keyboard."""
     return ReplyKeyboardMarkup([
         [KeyboardButton("🎮 Geez Bingo ይጫወቱ", web_app=WebAppInfo(url=game_url(uid, name)))],
         [KeyboardButton("💰 ገንዘብ ያስቀምጡ"), KeyboardButton("💸 ገንዘብ ያውጡ")],
@@ -90,7 +88,6 @@ def main_kb(uid, name):
     ], resize_keyboard=True, is_persistent=True)
 
 def menu_kb(uid, name):
-    """The inline menu when /menu is clicked. All URLs are working."""
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("🎯 Play Game", web_app=WebAppInfo(url=game_url(uid, name)))],
         [InlineKeyboardButton("💰 Deposit", callback_data="m_deposit"), 
@@ -126,10 +123,7 @@ user_states = {}
 async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user
     user_states.pop(u.id, None)
-    await update.message.reply_text(
-        "☰ *Main Menu*\n\nChoose an option:",
-        parse_mode="Markdown", reply_markup=menu_kb(u.id, u.first_name or "Player")
-    )
+    await update.message.reply_text("☰ *Main Menu*\n\nChoose an option:", parse_mode="Markdown", reply_markup=menu_kb(u.id, u.first_name or "Player"))
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user
@@ -141,10 +135,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try: await context.bot.send_message(ref, "🎉 አዲስ ጓደኛ ጋበዝክ! +30 ብር")
             except: pass
     name = u.first_name or "Player"
-    await update.message.reply_text(
-        f"👋 *ሰላም {name}!*\n\nUse the buttons below to play.",
-        parse_mode="Markdown", reply_markup=main_kb(u.id, name)
-    )
+    await update.message.reply_text(f"👋 *ሰላም {name}!*\n\nUse the buttons below to play.", parse_mode="Markdown", reply_markup=main_kb(u.id, name))
 
 async def play_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user
@@ -168,6 +159,10 @@ async def howtoplay_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def invite_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user
     await update.message.reply_text(f"👥 *Invite Friends*\n\n[👉 Click Here](https://t.me/{BOT_USERNAME}?start={u.id})", parse_mode="Markdown")
+
+# THE MISSING FUNCTION IS NOW ADDED BACK:
+async def leaderboard_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🏆 *Leaderboard*\n\nOpen the game and check the Profile tab!", parse_mode="Markdown")
 
 async def support_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("💬 *Support*\n\nContact @Tazikes.", parse_mode="Markdown")
@@ -202,6 +197,7 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
         m = re.search(r"(\d+(?:[.,]\d+)?)", txt); amount = float(m.group(1).replace(",", "")) if m else 0
         if amount < 1: return await update.message.reply_text("⚠️ Invalid amount.")
         tx = sv_tx({"userId": u.id, "type": "deposit", "amount": amount, "method": state.get("method"), "sms": txt, "status": "pending"})
+        if not tx: return await update.message.reply_text("⚠️ Server error.")
         tx_id = tx["_id"]
         await context.bot.send_message(ADMIN_ID, f"🔔 *DEPOSIT*\n👤 {u.first_name}\n🆔 `{u.id}`\n💰 {amount:.2f} ETB\n🔖 `{tx_id}`", parse_mode="Markdown", reply_markup=approval_kb(tx_id))
         user_states.pop(u.id, None)
@@ -219,6 +215,7 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if action == "withdraw_phone":
         phone = txt.strip(); amount = state.get("amount")
         tx = sv_tx({"userId": u.id, "type": "withdraw", "amount": amount, "method": state.get("method"), "phone": phone, "status": "pending"})
+        if not tx: return await update.message.reply_text("⚠️ Server error.")
         tx_id = tx["_id"]
         await context.bot.send_message(ADMIN_ID, f"🔔 *WITHDRAW*\n👤 {u.first_name}\n🆔 `{u.id}`\n💰 {amount:.2f} ETB\n📱 `{phone}`\n🔖 `{tx_id}`", parse_mode="Markdown", reply_markup=approval_kb(tx_id))
         user_states.pop(u.id, None)
@@ -278,7 +275,6 @@ async def winner_handler(request):
     return web.json_response({"ok": True})
 
 async def post_init(app):
-    """Sets the commands in the Telegram Menu."""
     commands = [
         BotCommand("menu", "☰ Main Menu"),
         BotCommand("start", "🚀 Start / Restart Bot"),
