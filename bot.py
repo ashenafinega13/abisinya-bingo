@@ -92,46 +92,51 @@ def sv_set_tx_status(tx_id, status):
         print("sv_set_tx_status:", e)
 
 # ================================================================
-#             URL BUILDERS — PAY ATTENTION HERE
+#                        URL BUILDERS
 # ================================================================
 def game_url(uid, name):
-    """PLAY button → /game?uid=...  (server redirects to bingo.html)"""
     return f"{WEBAPP_URL}/game?uid={uid}&name={name}"
 
 def profile_url(uid, tab="history"):
-    """PROFILE button → /profile.html?uid=..."""
     return f"{WEBAPP_URL}/profile.html?uid={uid}&tab={tab}"
 
 # ================================================================
 #                        KEYBOARDS
 # ================================================================
 def main_kb(uid, name):
+    """Compact keyboard: Play + a Menu button that opens all options."""
     keyboard = [
-        # ---------- ROW 1: PLAY ----------
         [KeyboardButton("🎯  Play Abisinya Bingo",
                         web_app=WebAppInfo(url=game_url(uid, name)))],
-
-        # ---------- ROW 2: PROFILE + LEADERBOARD ----------
-        [KeyboardButton("👤  My Profile",
-                        web_app=WebAppInfo(url=profile_url(uid, "history"))),
-         KeyboardButton("🏆  Leaderboard",
-                        web_app=WebAppInfo(url=profile_url(uid, "leader")))],
-
-        # ---------- ROW 3: MONEY ----------
-        [KeyboardButton("💰  Deposit"),
-         KeyboardButton("📤  Withdraw")],
-
-        # ---------- ROW 4: INFO ----------
-        [KeyboardButton("💵  Balance"),
-         KeyboardButton("👥  Invite Friends")],
-
-        # ---------- ROW 5: HELP ----------
-        [KeyboardButton("💬  Support"),
-         KeyboardButton("ℹ️  Help")],
+        [KeyboardButton("☰  Menu"),
+         KeyboardButton("👤  My Profile",
+                        web_app=WebAppInfo(url=profile_url(uid, "history")))],
     ]
     return ReplyKeyboardMarkup(
         keyboard, resize_keyboard=True, is_persistent=True,
         input_field_placeholder="Choose an action…"
+    )
+
+def menu_kb():
+    """The /start style menu — all options as inline buttons."""
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("💰 Deposit",         callback_data="m_deposit"),
+         InlineKeyboardButton("📤 Withdraw",        callback_data="m_withdraw")],
+        [InlineKeyboardButton("💵 Check Balance",   callback_data="m_balance"),
+         InlineKeyboardButton("👥 Invite Friends",  callback_data="m_invite")],
+        [InlineKeyboardButton("📋 History",         callback_data="m_history"),
+         InlineKeyboardButton("💬 Support",         callback_data="m_support")],
+        [InlineKeyboardButton("📱 Register",        callback_data="m_register"),
+         InlineKeyboardButton("🌍 Language",        callback_data="m_language")],
+        [InlineKeyboardButton("ℹ️ Help",            callback_data="m_help"),
+         InlineKeyboardButton("🏆 Leaderboard",     callback_data="m_leaderboard")],
+    ])
+
+def contact_kb():
+    """Asks for the user's phone via Telegram's native share-contact button."""
+    return ReplyKeyboardMarkup(
+        [[KeyboardButton("📱 Share My Contact", request_contact=True)]],
+        resize_keyboard=True, one_time_keyboard=True
     )
 
 def deposit_kb():
@@ -151,6 +156,14 @@ def approval_kb(tx_id):
         InlineKeyboardButton("✅  Approve", callback_data=f"approve_{tx_id}"),
         InlineKeyboardButton("❌  Reject",  callback_data=f"reject_{tx_id}")
     ]])
+
+def language_kb():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🇬🇧 English",   callback_data="lang_en")],
+        [InlineKeyboardButton("🇪🇹 አማርኛ",     callback_data="lang_am")],
+        [InlineKeyboardButton("🇪🇹 Oromiffa",  callback_data="lang_om")],
+        [InlineKeyboardButton("🇪🇹 ትግርኛ",    callback_data="lang_ti")],
+    ])
 
 # ================================================================
 #                        USER STATE
@@ -179,8 +192,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"👋 *ሰላም {name}!*\n\n"
         f"🎉 እንኳን ወደ *Abisinya Bingo* በደህና መጡ።\n\n"
         f"🎯 *Play* ን ተጭነው ይጫወቱ\n"
-        f"👤 *My Profile* ን ተጭነው ዋሌትዎን ይመልከቱ\n\n"
-        f"🎁 ጓደኛ ጋብዘው *+30 ብር* ያግኙ!",
+        f"☰ *Menu* ን ተጭነው ሁሉንም አማራጮች ያያሉ",
         parse_mode="Markdown",
         reply_markup=main_kb(u.id, name)
     )
@@ -204,7 +216,7 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "ℹ️ *እርዳታ*\n\n"
         "1️⃣ *🎯 Play* ይጫኑ\n"
-        "2️⃣ 1–6 ካርቴላ ይምረጡ\n"
+        "2️⃣ 1–4 ካርቴላ ይምረጡ\n"
         "3️⃣ *JOIN GAME* ይጫኑ\n"
         "4️⃣ አንድ ሙሉ መስመር ሲሟላ *BINGO* ይጫኑ\n\n"
         "🎯 የማሸነፊያ መስመሮች:\n"
@@ -221,7 +233,8 @@ async def debug_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🔧 *DEBUG*\n\n"
         f"`SERVER_URL` = `{SERVER_URL}`\n"
         f"`WEBAPP_URL` = `{WEBAPP_URL}`\n"
-        f"`BOT_USERNAME` = `{BOT_USERNAME}`\n\n"
+        f"`BOT_USERNAME` = `{BOT_USERNAME}`\n"
+        f"`BOT_PORT` = `{BOT_PORT}`\n\n"
         f"*Play URL:*\n`{game_url(u.id, u.first_name or 'Player')}`\n\n"
         f"*Profile URL:*\n`{profile_url(u.id)}`",
         parse_mode="Markdown"
@@ -231,6 +244,18 @@ async def debug_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #                        MESSAGE HANDLER
 # ================================================================
 async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # ---------- CONTACT (phone share) ----------
+    if update.message and update.message.contact:
+        u = update.effective_user
+        phone = update.message.contact.phone_number
+        sv_upsert(u.id, u.username or "", u.first_name or "", phone=phone)
+        user_states.pop(u.id, None)
+        await update.message.reply_text(
+            f"✅ *ተመዝግቧል!*\n\n📱 `{phone}`",
+            parse_mode="Markdown",
+            reply_markup=main_kb(u.id, u.first_name or "Player"))
+        return
+
     if not update.message or not update.message.text: return
     if not update.effective_user: return
 
@@ -241,14 +266,21 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
     state = user_states.get(u.id, {})
     action = state.get("action")
 
-    menu_emojis = ["🎯","👤","🏆","💰","📤","💵","👥","💬","ℹ️"]
-    if any(x in txt for x in menu_emojis):
+    # If menu item clicked, clear state
+    if txt == "☰  Menu" or txt == "☰ Menu":
         user_states.pop(u.id, None)
-        action = None
+        await update.message.reply_text(
+            "☰ *MENU*\n\nምን ማድረግ ይፈልጋሉ?",
+            parse_mode="Markdown",
+            reply_markup=menu_kb())
+        return
 
     # ---------- REGISTER ----------
     if action == "register":
         phone = txt.strip()
+        if not re.match(r"^\+?\d{9,15}$", phone):
+            await update.message.reply_text("⚠️ Please send a valid phone number or share your contact.")
+            return
         sv_upsert(u.id, u.username or "", u.first_name or "", phone=phone)
         user_states.pop(u.id, None)
         await update.message.reply_text(
@@ -351,48 +383,15 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=main_kb(u.id, u.first_name or "Player"))
         return
 
-    # ---------- MENU ----------
+    # ---------- MENU TEXT ----------
     if "🎯" in txt:
         await update.message.reply_text(
             "🎯 *Play Abisinya Bingo* ን ተጭነው ይጫወቱ!",
             parse_mode="Markdown")
-
     elif "👤" in txt:
         await update.message.reply_text(
             "👤 *My Profile* ን ይጫኑ — ዋሌትዎን፣ ታሪክዎን እና ሊደርቦርድ ያያሉ።",
             parse_mode="Markdown")
-
-    elif "🏆" in txt:
-        await update.message.reply_text(
-            "🏆 *Leaderboard* ን ይጫኑ።",
-            parse_mode="Markdown")
-
-    elif "💰" in txt:
-        await update.message.reply_text(
-            "💰 *ገንዘብ ማስገባት*\n\nየክፍያ አማራጭ ይምረጡ:",
-            parse_mode="Markdown", reply_markup=deposit_kb())
-
-    elif "📤" in txt:
-        await update.message.reply_text(
-            "📤 *የወጭ አማራጭ ይምረጡ:*",
-            parse_mode="Markdown", reply_markup=withdraw_kb())
-
-    elif "💵" in txt:
-        await balance_cmd(update, context)
-
-    elif "👥" in txt:
-        link = f"https://t.me/{BOT_USERNAME}?start={u.id}"
-        await update.message.reply_text(
-            f"👥 *የግብዣ ሊንክ*\n\n`{link}`\n\n✨ 30 ብር ያግኙ!",
-            parse_mode="Markdown")
-
-    elif "💬" in txt:
-        await update.message.reply_text(
-            "💬 *ድጋፍ*\n\n👤 @Tazikes", parse_mode="Markdown")
-
-    elif "ℹ️" in txt:
-        await help_cmd(update, context)
-
     else:
         await update.message.reply_text(
             "🤔 ካርቴላ ይምረጡ እና ይጫወቱ።",
@@ -409,6 +408,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = q.from_user
     sv_upsert(u.id, u.username or "", u.first_name or "")
 
+    # ---------- ADMIN approve/reject ----------
     if data.startswith("approve_") or data.startswith("reject_"):
         if u.id != ADMIN_ID: return
         action, tx_id = data.split("_", 1)
@@ -449,7 +449,59 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"{tx['type'].upper()} — {tx['amount']:.2f} ETB")
         return
 
-    if data == "dep_telebirr":
+    # ---------- MENU ACTIONS ----------
+    if data == "m_deposit":
+        await q.edit_message_text(
+            "💰 *ገንዘብ ማስገባት*\n\nየክፍያ አማራጭ ይምረጡ:",
+            parse_mode="Markdown", reply_markup=deposit_kb())
+    elif data == "m_withdraw":
+        await q.edit_message_text(
+            "📤 *የወጭ አማራጭ ይምረጡ:*",
+            parse_mode="Markdown", reply_markup=withdraw_kb())
+    elif data == "m_balance":
+        usr = sv_user(u.id) or {}
+        play = usr.get("balance", 0); win = usr.get("winBalance", 0)
+        await q.edit_message_text(
+            f"💼 *የእርስዎ ዋሌት*\n\n"
+            f"🎯 Playable:  *{play:.2f} ብር*\n"
+            f"🏆 Winnings:  *{win:.2f} ብር*\n"
+            f"━━━━━━━━━━━━━━\n"
+            f"💵 *ጠቅላላ: {play+win:.2f} ብር}*",
+            parse_mode="Markdown")
+    elif data == "m_invite":
+        link = f"https://t.me/{BOT_USERNAME}?start={u.id}"
+        await q.edit_message_text(
+            f"👥 *የግብዣ ሊንክ*\n\n`{link}`\n\n✨ 30 ብር ያግኙ!",
+            parse_mode="Markdown")
+    elif data == "m_history":
+        await q.edit_message_text(
+            "📋 ሙሉ ታሪክዎን ለማየት 👤 *My Profile* ን ይጫኑ።",
+            parse_mode="Markdown")
+    elif data == "m_support":
+        await q.edit_message_text("💬 *ድጋፍ*\n\n👤 @Tazikes", parse_mode="Markdown")
+    elif data == "m_register":
+        user_states[u.id] = {"action": "register"}
+        await q.edit_message_text(
+            "📱 *ስልክ ቁጥር ምዝገባ*\n\n"
+            "ከታች ያለውን *📱 Share My Contact* ይጫኑ ወይም ስልክ ቁጥርዎን ይላኩ።",
+            parse_mode="Markdown")
+        await context.bot.send_message(
+            u.id, "👇 Tap below to share:",
+            reply_markup=contact_kb())
+    elif data == "m_language":
+        await q.edit_message_text(
+            "🌐 ቋንቋ ይምረጡ:", reply_markup=language_kb())
+    elif data == "m_help":
+        await q.edit_message_text(
+            "ℹ️ *እርዳታ*\n\n1. 🎯 Play\n2. 1–4 ካርቴላ ይምረጡ\n3. JOIN\n4. BINGO ሲሆን ይጫኑ",
+            parse_mode="Markdown")
+    elif data == "m_leaderboard":
+        await q.edit_message_text(
+            "🏆 ሙሉ ሊደርቦርድ ለማየት 👤 *My Profile* → 🏆 Leaderboard ን ይጫኑ።",
+            parse_mode="Markdown")
+
+    # ---------- DEPOSIT METHOD ----------
+    elif data == "dep_telebirr":
         user_states[u.id] = {"action": "deposit", "method": "telebirr"}
         await q.edit_message_text(
             "🏦 *Telebirr*\n\n👤 tazebew\n👉 `0968940123`\n\n📩 SMS ይለጥፉ:",
@@ -459,6 +511,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await q.edit_message_text(
             "🏦 *CBE*\n\n👤 tazebew\n👉 `1000390803005`\n\n📩 SMS ይለጥፉ:",
             parse_mode="Markdown")
+
+    # ---------- WITHDRAW METHOD ----------
     elif data == "wd_telebirr":
         user_states[u.id] = {"action": "withdraw_amount", "method": "telebirr"}
         await q.edit_message_text(
@@ -469,6 +523,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await q.edit_message_text(
             "🏦 *CBE*\n\nየወጭ መጠን (min 100 ETB):",
             parse_mode="Markdown")
+
+    # ---------- LANGUAGE ----------
+    elif data == "lang_en":
+        await q.edit_message_text("✅ Language: English")
+    elif data == "lang_am":
+        await q.edit_message_text("✅ ቋንቋ: አማርኛ")
+    elif data == "lang_om":
+        await q.edit_message_text("✅ Afaan: Oromiffa")
+    elif data == "lang_ti":
+        await q.edit_message_text("✅ ቋንቋ: ትግርኛ")
 
 # ================================================================
 #                        WEBHOOKS
@@ -538,6 +602,7 @@ async def main():
     tg.add_handler(CommandHandler("balance", balance_cmd))
     tg.add_handler(CommandHandler("help",    help_cmd))
     tg.add_handler(CommandHandler("debug",   debug_cmd))
+    tg.add_handler(MessageHandler(filters.CONTACT, handle_msg))
     tg.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_msg))
     tg.add_handler(CallbackQueryHandler(button_handler))
 

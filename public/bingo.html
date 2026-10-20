@@ -66,22 +66,6 @@
   @keyframes dot-bounce{0%,80%,100%{transform:scale(.5);opacity:.5}40%{transform:scale(1.2);opacity:1}}
   .splash-status{font-size:11px;color:var(--muted);margin-top:6px;font-family:monospace}
 
-  /* PAUSE OVERLAY */
-  #pauseOverlay{
-    position:fixed;inset:0;z-index:450;background:rgba(10,5,25,.92);
-    backdrop-filter:blur(12px);display:none;flex-direction:column;align-items:center;
-    justify-content:center;gap:16px;text-align:center;padding:30px;
-  }
-  #pauseOverlay.show{display:flex;animation:fade-in .3s}
-  #pauseOverlay .icon{font-size:64px;animation:spin-pulse 2s infinite}
-  #pauseOverlay h2{font-size:24px;font-weight:900;color:var(--neon-cyan)}
-  #pauseOverlay p{font-size:13px;color:var(--muted);max-width:260px}
-  #pauseOverlay button{
-    background:linear-gradient(135deg,var(--neon-green),#10b981);
-    color:#0b0616;border:none;padding:12px 28px;border-radius:12px;
-    font-weight:900;font-size:14px;cursor:pointer;box-shadow:0 4px 16px rgba(34,197,94,.45);
-  }
-
   .container{
     width:100%; max-width:520px; margin:0 auto;
     display:flex; flex-direction:column;height:100%;overflow:hidden;gap:4px;
@@ -167,7 +151,6 @@
     display:flex;flex-direction:column;gap:4px;min-height:0;overflow:hidden;
   }
 
-  /* MODE TOGGLE ROW */
   .mode-row{display:grid;grid-template-columns:1fr 1fr;gap:4px;flex-shrink:0}
   .mode-btn{
     display:flex;align-items:center;justify-content:center;gap:5px;
@@ -249,17 +232,6 @@
   @keyframes chip-in{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
   .lc-empty{font-size:10px;color:var(--muted);font-style:italic}
 
-  .near-win{
-    background:linear-gradient(135deg,#f97316,#dc2626);
-    border-radius:8px;padding:5px 10px;text-align:center;
-    font-size:11px;font-weight:900;letter-spacing:.5px;color:#fff;
-    text-shadow:0 1px 2px rgba(0,0,0,.3);
-    box-shadow:0 0 16px rgba(249,115,22,.6);
-    animation:near-win-pulse 1s infinite;display:none;flex-shrink:0;
-  }
-  .near-win.show{display:block}
-  @keyframes near-win-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
-
   .msg-area{
     flex:1 1 auto; min-height:0;
     background:linear-gradient(180deg,rgba(30,20,60,.55),rgba(20,12,40,.55));
@@ -273,7 +245,6 @@
     color:var(--muted);padding:20px 10px;line-height:1.5;
   }
 
-  /* CARTELAS — DYNAMIC SCALING */
   .cartelas-list{
     flex:1;overflow-y:auto;
     display:grid;gap:5px;padding-right:2px;align-content:start;
@@ -322,15 +293,6 @@
     transition:transform .2s, box-shadow .3s, border-color .3s;
     position:relative;
   }
-  .cartela-card.has-manual-win{
-    border-color:var(--neon-gold);
-    box-shadow:0 0 16px rgba(250,204,21,.6);
-    animation:win-glow 1s infinite alternate;
-  }
-  @keyframes win-glow{
-    from{box-shadow:0 0 12px rgba(250,204,21,.4)}
-    to{box-shadow:0 0 24px rgba(250,204,21,.85)}
-  }
   .cartela-head{
     display:flex;justify-content:space-between;align-items:center;
     font-size:9px;color:var(--muted);font-weight:800;
@@ -365,10 +327,6 @@
     0%,100%{border-color:rgba(34,211,238,.35)}
     50%{border-color:rgba(34,211,238,.85);box-shadow:inset 0 0 10px rgba(34,211,238,.3)}
   }
-  .cell.auto-assist{
-    background:rgba(34,211,238,.15);
-    border-color:rgba(34,211,238,.5);
-  }
   .cell.marked{
     background:linear-gradient(135deg,var(--neon-orange),#ea580c);
     color:#fff;border-color:transparent;
@@ -381,11 +339,7 @@
     color:#fff;border-color:transparent;
     box-shadow:0 0 8px rgba(251,146,60,.6);
   }
-  .cell.win{
-    background:linear-gradient(135deg,var(--neon-gold),#eab308);
-    color:#1a0a2e;border:1.5px solid #fff;
-    box-shadow:0 0 14px rgba(250,204,21,.9);font-weight:900;
-  }
+  /* NO .win class - removed winning highlight */
   .cell .ripple{
     position:absolute;inset:0;border-radius:inherit;
     border:2px solid var(--neon-cyan);
@@ -429,63 +383,6 @@
   }
   .icon-bar button small{font-size:7px;color:var(--muted);font-weight:700;letter-spacing:.3px}
   .icon-bar button:active{transform:scale(.95)}
-
-  /* CHAT REACTIONS BAR */
-  .reactions-bar{
-    display:grid;grid-template-columns:repeat(6,1fr);gap:3px;flex-shrink:0;
-  }
-  .react-btn{
-    padding:6px 2px;border-radius:8px;
-    background:rgba(139,92,246,.10);border:1px solid var(--border);
-    color:var(--ink);font-size:16px;cursor:pointer;
-    transition:all .15s;text-align:center;
-  }
-  .react-btn:active{transform:scale(.88)}
-  .react-btn:hover{background:rgba(139,92,246,.2)}
-
-  /* FLOATING REACTIONS */
-  .floating-reactions{
-    position:fixed;inset:0;pointer-events:none;z-index:80;overflow:hidden;
-  }
-  .float-react{
-    position:absolute;
-    font-size:38px;
-    animation:float-up 2.4s ease-out forwards;
-    filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));
-  }
-  @keyframes float-up{
-    0%{transform:translateY(0) scale(.6);opacity:0}
-    15%{transform:translateY(-30px) scale(1.2);opacity:1}
-    100%{transform:translateY(-200px) scale(.8);opacity:0}
-  }
-
-  /* PATTERN PREVIEW */
-  .pattern-preview{
-    position:absolute;
-    top:6px;right:6px;
-    background:rgba(11,6,22,.9);
-    border:1px solid var(--border);
-    border-radius:8px;
-    padding:4px;
-    display:grid;
-    grid-template-columns:repeat(5,1fr);
-    gap:1px;
-    z-index:5;
-    opacity:.85;
-    pointer-events:none;
-  }
-  .pattern-preview .p-cell{
-    width:9px;height:9px;border-radius:2px;
-    background:rgba(139,92,246,.15);
-  }
-  .pattern-preview .p-cell.hit{
-    background:linear-gradient(135deg,var(--neon-gold),#eab308);
-    box-shadow:0 0 4px rgba(250,204,21,.7);
-  }
-  .pattern-preview .p-cell.line-hint{
-    background:rgba(34,211,238,.5);
-    animation:pulse-latest .8s infinite alternate;
-  }
 
   /* PICKER */
   .picker-wrap{flex:1;display:flex;flex-direction:column;gap:5px;overflow:hidden}
@@ -629,15 +526,6 @@
   <div class="splash-status" id="splashStatus">Initializing…</div>
 </div>
 
-<div id="pauseOverlay">
-  <div class="icon">⏸️</div>
-  <h2 id="pauseTitle">PAUSED</h2>
-  <p id="pauseText">The game is paused while you're away. Tap Resume to continue.</p>
-  <button id="resumeBtn">▶ RESUME</button>
-</div>
-
-<div class="floating-reactions" id="floatingReactions"></div>
-
 <script>
   if (window.Telegram && window.Telegram.WebApp) {
     const tw = window.Telegram.WebApp;
@@ -730,8 +618,6 @@
           <div class="lc-empty" id="lbl-waiting">Waiting…</div>
         </div>
 
-        <div class="near-win" id="nearWin">🔥 1 TO GO!</div>
-
         <div class="msg-area">
           <div class="msg-default" id="msgDefault">
             <span id="lbl-pleasewait">Please wait for this game<br>to be completed</span>
@@ -748,15 +634,6 @@
       <button class="btn-bingo" id="bingoBtn" disabled>🎉 <span id="lbl-bingo">BINGO!</span></button>
     </div>
 
-    <div class="reactions-bar">
-      <button class="react-btn" data-emoji="👍">👍</button>
-      <button class="react-btn" data-emoji="🎉">🎉</button>
-      <button class="react-btn" data-emoji="🔥">🔥</button>
-      <button class="react-btn" data-emoji="😂">😂</button>
-      <button class="react-btn" data-emoji="😱">😱</button>
-      <button class="react-btn" data-emoji="💰">💰</button>
-    </div>
-
     <div class="icon-bar">
       <button id="btnWallet"><span>💼</span><small id="lbl-wallet">Wallet</small></button>
       <button id="btnBalance"><span>💵</span><small id="lbl-bal">Balance</small></button>
@@ -768,10 +645,11 @@
   </div>
 </div>
 
-<button id="enableVoiceBtn" style="position:fixed;top:6px;right:6px;z-index:200;
-  background:linear-gradient(135deg,var(--neon-green),#10b981);color:#0b0616;
-  border:none;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">
-  🔊 <span id="lbl-voice">Enable Voice</span>
+<button id="voiceToggleBtn" style="position:fixed;top:6px;right:6px;z-index:200;
+  background:rgba(139,92,246,.85);color:#f5f3ff;border:1px solid rgba(167,139,250,.4);
+  padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer;
+  transition:all .2s">
+  <span id="voiceIcon">🔇</span> <span id="voiceLabel">OFF</span>
 </button>
 
 <script>
@@ -779,8 +657,6 @@
 // CONFIG
 // ================================================================
 const MAX_CARTELAS = 4;
-const LATE_JOIN_GRACE_MS = 15000; // 15s grace period after start
-const AUTO_DAUB_ASSIST_MS = 3000; // 3s until auto-assist hint
 
 // ================================================================
 // i18n
@@ -792,21 +668,18 @@ const STRINGS = {
     join:'JOIN GAME', manual:'MANUAL', auto:'AUTO', callshort:'Call',
     waiting:'Waiting…', pleasewait:'Please wait for this game\nto be completed',
     bingo:'BINGO!', wallet:'Wallet', bal:'Balance', hist:'History',
-    inv:'Invite', lang:'Lang', help:'Help', voice:'Enable Voice',
+    inv:'Invite', lang:'Lang', help:'Help',
     status_started:'STARTED', status_waiting:'WAITING', status_finished:'FINISHED',
     pick_hint:'Pick 1–4 cartelas then tap JOIN',
-    pick_selected:n => `${n}/4 selected — tap JOIN`,
     pick_total:n => `${n} selected · ${n*10} ETB`,
-    paused:'PAUSED', pausetext:'The game is paused while you\'re away. Tap Resume to continue.',
-    resume:'▶ RESUME', onetogo:'🔥 1 TO GO!', twotogo:'⚡ 2 TO GO!',
     manual_on:'👆 Manual — tap numbers yourself',
     auto_on:'⚡ Auto — machine marks & claims',
-    voice_on:'🔊 Voice enabled', joined:'✅ Joined!', not_called:'⚠️ Not called yet',
+    joined:'✅ Joined!', not_called:'⚠️ Not called yet',
     cartela_taken:'⚠️ Cartela taken', already_yours:'Already yours',
-    nfc:'⚠️ Not called yet', wintitle:'GAME OVER', prize:'TOTAL PRIZE', you:' (YOU)',
+    wintitle:'GAME OVER', prize:'TOTAL PRIZE', you:' (YOU)',
     favorited:'★ Added to favorites', unfavorited:'☆ Removed from favorites',
     help_title:'How to Play',
-    help_body:'Complete one full line — row, column, or diagonal — to win.\n\n👆 MANUAL mode: When a number is called, tap it on your cartela to mark it.\n⚡ AUTO mode: Numbers are marked automatically and BINGO is claimed for you.\n\n⭐ Tap the star on a cartela to auto-pick it next round.\n💬 Tap emoji buttons to send reactions to everyone.\nPick up to 4 cartelas per game.\n🔊 Tap Enable Voice to hear every call.',
+    help_body:'Complete one full line — row, column, or diagonal — to win.\n\n👆 MANUAL mode: When a number is called, tap it on your cartela to mark it.\n⚡ AUTO mode: Numbers are marked automatically and BINGO is claimed for you.\n\n⭐ Tap the star on a cartela to auto-pick it next round.\nPick up to 4 cartelas per game.',
     gotit:'Got it',
   },
   am: {
@@ -815,21 +688,18 @@ const STRINGS = {
     join:'ጨዋታ ተቀላቀል', manual:'በእጅ', auto:'ራስ-ሰር', callshort:'ጥሪ',
     waiting:'በመጠበቅ…', pleasewait:'ጨዋታው እስኪጠናቀቅ\nይጠብቁ',
     bingo:'ቢንጎ!', wallet:'ዋሌት', bal:'ቀሪ', hist:'ታሪክ',
-    inv:'ጋብዝ', lang:'ቋንቋ', help:'እርዳታ', voice:'ድምጽ አብራ',
+    inv:'ጋብዝ', lang:'ቋንቋ', help:'እርዳታ',
     status_started:'ተጀምሯል', status_waiting:'ይጠብቃል', status_finished:'ተጠናቅቋል',
     pick_hint:'1–4 ካርቴላ ይምረጡ ከዚያ JOIN ይጫኑ',
-    pick_selected:n => `${n}/4 ተመርጠዋል — JOIN ይጫኑ`,
     pick_total:n => `${n} ተመርጠዋል · ${n*10} ብር`,
-    paused:'ቆሟል', pausetext:'ጨዋታው ቆሟል። ለመቀጠል Resume ይጫኑ።',
-    resume:'▶ ቀጥል', onetogo:'🔥 1 ብቻ!', twotogo:'⚡ 2 ብቻ!',
     manual_on:'👆 በእጅ — ቁጥሮቹን ራስዎ ይጫኑ',
     auto_on:'⚡ ራስ-ሰር — ማሽኑ ይጫናል እና ያሸንፋል',
-    voice_on:'🔊 ድምጽ ተብርቷል', joined:'✅ ተቀላቅለዋል!', not_called:'⚠️ ገና አልተጠራም',
+    joined:'✅ ተቀላቅለዋል!', not_called:'⚠️ ገና አልተጠራም',
     cartela_taken:'⚠️ ካርቴላ ተይዟል', already_yours:'የእርስዎ ነው',
-    nfc:'⚠️ ገና አልተጠራም', wintitle:'ጨዋታ አለቀ', prize:'ጠቅላላ ሽልማት', you:' (እርስዎ)',
+    wintitle:'ጨዋታ አለቀ', prize:'ጠቅላላ ሽልማት', you:' (እርስዎ)',
     favorited:'★ ወደ ተወዳጆች ተጨምሯል', unfavorited:'☆ ከተወዳጆች ተወግዷል',
     help_title:'እንዴት እንደሚጫወቱ',
-    help_body:'አንድ ሙሉ መስመር ያሸንፉ — ረድፍ፣ አምድ ወይም ማዕዘን።\n\n👆 በእጅ ሁኔታ: ቁጥር ሲጠራ ካርቴላዎ ላይ ይጫኑት።\n⚡ ራስ-ሰር ሁኔታ: ማሽኑ ራሱ ይጫናል።\n\n⭐ ኮከቡን ተጭነው ለቀጣዩ ዙር በራስ-ሰር ይመረጣል።\n💬 ኢሞጂ በመጫን ለሁሉም ምላሽ ይላኩ።\nእስከ 4 ካርቴላ ይምረጡ።\n🔊 ድምጽ ለመስማት ድምጽ አብራ ይጫኑ።',
+    help_body:'አንድ ሙሉ መስመር ያሸንፉ — ረድፍ፣ አምድ ወይም ማዕዘን።\n\n👆 በእጅ ሁኔታ: ቁጥር ሲጠራ ካርቴላዎ ላይ ይጫኑት።\n⚡ ራስ-ሰር ሁኔታ: ማሽኑ ራሱ ይጫናል።\n\n⭐ ኮከቡን ተጭነው ለቀጣዩ ዙር በራስ-ሰር ይመረጣል።\nእስከ 4 ካርቴላ ይምረጡ።',
     gotit:'ገባኝ',
   },
   om: {
@@ -838,21 +708,18 @@ const STRINGS = {
     join:'TAPHAA SEENI', manual:'HOMMAAN', auto:'OFTAA', callshort:'WAMICHA',
     waiting:'Eeggachaa…', pleasewait:'Taphni xumuramuu\nqopheessi',
     bingo:'BINGO!', wallet:'WALLEET', bal:'HAFEENYA', hist:'SEENAA',
-    inv:'AFFEERI', lang:'AFAAAN', help:'GARGAARSA', voice:'Sagalee bani',
+    inv:'AFFEERI', lang:'AFAAAN', help:'GARGAARSA',
     status_started:'JALQABE', status_waiting:'EEGGA', status_finished:'XUMURAME',
     pick_hint:'Kaardii 1–4 filadhu, JOIN tuqi',
-    pick_selected:n => `${n}/4 filatame — JOIN tuqi`,
     pick_total:n => `${n} filatame · ${n*10} ETB`,
-    paused:'DHAABBATE', pausetext:'Taphni dhaabbate. Itti fufuuf Resume tuqi.',
-    resume:'▶ ITTI FUFI', onetogo:'🔥 1 HAFE!', twotogo:'⚡ 2 HAFE!',
     manual_on:'👆 Homaan — lakk. ofii keetuu tuqi',
     auto_on:'⚡ Ofataa — maashiniin tuqa',
-    voice_on:'🔊 Sagaleen baname', joined:'✅ Seente!', not_called:'⚠️ Hin wamfamne',
+    joined:'✅ Seente!', not_called:'⚠️ Hin wamfamne',
     cartela_taken:'⚠️ Kaardiin qabame', already_yours:'Kan kee',
-    nfc:'⚠️ Hin wamfamne', wintitle:'TAPHAAN XUMURAME', prize:'MINDAA WALIIGALA', you:' (ATI)',
+    wintitle:'TAPHAAN XUMURAME', prize:'MINDAA WALIIGALA', you:' (ATI)',
     favorited:'★ Jaallatamtoota keessa', unfavorited:'☆ Jaallatamtoota keessaa bahe',
     help_title:'Akkamitti taphatu',
-    help_body:'Sarara guutuu tokko xumuri — tarree, utubaa, ykn diagonaalii.\n\n👆 HOMMAAN: Lakkoofsi yeroo wamametti kaardii kee irratti tuqi.\n⚡ OFTAA: Maashiniin ofumaan tuqa.\n\n⭐ Urjii tuqi — kaardii next round ofumaan filatama.\n💬 Emoji tuqi — hundaaf ergaa.\nHanga kaardii 4 filadhu.\n🔊 Sagalee dhaggeeffachuuf "Sagalee bani" tuqi.',
+    help_body:'Sarara guutuu tokko xumuri — tarree, utubaa, ykn diagonaalii.\n\n👆 HOMMAAN: Lakkoofsi yeroo wamametti kaardii kee irratti tuqi.\n⚡ OFTAA: Maashiniin ofumaan tuqa.\n\n⭐ Urjii tuqi — kaardii next round ofumaan filatama.\nHanga kaardii 4 filadhu.',
     gotit:'NAGAA',
   },
   ti: {
@@ -861,21 +728,18 @@ const STRINGS = {
     join:'ጸወታ ተጸምበሩ', manual:'ብኢድ', auto:'ቀጥታ', callshort:'ጻውዒት',
     waiting:'ይጽበ…', pleasewait:'ጸወታ ክሳብ ይውዳእ\nተጸበዩ',
     bingo:'ቢንጎ!', wallet:'ዋሌት', bal:'ተረፍ', hist:'ታሪኽ',
-    inv:'ዓድሙ', lang:'ቋንቋ', help:'ሓገዝ', voice:'ድምጺ ኣብሩ',
+    inv:'ዓድሙ', lang:'ቋንቋ', help:'ሓገዝ',
     status_started:'ተጀመረ', status_waiting:'ይጽበ', status_finished:'ተወዲኡ',
     pick_hint:'1–4 ካርቴላ ምረጹ፣ JOIN ጠውቑ',
-    pick_selected:n => `${n}/4 ተመሪጹ — JOIN ጠውቑ`,
     pick_total:n => `${n} ተመሪጹ · ${n*10} ብር`,
-    paused:'ተቋሪጹ', pausetext:'ጸወታ ተቋሪጹ። ንምቕጻል Resume ጠውቑ።',
-    resume:'▶ ቀጽሉ', onetogo:'🔥 1 ጥራይ!', twotogo:'⚡ 2 ጥራይ!',
     manual_on:'👆 ብኢድ — ቁጽሪ ባዕልኹም ጠውቑ',
     auto_on:'⚡ ቀጥታ — ማሽን ይጠውቕ',
-    voice_on:'🔊 ድምጺ ተኸፊቱ', joined:'✅ ተጸምቢርኩም!', not_called:'⚠️ ኣይተጸውዐን',
+    joined:'✅ ተጸምቢርኩም!', not_called:'⚠️ ኣይተጸውዐን',
     cartela_taken:'⚠️ ካርቴላ ተታሒዙ', already_yours:'ናትኩም',
-    nfc:'⚠️ ኣይተጸውዐን', wintitle:'ጸወታ ተወዲኡ', prize:'ጠቕላላ ሽልማት', you:' (ንስኹም)',
+    wintitle:'ጸወታ ተወዲኡ', prize:'ጠቕላላ ሽልማት', you:' (ንስኹም)',
     favorited:'★ ናብ ተፈተውቲ ተወሲኹ', unfavorited:'☆ ካብ ተፈተውቲ ተኣውጸ',
     help_title:'ከመይ ኢልኩም ትጻወቱ',
-    help_body:'ሓደ ምሉእ መስመር ውደኡ — ረድፊ፣ ዓምዲ ወይ ማዕዘን።\n\n👆 ብኢድ: ቁጽሪ ምስ ተጸውዐ ኣብ ካርቴላኹም ጠውቑ።\n⚡ ቀጥታ: ማሽን ባዕሉ ይጠውቕ።\n\n⭐ ኮኾብ ጠውቑ — ንዝቕጽል ዙር ባዕሉ ይምረጽ።\n💬 ኢሞጂ ጠውቑ — ንኹሉ ምላሽ ስደዱ።\nክሳብ 4 ካርቴላ ምረጹ።\n🔊 ድምጺ ንምስማዕ "ድምጺ ኣብሩ" ጠውቑ።',
+    help_body:'ሓደ ምሉእ መስመር ውደኡ — ረድፊ፣ ዓምዲ ወይ ማዕዘን።\n\n👆 ብኢድ: ቁጽሪ ምስ ተጸውዐ ኣብ ካርቴላኹም ጠውቑ።\n⚡ ቀጥታ: ማሽን ባዕሉ ይጠውቕ።\n\n⭐ ኮኾብ ጠውቑ — ንዝቕጽል ዙር ባዕሉ ይምረጽ።\nክሳብ 4 ካርቴላ ምረጹ።',
     gotit:'ተረዲኡኒ',
   }
 };
@@ -909,14 +773,6 @@ function applyLang(){
   document.getElementById('lbl-inv').innerText     = T('inv');
   document.getElementById('lbl-lang').innerText    = T('lang');
   document.getElementById('lbl-help').innerText    = T('help');
-  document.getElementById('lbl-voice').innerText   = T('voice');
-  document.getElementById('pauseTitle').innerText  = T('paused');
-  document.getElementById('pauseText').innerText   = T('pausetext');
-  document.getElementById('resumeBtn').innerText   = T('resume');
-  document.getElementById('splashTitle').innerHTML = LANG === 'en'
-    ? 'Welcome to<br>Abyssinia Bingo Bot'
-    : (LANG === 'am' ? 'እንኳን ወደ<br>Abisinya Bingo በደህና መጡ' : 'Welcome to<br>Abyssinia Bingo Bot');
-  // update status if rendered
   if (document.getElementById('statusTxt')){
     const cur = document.getElementById('statusTxt').innerText;
     if (cur === 'WAITING' || cur === 'ይጠብቃል' || cur === 'EEGGA' || cur === 'ይጽበ') statusTxt.innerText = T('status_waiting');
@@ -934,10 +790,11 @@ const firstName = p.get('name') || 'Player';
 const socket = io();
 
 // ================================================================
-// VOICE
+// VOICE — ON/OFF toggle
 // ================================================================
-let voiceEnabled = false;
+let voiceEnabled = localStorage.getItem('voiceEnabled') === '1';
 const audioCache = new Map();
+
 function preloadAudio(num){
   if (audioCache.has(num)) return audioCache.get(num);
   const a = new Audio('/audio/call_' + num + '.mp3');
@@ -948,6 +805,7 @@ function preloadAudio(num){
 setTimeout(() => {
   for (let n = 1; n <= 75; n++) preloadAudio(n);
 }, 2000);
+
 function playCall(number){
   if (!voiceEnabled) return;
   try {
@@ -968,27 +826,42 @@ function playEventAudio(text){
     } catch(e){}
   }
 }
-document.getElementById('enableVoiceBtn').onclick = () => {
-  voiceEnabled = true;
-  document.getElementById('enableVoiceBtn').style.display = 'none';
-  chime(880, 0.15, 0.08);
-  setTimeout(() => playCall(12), 300);
-  showToast(T('voice_on'));
-  localStorage.setItem('voiceEnabled', '1');
-};
-if (localStorage.getItem('voiceEnabled') === '1') {
-  const autoEnable = () => {
-    if (!voiceEnabled) {
-      voiceEnabled = true;
-      const btn = document.getElementById('enableVoiceBtn');
-      if (btn) btn.style.display = 'none';
-    }
-    document.removeEventListener('touchstart', autoEnable);
-    document.removeEventListener('click', autoEnable);
-  };
-  document.addEventListener('touchstart', autoEnable, { once: true });
-  document.addEventListener('click', autoEnable, { once: true });
+
+function updateVoiceUI(){
+  const btn = document.getElementById('voiceToggleBtn');
+  const icon = document.getElementById('voiceIcon');
+  const label = document.getElementById('voiceLabel');
+  if (!btn) return;
+  if (voiceEnabled){
+    btn.style.background = 'linear-gradient(135deg,var(--neon-green),#10b981)';
+    btn.style.color = '#0b0616';
+    btn.style.borderColor = 'transparent';
+    btn.style.boxShadow = '0 0 14px rgba(34,197,94,.55)';
+    icon.innerText = '🔊';
+    label.innerText = 'ON';
+  } else {
+    btn.style.background = 'rgba(139,92,246,.85)';
+    btn.style.color = '#f5f3ff';
+    btn.style.borderColor = 'rgba(167,139,250,.4)';
+    btn.style.boxShadow = 'none';
+    icon.innerText = '🔇';
+    label.innerText = 'OFF';
+  }
 }
+document.getElementById('voiceToggleBtn').onclick = () => {
+  voiceEnabled = !voiceEnabled;
+  localStorage.setItem('voiceEnabled', voiceEnabled ? '1' : '0');
+  updateVoiceUI();
+  if (voiceEnabled){
+    chime(880, 0.15, 0.08);
+    setTimeout(() => playCall(12), 300);
+    showToast('🔊 Voice ON');
+  } else {
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+    showToast('🔇 Voice OFF');
+  }
+};
+updateVoiceUI();
 
 // ================================================================
 // TONES
@@ -1045,12 +918,10 @@ let cdTimer = null;
 let userProfile = null;
 let playMode = localStorage.getItem('playMode') || 'manual';
 let manMarks = new Set();
-let preCallCountdownTimer = null;
 let winStreak = parseInt(localStorage.getItem('winStreak') || '0', 10);
 let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
 let jackpotAmount = 0;
 let gameStartedAt = 0;
-let autoAssistTimers = new Map(); // number -> timerId
 
 async function loadState(){
   try {
@@ -1138,7 +1009,6 @@ function applyState(s){
   updateColumnHighlights();
   updateMessageArea();
   updateModeUI();
-  updateNearWin();
   updateBingoBtn();
 }
 
@@ -1268,14 +1138,14 @@ document.getElementById('modeManualBtn').onclick = () => {
   if (playMode === 'manual') return;
   playMode = 'manual';
   localStorage.setItem('playMode', 'manual');
-  updateModeUI(); renderCartelas(); updateBingoBtn(); updateNearWin();
+  updateModeUI(); renderCartelas(); updateBingoBtn();
   showToast(T('manual_on'));
 };
 document.getElementById('modeAutoBtn').onclick = () => {
   if (playMode === 'auto') return;
   playMode = 'auto';
   localStorage.setItem('playMode', 'auto');
-  updateModeUI(); renderCartelas(); updateBingoBtn(); updateNearWin();
+  updateModeUI(); renderCartelas(); updateBingoBtn();
   checkAutoBingo();
   showToast(T('auto_on'));
 };
@@ -1319,18 +1189,6 @@ function renderCartelas(){
       }
     }
     card.appendChild(grid);
-
-    // pattern preview badge
-    const preview = document.createElement('div');
-    preview.className = 'pattern-preview';
-    preview.id = 'preview-' + c.id;
-    for (let i = 0; i < 25; i++){
-      const pc = document.createElement('div');
-      pc.className = 'p-cell';
-      preview.appendChild(pc);
-    }
-    card.appendChild(preview);
-
     wrap.appendChild(card);
 
     // fav button handler
@@ -1362,111 +1220,11 @@ function updateCartelaCells(cartela){
     let marked = isFree;
     if (playMode === 'auto') marked = marked || isCalled;
     else marked = marked || isManMark;
-    el.classList.remove('auto-marked', 'marked', 'tappable', 'auto-assist');
+    el.classList.remove('auto-marked', 'marked', 'tappable');
     if (marked) el.classList.add(playMode === 'auto' && isCalled && !isFree ? 'auto-marked' : 'marked');
     else if (playMode === 'manual' && isCalled && !isFree) el.classList.add('tappable');
   });
-  const playerMarks = getPlayerMarkSet();
-  const winInfo = evaluateWinClient(cartela, playerMarks);
-  if (winInfo){
-    card.querySelectorAll('.cell[data-n]').forEach(el => {
-      const n = Number(el.dataset.n);
-      if (winInfo.cells.includes(n)) el.classList.add('win');
-      else el.classList.remove('win');
-    });
-    card.classList.add('has-manual-win');
-  } else {
-    card.querySelectorAll('.cell.win').forEach(el => el.classList.remove('win'));
-    card.classList.remove('has-manual-win');
-  }
-  // update pattern preview
-  updatePatternPreview(cartela);
-}
-
-// ================================================================
-// PATTERN PREVIEW
-// ================================================================
-function updatePatternPreview(cartela){
-  const preview = document.getElementById('preview-' + cartela.id);
-  if (!preview) return;
-  const marks = getPlayerMarkSet();
-  const g = cartela.grid;
-  const cells = preview.children;
-
-  // reset
-  for (const c of cells){ c.classList.remove('hit', 'line-hint'); }
-
-  // show called hits
-  for (let r=0;r<5;r++){
-    for (let c=0;c<5;c++){
-      const n = g[r][c];
-      if (n === 0 || marks.has(n)){
-        cells[r*5 + c].classList.add('hit');
-      }
-    }
-  }
-
-  // find best line (closest to complete) and highlight its remaining cells
-  let best = null;
-  const lines = [];
-  for (let r=0;r<5;r++) lines.push({ idx: Array.from({length:5},(_,c)=>r*5+c) });
-  for (let c=0;c<5;c++) lines.push({ idx: Array.from({length:5},(_,r)=>r*5+c) });
-  lines.push({ idx: [0,6,12,18,24] });
-  lines.push({ idx: [4,8,12,16,20] });
-  let bestGap = 6;
-  for (const line of lines){
-    let gap = 0;
-    for (const i of line.idx){
-      const r = Math.floor(i/5), c = i%5;
-      const n = g[r][c];
-      if (n !== 0 && !marks.has(n)) gap++;
-    }
-    if (gap < bestGap){ bestGap = gap; best = line; }
-  }
-  if (best && bestGap <= 2){
-    for (const i of best.idx){
-      const r = Math.floor(i/5), c = i%5;
-      const n = g[r][c];
-      if (n !== 0 && !marks.has(n)){
-        cells[i].classList.add('line-hint');
-      }
-    }
-  }
-}
-
-// ================================================================
-// AUTO-DAUB ASSIST
-// ================================================================
-function scheduleAutoAssist(number){
-  if (playMode !== 'manual') return;
-  if (manMarks.has(number)) return;
-  if (autoAssistTimers.has(number)) return;
-  const t = setTimeout(() => {
-    if (playMode !== 'manual') return;
-    if (manMarks.has(number)) return;
-    // find cells in myCartelas with this number and add hint
-    myCartelas.forEach(c => {
-      const card = document.getElementById('cartela-' + c.id);
-      if (!card) return;
-      card.querySelectorAll('.cell[data-n="' + number + '"]').forEach(el => {
-        if (!el.classList.contains('marked')) el.classList.add('auto-assist');
-      });
-    });
-  }, AUTO_DAUB_ASSIST_MS);
-  autoAssistTimers.set(number, t);
-}
-function clearAutoAssist(number){
-  if (autoAssistTimers.has(number)){
-    clearTimeout(autoAssistTimers.get(number));
-    autoAssistTimers.delete(number);
-  }
-  myCartelas.forEach(c => {
-    const card = document.getElementById('cartela-' + c.id);
-    if (!card) return;
-    card.querySelectorAll('.cell[data-n="' + number + '"]').forEach(el => {
-      el.classList.remove('auto-assist');
-    });
-  });
+  // NO winning highlight — removed per requirement
 }
 
 // ================================================================
@@ -1490,7 +1248,6 @@ function onCellClick(cartelaId, n, el){
   } else {
     manMarks.add(n);
     playDaubSound();
-    clearAutoAssist(n);
     const rip = document.createElement('div');
     rip.className = 'ripple';
     el.appendChild(rip);
@@ -1500,46 +1257,6 @@ function onCellClick(cartelaId, n, el){
   renderLastCalls();
   myCartelas.forEach(updateCartelaCells);
   updateBingoBtn();
-  updateNearWin();
-}
-
-// ================================================================
-// NEAR-WIN
-// ================================================================
-function updateNearWin(){
-  const el = document.getElementById('nearWin');
-  if (!el) return;
-  if (phase !== 'running' || myCartelas.length === 0){
-    el.classList.remove('show');
-    return;
-  }
-  const marks = getPlayerMarkSet();
-  let best = 5;
-  for (const c of myCartelas){
-    const g = c.grid;
-    const lines = [];
-    for (let r=0;r<5;r++) lines.push(Array.from({length:5},(_,c2)=>g[r][c2]));
-    for (let c2=0;c2<5;c2++) lines.push(Array.from({length:5},(_,r)=>g[r][c2]));
-    lines.push(Array.from({length:5},(_,i)=>g[i][i]));
-    lines.push(Array.from({length:5},(_,i)=>g[i][4-i]));
-    for (const line of lines){
-      const unmarked = line.filter(n => n !== 0 && !marks.has(n)).length;
-      if (unmarked < best) best = unmarked;
-    }
-  }
-  if (best === 1){
-    el.classList.add('show');
-    el.innerText = T('onetogo');
-    el.style.background = 'linear-gradient(135deg,#f97316,#dc2626)';
-    el.style.boxShadow = '0 0 16px rgba(249,115,22,.6)';
-  } else if (best === 2){
-    el.classList.add('show');
-    el.innerText = T('twotogo');
-    el.style.background = 'linear-gradient(135deg,#8b5cf6,#7e22ce)';
-    el.style.boxShadow = '0 0 16px rgba(139,92,246,.6)';
-  } else {
-    el.classList.remove('show');
-  }
 }
 
 // ================================================================
@@ -1666,7 +1383,6 @@ document.getElementById('joinBtn').onclick = async () => {
     renderNumberGrid();
     updateMessageArea();
     updateBingoBtn();
-    updateNearWin();
   } catch(e){
     document.getElementById('selMsg').innerText = '❌ Network error';
   }
@@ -1755,7 +1471,7 @@ function showWinnerModal(w){
     </div>`;
   document.body.appendChild(div);
   fireConfetti();
-  fireConfetti(); // double burst
+  fireConfetti();
   playEventAudio(w.firstName + ' won ' + w.prize + ' birr');
   setTimeout(()=>div.remove(), 7500);
 }
@@ -1777,31 +1493,6 @@ function fireConfetti(){
 }
 
 // ================================================================
-// REACTIONS
-// ================================================================
-document.querySelectorAll('.react-btn').forEach(b => {
-  b.onclick = () => {
-    const emoji = b.dataset.emoji;
-    // emit to server so all players see it
-    socket.emit('reaction', { emoji, name: firstName });
-    // show locally too
-    showFloatingReaction(emoji);
-    chime(1000, 0.05, 0.05, 'triangle');
-  };
-});
-function showFloatingReaction(emoji, name){
-  const wrap = document.getElementById('floatingReactions');
-  if (!wrap) return;
-  const el = document.createElement('div');
-  el.className = 'float-react';
-  el.innerText = emoji;
-  el.style.left = (10 + Math.random() * 70) + '%';
-  el.style.bottom = '20%';
-  wrap.appendChild(el);
-  setTimeout(() => el.remove(), 2400);
-}
-
-// ================================================================
 // TOAST
 // ================================================================
 function showToast(msg){
@@ -1812,34 +1503,10 @@ function showToast(msg){
 }
 
 // ================================================================
-// PAUSE
-// ================================================================
-let paused = false;
-const pauseOverlay = document.getElementById('pauseOverlay');
-const resumeBtn = document.getElementById('resumeBtn');
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden && phase === 'running'){
-    paused = true;
-    pauseOverlay.classList.add('show');
-    if (preCallCountdownTimer){ clearInterval(preCallCountdownTimer); preCallCountdownTimer = null; }
-    document.getElementById('callCountdown').classList.remove('show');
-    if ('speechSynthesis' in window) speechSynthesis.cancel();
-    for (const a of audioCache.values()){ try { a.pause(); } catch(e){} }
-  }
-});
-resumeBtn.onclick = () => {
-  paused = false;
-  pauseOverlay.classList.remove('show');
-  loadState();
-  loadMyCartelas();
-};
-
-// ================================================================
 // SOCKETS
 // ================================================================
 socket.on('game-state', s => applyState(s));
 socket.on('number-called', ({number, all}) => {
-  if (paused) return;
   calledNumbers = all;
   setLiveCall(number);
   chime(880, 0.14, 0.08);
@@ -1850,8 +1517,6 @@ socket.on('number-called', ({number, all}) => {
   updateProgress();
   updateColumnHighlights();
   updateBingoBtn();
-  updateNearWin();
-  if (playMode === 'manual') scheduleAutoAssist(number);
   if (playMode === 'auto') checkAutoBingo();
 });
 socket.on('round-finished', w => {
@@ -1859,21 +1524,14 @@ socket.on('round-finished', w => {
   myCartelas = [];
   selected = [];
   manMarks.clear();
-  autoAssistTimers.forEach(t => clearTimeout(t));
-  autoAssistTimers.clear();
   document.getElementById('cartelasList').innerHTML = '';
   document.getElementById('cartelasList').dataset.sig = '';
   updateBingoBtn();
   updateMessageArea();
-  updateNearWin();
   loadProfile();
-  // reload jackpot
   loadState();
 });
 socket.on('broadcast', ({message}) => { showToast('📢 ' + message); });
-socket.on('reaction', ({emoji, name}) => {
-  showFloatingReaction(emoji, name);
-});
 
 // ================================================================
 // ICON BAR
@@ -1900,7 +1558,6 @@ document.getElementById('btnLang').onclick = () => {
   localStorage.setItem('lang', LANG);
   applyLang();
   renderLastCalls();
-  updateNearWin();
   showToast('🌐 ' + LANG.toUpperCase());
 };
 document.getElementById('btnHelp').onclick = () => {
@@ -1936,6 +1593,7 @@ async function boot(){
   try {
     applyLang();
     updateModeUI();
+    updateVoiceUI();
     await Promise.all([loadState(), loadProfile(), loadMyCartelas()]);
   } catch(e){ console.error('boot error:', e); }
   finally { setTimeout(hideSplash, 800); }
