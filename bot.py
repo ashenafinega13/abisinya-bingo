@@ -8,20 +8,12 @@ load_dotenv()
 
 from aiohttp import web
 from telegram import (
-    Update,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    ReplyKeyboardMarkup,
-    KeyboardButton,
-    WebAppInfo,
+    Update, InlineKeyboardButton, InlineKeyboardMarkup,
+    ReplyKeyboardMarkup, KeyboardButton, WebAppInfo,
 )
 from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    ContextTypes,
-    MessageHandler,
-    filters,
-    CallbackQueryHandler,
+    ApplicationBuilder, CommandHandler, ContextTypes,
+    MessageHandler, filters, CallbackQueryHandler,
 )
 
 TOKEN             = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -51,34 +43,34 @@ def sv_user(uid):
     try:
         r = requests.get(f"{SERVER_URL}/api/bot/user/{uid}", headers=H, timeout=10)
         return _safe(r).get("user")
-    except Exception as e: return None
+    except Exception: return None
 
 def sv_adj(uid, field, delta):
     try:
         r = requests.post(f"{SERVER_URL}/api/bot/user/{uid}/adjust", headers=H,
                           timeout=10, json={"field": field, "delta": delta})
         return _safe(r).get("user")
-    except Exception as e: return None
+    except Exception: return None
 
 def sv_tx(data):
     try:
         r = requests.post(f"{SERVER_URL}/api/bot/transaction", headers=H,
                           timeout=10, json=data)
         return _safe(r).get("tx")
-    except Exception as e: return None
+    except Exception: return None
 
 def sv_get_tx(tx_id):
     try:
         r = requests.get(f"{SERVER_URL}/api/bot/transaction/{tx_id}",
                          headers=H, timeout=10)
         return _safe(r).get("tx")
-    except Exception as e: return None
+    except Exception: return None
 
 def sv_set_tx_status(tx_id, status):
     try:
         requests.post(f"{SERVER_URL}/api/bot/transaction/{tx_id}/status",
                       headers=H, timeout=10, json={"status": status})
-    except Exception as e: pass
+    except Exception: pass
 
 def game_url(uid, name):
     return f"{WEBAPP_URL}/game?uid={uid}&name={name}"
@@ -86,9 +78,6 @@ def game_url(uid, name):
 def profile_url(uid, tab="history"):
     return f"{WEBAPP_URL}/profile.html?uid={uid}&tab={tab}"
 
-# ================================================================
-#                    KEYBOARDS
-# ================================================================
 def main_kb(uid, name):
     keyboard = [
         [KeyboardButton("🎯  Play Abisinya Bingo",
@@ -150,9 +139,6 @@ def language_kb():
 
 user_states = {}
 
-# ================================================================
-#                    COMMANDS
-# ================================================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.effective_user or not update.message: return
     u = update.effective_user
@@ -162,8 +148,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ref = int(context.args[0])
         if ref != u.id:
             sv_adj(ref, "balance", 30)
-            try:
-                await context.bot.send_message(ref, "🎉 አዲስ ጓደኛ ጋበዝክ! +30 ብር")
+            try: await context.bot.send_message(ref, "🎉 አዲስ ጓደኛ ጋበዝክ! +30 ብር")
             except Exception: pass
 
     name = u.first_name or "Player"
@@ -180,9 +165,15 @@ async def balance_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user
     usr = sv_user(u.id) or {}
     play = usr.get("balance", 0); win = usr.get("winBalance", 0)
+    total = play + win
     await update.message.reply_text(
-        f"💼 *የእርስዎ ዋሌት*\n\n🎯 Playable: *{play:.2f} ብር*\n🏆 Winnings: *{win:.2f} ብር*\n💵 *ጠቅላላ: {play+win:.2f} ብር}*",
-        parse_mode="Markdown")
+        f"💼 *የእርስዎ ዋሌት*\n\n"
+        f"🎯 Playable:  *{play:.2f} ብር*\n"
+        f"🏆 Winnings:  *{win:.2f} ብር*\n"
+        f"━━━━━━━━━━━━━━\n"
+        f"💵 *ጠቅላላ: {total:.2f} ብር*",
+        parse_mode="Markdown"
+    )
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -192,12 +183,9 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def debug_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user
     await update.message.reply_text(
-        f"🔧 *DEBUG*\n\n`SERVER_URL` = `{SERVER_URL}`\n`WEBAPP_URL` = `{WEBAPP_URL}`\n`BOT_USERNAME` = `{BOT_USERNAME}`\n\n*Play:* `{game_url(u.id, u.first_name or 'Player')}`",
+        f"🔧 *DEBUG v2.0*\n\n`SERVER_URL` = `{SERVER_URL}`\n`WEBAPP_URL` = `{WEBAPP_URL}`\n`BOT_USERNAME` = `{BOT_USERNAME}`\n\n*Play:* `{game_url(u.id, u.first_name or 'Player')}`",
         parse_mode="Markdown")
 
-# ================================================================
-#                    MESSAGE HANDLER
-# ================================================================
 async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message and update.message.contact:
         u = update.effective_user
@@ -303,9 +291,6 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("🤔 ካርቴላ ይምረጡ እና ይጫወቱ።",
             reply_markup=main_kb(u.id, u.first_name or "Player"))
 
-# ================================================================
-#                    BUTTON HANDLER
-# ================================================================
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     if not q: return
@@ -342,7 +327,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         usr = sv_user(u.id) or {}
         play = usr.get("balance", 0); win = usr.get("winBalance", 0)
         await q.edit_message_text(
-            f"💼 *የእርስዎ ዋሌት*\n\n🎯 Playable: *{play:.2f} ብር*\n🏆 Winnings: *{win:.2f} ብር*\n💵 *ጠቅላላ: {play+win:.2f} ብር}*",
+            f"💼 *የእርስዎ ዋሌት*\n\n"
+            f"🎯 Playable:  *{play:.2f} ብር*\n"
+            f"🏆 Winnings:  *{win:.2f} ብር*\n"
+            f"━━━━━━━━━━━━━━\n"
+            f"💵 *ጠቅላላ: {play+win:.2f} ብር*",
             parse_mode="Markdown")
     elif data == "m_invite":
         link = f"https://t.me/{BOT_USERNAME}?start={u.id}"
@@ -383,9 +372,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "lang_ti":
         await q.edit_message_text("✅ ቋንቋ: ትግርኛ")
 
-# ================================================================
-#                    WEBHOOKS
-# ================================================================
 async def notify_tx(request):
     if request.headers.get("x-bot-secret") != BOT_API_SECRET:
         return web.json_response({"ok": False}, status=403)
@@ -420,12 +406,10 @@ async def winner_handler(request):
     except Exception: pass
     return web.json_response({"ok": True})
 
-# ================================================================
-#                    MAIN
-# ================================================================
 async def main():
     if not TOKEN:
         print("❌ TOKEN missing"); return
+    print("🔥 BOT VERSION 2.0 — MENU BUILD")
     print(f"🔧 SERVER_URL : {SERVER_URL}")
     print(f"🔧 WEBAPP_URL : {WEBAPP_URL}")
     print(f"🔧 BOT_PORT   : {BOT_PORT}")
