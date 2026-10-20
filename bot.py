@@ -102,6 +102,7 @@ def profile_url(uid, tab="history"):
 #                        KEYBOARDS
 # ================================================================
 def main_kb(uid, name):
+    """Only 3 buttons: Play Game, Menu, My Profile"""
     keyboard = [
         [KeyboardButton("🎯  Play Abisinya Bingo",
                         web_app=WebAppInfo(url=game_url(uid, name)))],
@@ -115,6 +116,7 @@ def main_kb(uid, name):
     )
 
 def menu_kb():
+    """Inline buttons that appear when Menu is clicked."""
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("💵 Check Balance",   callback_data="m_balance"),
          InlineKeyboardButton("📱 Register",        callback_data="m_register")],
@@ -217,6 +219,9 @@ async def debug_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🔧 *DEBUG*\n\n`SERVER_URL` = `{SERVER_URL}`\n`WEBAPP_URL` = `{WEBAPP_URL}`\n`BOT_USERNAME` = `{BOT_USERNAME}`\n\n*Play:* `{game_url(u.id, u.first_name or 'Player')}`",
         parse_mode="Markdown")
 
+# ================================================================
+#                        DEDICATED COMMAND HANDLERS
+# ================================================================
 async def cmd_register(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user
     user_states[u.id] = {"action": "register"}
@@ -239,8 +244,11 @@ async def cmd_withdraw(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user
+    # THIS IS THE SHARE LINK
     link = f"https://t.me/{BOT_USERNAME}?start={u.id}"
-    await update.message.reply_text(f"👥 *የግብዣ ሊንክ*\n\n`{link}`", parse_mode="Markdown")
+    await update.message.reply_text(
+        f"👥 *የግብዣ ሊንክ*\n\n`{link}`\n\n✨ ይህን ሊንክ ለጓደኞችዎ ይላኩ! (30 ብር ያገኛሉ)", 
+        parse_mode="Markdown")
 
 async def cmd_support(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("💬 *ድጋፍ*\n\n👤 @Tazikes", parse_mode="Markdown")
@@ -357,7 +365,7 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=main_kb(u.id, u.first_name or "Player"))
 
 # ================================================================
-#                        BUTTON HANDLER
+#                        BUTTON HANDLER (Inline)
 # ================================================================
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
