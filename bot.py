@@ -370,7 +370,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         usr = sv_user(u.id) or {}
         play = usr.get("balance", 0); win = usr.get("winBalance", 0)
         await q.edit_message_text(
-            f"💼 *የእርስዎ ዋሌት*\n\n🎯 Playable: *{play:.2f} ብር*\n🏆 Winnings: *{win:.2f} ብር*\n💵 *ጠቅላላ: {play+win:.2f} ብር}*",
+            f"💼 *የእርስዎ ዋሌት*\n\n🎯 Playable: *{play:.2f} ብር*\n🏆 Winnings: *{win:.2f} ብር*\n💵 *ጠቅላላ: {play+win:.2f} ብር*",
             parse_mode="Markdown")
     elif data == "m_invite":
         link = f"https://t.me/{BOT_USERNAME}?start={u.id}"
