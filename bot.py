@@ -212,7 +212,7 @@ async def balance_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🎯 Playable: *{play:.2f} ብር*\n"
         f"🏆 Winnings: *{win:.2f} ብር*\n"
         f"━━━━━━━━━━━━━━\n"
-        f"💵 *ጠቅላላ: {total:.2f} ብር}*",
+        f"💵 *ጠቅላላ: {total:.2f} ብር*",
         parse_mode="Markdown"
     )
 
@@ -318,6 +318,7 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # Withdraw amount input
+    
     if action == "withdraw_amount":
         if not txt.isdigit():
             await update.message.reply_text("⚠️ ቁጥር ብቻ ያስገቡ"); return
