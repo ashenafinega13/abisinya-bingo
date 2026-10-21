@@ -105,18 +105,24 @@ def profile_url(uid, tab="history"):
 #                        KEYBOARDS
 # ================================================================
 def main_kb(uid, name):
-    """Matches the exact layout of the screenshot."""
+    """Matches the EXACT layout of the second screenshot."""
     keyboard = [
+        # Row 1 (WebApp Play)
         [KeyboardButton("🎲 Geez Bingo ይጫወቱ", web_app=WebAppInfo(url=game_url(uid, name)))],
-        [KeyboardButton("💵 ገንዘብ ያስገቡ"), KeyboardButton("📤 ገንዘብ ያውጡ")],
-        [KeyboardButton("💰 Check Balance"), KeyboardButton("👥 ጓደኛ ይጋብዙ")],
-        [KeyboardButton("📜 ታሪክ"), KeyboardButton("💬 ድጋፍ")],
-        [KeyboardButton("🌐 ቋንቋ"), KeyboardButton("❓ እርዳታ")],
-        [KeyboardButton("🏆 ደረጃ ሰልፍ")]
+        # Row 2 (Deposit & Withdraw)
+        [KeyboardButton("💰 ገንዘብ ያስቀምጡ"), KeyboardButton("🤑 ገንዘብ ይውጡ")],
+        # Row 3 (Check Balance & Invite)
+        [KeyboardButton("😁 Check Balance"), KeyboardButton("👥 ጓደኞችን ይጋብዙ")],
+        # Row 4 (History & Support)
+        [KeyboardButton("📄 ታሪክ"), KeyboardButton("💬 ድጋፍ")],
+        # Row 5 (Language & Help)
+        [KeyboardButton("🌐 ቋንቋ"), KeyboardButton("❓ እገዛ")],
+        # Row 6 (Leaderboard)
+        [KeyboardButton("👑 ደረጃ ሰሌዳው")]
     ]
     return ReplyKeyboardMarkup(
         keyboard, resize_keyboard=True, is_persistent=True,
-        input_field_placeholder="Choose an action…"
+        input_field_placeholder="Message"
     )
 
 def deposit_kb():
@@ -145,6 +151,12 @@ def language_kb():
         [InlineKeyboardButton("🇪🇹 ትግርኛ", callback_data="lang_ti")],
     ])
 
+def contact_kb():
+    return ReplyKeyboardMarkup(
+        [[KeyboardButton("📱 Share Contact", request_contact=True)]],
+        resize_keyboard=True, one_time_keyboard=True
+    )
+
 # ================================================================
 #                        USER STATE
 # ================================================================
@@ -167,22 +179,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     name = u.first_name or "Player"
     await update.message.reply_text(
-        f"👋 *ሰላም {name}!*\n\n🎉 እንኳን ወደ *Abisinya Bingo* በደህና መጡ።",
+        f"👋 *ሰላም {name}!*\n\n🎉 እንኳን ወደ *Geez Bingo* በደህና መጡ።",
         parse_mode="Markdown",
         reply_markup=main_kb(u.id, name)
     )
 
 async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """This fires when the user types /menu."""
     await update.message.reply_text(
         "📋 **Menu Options**\n\n"
         "• /register - ቁጥርዎን ይመዝግቡ\n"
         "• /play - ቢንጎ ይጫወቱ\n"
         "• /balance - የመለያ ቀሪ ሂሳብ ይፈትሹ\n"
-        "• /deposit - ገንዘብ ያስገቡ\n"
-        "• /withdraw - ገንዘብ ያውጡ\n"
+        "• /deposit - ገንዘብ ያስቀምጡ\n"
+        "• /withdraw - ገንዘብ ይውጡ\n"
         "• /howtoplay - መጫወቻ ደንቦች\n"
-        "• /invite - ጋብዝ\n"
+        "• /invite - ጓደኞችን ይጋብዙ\n"
         "• /support - ድጋፍ\n"
         "• /language - ቋንቋ\n\n"
         "👇 You can also use the / commands below.",
@@ -230,7 +241,7 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
     action = state.get("action")
 
     # Clear state on any menu button tap
-    if any(x in txt for x in ["🎲", "💵", "📤", "💰", "👥", "📜", "💬", "🌐", "❓", "🏆"]):
+    if any(x in txt for x in ["🎲", "💰", "🤑", "😁", "👥", "📄", "💬", "🌐", "❓", "👑"]):
         user_states.pop(u.id, None)
         action = None
 
@@ -276,7 +287,7 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ---------- WITHDRAW: amount ----------
     if action == "withdraw_amount":
-        if not txt.isdigit():
+        if not txt.replace('.','',1).isdigit():
             await update.message.reply_text("⚠️ ቁጥር ብቻ ያስገቡ"); return
         amount = float(txt)
         if amount < 100:
@@ -319,24 +330,24 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # ---------- MENU TEXT FALLBACKS ----------
-    if "💵" in txt: 
+    if "💰" in txt: 
         await update.message.reply_text("💰 *ገንዘብ ማስገባት*\n\nየክፍያ አማራጭ ይምረጡ:", parse_mode="Markdown", reply_markup=deposit_kb())
-    elif "📤" in txt: 
-        await update.message.reply_text("📤 *የወጭ አማራጭ ይምረጡ:*", parse_mode="Markdown", reply_markup=withdraw_kb())
-    elif "💰" in txt: 
+    elif "🤑" in txt: 
+        await update.message.reply_text("🤑 *የወጭ አማራጭ ይምረጡ:*", parse_mode="Markdown", reply_markup=withdraw_kb())
+    elif "😁" in txt: 
         await balance_cmd(update, context)
     elif "👥" in txt: 
         await update.message.reply_text(f"👥 *የግብዣ ሊንክ*\n\n`https://t.me/{BOT_USERNAME}?start={u.id}`", parse_mode="Markdown")
-    elif "📜" in txt: 
-        await update.message.reply_text("📜 ሙሉ ታሪክዎን ለማየት 👤 Profile ን ይጫኑ።")
+    elif "📄" in txt: 
+        await update.message.reply_text("📄 ሙሉ ታሪክዎን ለማየት 👤 Profile ን ይጫኑ።")
     elif "💬" in txt: 
         await update.message.reply_text("💬 *ድጋፍ*\n\n👤 @Tazikes", parse_mode="Markdown")
     elif "🌐" in txt: 
         await update.message.reply_text("🌐 ቋንቋ ይምረጡ:", reply_markup=language_kb())
     elif "❓" in txt: 
         await help_cmd(update, context)
-    elif "🏆" in txt: 
-        await update.message.reply_text("🏆 Leaderboard\n\n1. Player1\n2. Player2")
+    elif "👑" in txt: 
+        await update.message.reply_text("👑 Leaderboard\n\n1. Player1\n2. Player2")
     else:
         await update.message.reply_text("ጥያቄዎን አልተረዳሁም።", reply_markup=main_kb(u.id, u.first_name or "Player"))
 
@@ -417,16 +428,18 @@ async def winner_handler(request):
     return web.json_response({"ok": True})
 
 async def post_init(app):
-    # This creates the list of commands you see when clicking 'Menu'
+    # This creates the list of commands you see when clicking 'Menu' (matching image 2)
     commands = [
-        BotCommand("start", "ብቀን ይጀምሩ (Start)"),
-        BotCommand("play", "ቢንጎ ይጫወቱ (Play)"),
-        BotCommand("balance", "የመለያ ቀሪ ሂሳብ ይፈትሹ"),
-        BotCommand("deposit", "ገንዘብ ያስገቡ"),
         BotCommand("withdraw", "ገንዘብ ያውጡ"),
-        BotCommand("howtoplay", "መጫወቻ ደንቦች"),
-        BotCommand("invite", "ጓደኛ ይጋብዙ"),
-        BotCommand("language", "ቋንቋ ይቀይሩ"),
+        BotCommand("sale", "sale_command"),
+        BotCommand("howtoplay", "እንዴት መጫወት እንደሚቻል ይመልከቱ"),
+        BotCommand("agent", "agent_command"),
+        BotCommand("invite", "ገንዘብ ለመቀበል ጓደኛ ይጋብዙ"),
+        BotCommand("support", "ድጋፍ ይጠይቁ"),
+        BotCommand("checktransaction", "የቅርብ ግብይቶችን ይመልከቱ"),
+        BotCommand("gamehistory", "የጨዋታ ታሪክዎን ይመልከቱ"),
+        BotCommand("leaderboard", "ደረጃ ሰሌዳውን ይመልከቱ"),
+        BotCommand("language", "ቋንቋ"),
     ]
     await app.bot.set_my_commands(commands)
 
