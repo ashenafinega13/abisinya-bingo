@@ -86,6 +86,13 @@ def main_kb(uid, name):
         [KeyboardButton("☰ Menu"), KeyboardButton("👤 My Profile", web_app=WebAppInfo(url=profile_url(uid)))],
     ], resize_keyboard=True, is_persistent=True)
 
+def nav_kb(uid, name):
+    """Returns standard navigation inline buttons."""
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🎮 Play Now", web_app=WebAppInfo(url=game_url(uid, name))), 
+         InlineKeyboardButton("🔙 Main Menu", callback_data="m_menu")]
+    ])
+
 def menu_kb(uid, name):
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("🎯 Play Game", web_app=WebAppInfo(url=game_url(uid, name)))],
@@ -150,7 +157,7 @@ async def withdraw_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def balance_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user; usr = sv_user(u.id) or {}
-    await update.message.reply_text(f"💵 *Balance*\n\n🎯 Playable: *{usr.get('balance',0):.2f} ETB*\n🏆 Winnings: *{usr.get('winBalance',0):.2f} ETB*", parse_mode="Markdown")
+    await update.message.reply_text(f"💵 *Balance*\n\n🎯 Playable: *{usr.get('balance',0):.2f} ETB*\n🏆 Winnings: *{usr.get('winBalance',0):.2f} ETB*", parse_mode="Markdown", reply_markup=nav_kb(u.id, u.first_name or "Player"))
 
 async def howtoplay_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("ℹ️ *How to Play*\n\n1. Select your Cartelas.\n2. Pay the entry fee.\n3. Wait for numbers to be called.\n4. Complete a row/column/diagonal to win!\n5. Tap BINGO to claim.", parse_mode="Markdown")
@@ -160,7 +167,8 @@ async def invite_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"👥 *Invite Friends*\n\n[👉 Click Here](https://t.me/{BOT_USERNAME}?start={u.id})", parse_mode="Markdown")
 
 async def leaderboard_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🏆 *Leaderboard*\n\nOpen the game and check the Profile tab!", parse_mode="Markdown")
+    u = update.effective_user
+    await update.message.reply_text("🏆 *Leaderboard*\n\nCheck the Profile tab in the game!", parse_mode="Markdown", reply_markup=nav_kb(u.id, u.first_name or "Player"))
 
 async def support_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("💬 *Support*\n\nContact @Tazikes.", parse_mode="Markdown")
@@ -174,7 +182,7 @@ async def register_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def history_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user
-    await update.message.reply_text(f"📋 *History*\n\n[👉 Click Here]({WEBAPP_URL}/profile.html?uid={u.id}&tab=history)", parse_mode="Markdown")
+    await update.message.reply_text(f"📋 *History*\n\n[👉 Click Here]({WEBAPP_URL}/profile.html?uid={u.id}&tab=history)", parse_mode="Markdown", reply_markup=nav_kb(u.id, u.first_name or "Player"))
 
 # ================================================================
 # MESSAGE HANDLERS
@@ -201,9 +209,13 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
         tx = sv_tx({"userId": u.id, "type": "deposit", "amount": amount, "method": state.get("method"), "sms": txt, "status": "pending"})
         if not tx: return await update.message.reply_text("⚠️ Server error.")
         tx_id = tx["_id"]
+        
+        # ADMIN NOTIFICATION
         await context.bot.send_message(ADMIN_ID, f"🔔 *DEPOSIT*\n👤 {u.first_name}\n🆔 `{u.id}`\n💰 {amount:.2f} ETB\n🔖 `{tx_id}`", parse_mode="Markdown", reply_markup=approval_kb(tx_id))
+        
+        # NAVIGATION APPENDED TO SUCCESS MESSAGE
         user_states.pop(u.id, None)
-        await update.message.reply_text(f"✅ Request sent!", reply_markup=main_kb(u.id, u.first_name or "Player"))
+        await update.message.reply_text(f"✅ Request sent!\nAdmin will approve shortly.", reply_markup=nav_kb(u.id, u.first_name or "Player"))
         return
 
     if action == "withdraw_amount":
@@ -219,9 +231,13 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
         tx = sv_tx({"userId": u.id, "type": "withdraw", "amount": amount, "method": state.get("method"), "phone": phone, "status": "pending"})
         if not tx: return await update.message.reply_text("⚠️ Server error.")
         tx_id = tx["_id"]
+        
+        # ADMIN NOTIFICATION
         await context.bot.send_message(ADMIN_ID, f"🔔 *WITHDRAW*\n👤 {u.first_name}\n🆔 `{u.id}`\n💰 {amount:.2f} ETB\n📱 `{phone}`\n🔖 `{tx_id}`", parse_mode="Markdown", reply_markup=approval_kb(tx_id))
+        
+        # NAVIGATION APPENDED TO SUCCESS MESSAGE
         user_states.pop(u.id, None)
-        await update.message.reply_text("✅ Request sent!", reply_markup=main_kb(u.id, u.first_name or "Player"))
+        await update.message.reply_text("✅ Request sent!\nAdmin will process it shortly.", reply_markup=nav_kb(u.id, u.first_name or "Player"))
         return
 
     if txt == "💰 ገንዘብ ያስቀምጡ": await deposit_cmd(update, context)
@@ -231,6 +247,10 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query; await q.answer(); data = q.data; u = q.from_user; sv_upsert(u.id, u.username or "", u.first_name or "")
     
+    if data == "m_menu":
+        await q.edit_message_text("☰ *Main Menu*\n\nChoose an option:", parse_mode="Markdown", reply_markup=menu_kb(u.id, u.first_name or "Player"))
+        return
+
     if data.startswith("approve_") or data.startswith("reject_"):
         if u.id != ADMIN_ID: return
         action, tx_id = data.split("_", 1); tx = sv_get_tx(tx_id)
@@ -238,10 +258,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if status == "approved":
             if tx["type"] == "deposit": sv_adj(tx["userId"], "balance", tx["amount"])
             elif tx["type"] == "withdraw": sv_adj(tx["userId"], "winBalance", -tx["amount"])
-            try: await context.bot.send_message(tx["userId"], f"✅ Request approved: {tx['amount']:.2f} ETB")
+            try: 
+                await context.bot.send_message(tx["userId"], f"✅ Request approved: {tx['amount']:.2f} ETB", reply_markup=nav_kb(tx["userId"], "Player"))
             except: pass
         else:
-            try: await context.bot.send_message(tx["userId"], f"❌ Request rejected.")
+            try: 
+                await context.bot.send_message(tx["userId"], f"❌ Request rejected.", reply_markup=nav_kb(tx["userId"], "Player"))
             except: pass
         await q.edit_message_text(f"{'✅' if status == 'approved' else '❌'} {tx['type'].upper()} — {tx['amount']:.2f} ETB"); return
 
@@ -256,8 +278,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "dep_cbe": user_states[u.id] = {"action": "deposit", "method": "cbe"}; await q.edit_message_text("🏦 *CBE*\n\nPaste SMS:", parse_mode="Markdown")
     elif data == "wd_telebirr": user_states[u.id] = {"action": "withdraw_amount", "method": "telebirr"}; await q.edit_message_text("🏦 *Telebirr*\n\nAmount (min 100):", parse_mode="Markdown")
     elif data == "wd_cbe": user_states[u.id] = {"action": "withdraw_amount", "method": "cbe"}; await q.edit_message_text("🏦 *CBE*\n\nAmount (min 100):", parse_mode="Markdown")
-    elif data == "lang_en": await q.edit_message_text("✅ Language set to English")
-    elif data == "lang_am": await q.edit_message_text("✅ ቋንቋ አማርኛ ተቀይሯል")
+    elif data == "lang_en": await q.edit_message_text("✅ Language set to English", reply_markup=nav_kb(u.id, u.first_name or "Player"))
+    elif data == "lang_am": await q.edit_message_text("✅ ቋንቋ አማርኛ ተቀይሯል", reply_markup=nav_kb(u.id, u.first_name or "Player"))
 
 # ================================================================
 # WEBHOOKS & MAIN
@@ -272,7 +294,7 @@ async def notify_tx(request):
 async def winner_handler(request):
     if request.headers.get("x-bot-secret") != BOT_API_SECRET: return web.json_response({"ok": False}, status=403)
     d = await request.json(); tg = request.app["tg_app"]
-    try: await tg.bot.send_message(d["userId"], f"🏆 *You Won!*\n\n💰 *{d['prize']:.2f} ETB*", parse_mode="Markdown")
+    try: await tg.bot.send_message(d["userId"], f"🏆 *You Won!*\n\n💰 *{d['prize']:.2f} ETB*", parse_mode="Markdown", reply_markup=nav_kb(d["userId"], "Winner"))
     except: pass
     return web.json_response({"ok": True})
 

@@ -17,87 +17,38 @@
   html,body{height:100%;overflow:hidden;overscroll-behavior:none}
   body{
     font-family:'Inter','Segoe UI',sans-serif;
-    background:
-      radial-gradient(1200px 600px at 50% -100px, rgba(168,85,247,.18), transparent 60%),
-      linear-gradient(160deg,var(--bg-0) 0%,var(--bg-1) 40%,var(--bg-2) 100%);
-    background-attachment:fixed;
-    color:var(--ink);
-    height:100vh; height:100dvh;
-    padding:5px;
-    padding-top:calc(env(safe-area-inset-top) + 5px);
-    padding-bottom:calc(env(safe-area-inset-bottom) + 5px);
-    display:flex; flex-direction:column;
-    -webkit-font-smoothing:antialiased;
+    background:radial-gradient(1200px 600px at 50% -100px, rgba(168,85,247,.18), transparent 60%), linear-gradient(160deg,var(--bg-0) 0%,var(--bg-1) 40%,var(--bg-2) 100%);
+    background-attachment:fixed; color:var(--ink); height:100vh; height:100dvh;
+    padding:5px; padding-top:calc(env(safe-area-inset-top) + 5px); padding-bottom:calc(env(safe-area-inset-bottom) + 5px);
+    display:flex; flex-direction:column; -webkit-font-smoothing:antialiased;
   }
 
   /* SPLASH */
-  #splash{
-    position:fixed;inset:0;z-index:500;
-    background:radial-gradient(1200px 600px at 50% -100px, rgba(168,85,247,.28), transparent 60%),
-      linear-gradient(160deg,var(--bg-0) 0%,var(--bg-1) 40%,var(--bg-2) 100%);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:20px;text-align:center;padding:30px;animation:fade-in .4s;
-  }
-  @keyframes fade-in{from{opacity:0}to{opacity:1}}
-  #splash.hide{animation:fade-out .5s forwards}
-  @keyframes fade-out{to{opacity:0;visibility:hidden}}
-  .splash-logo{
-    width:88px;height:88px;border-radius:50%;
-    background:radial-gradient(circle at 30% 30%, #fff2b0, var(--neon-gold) 45%, #b45309 100%);
-    display:flex;align-items:center;justify-content:center;
-    font-size:40px;font-weight:900;color:#1a0a2e;
-    box-shadow:0 0 40px rgba(250,204,21,.6);animation:spin-pulse 2s infinite;
-  }
+  #splash{position:fixed;inset:0;z-index:500;background:radial-gradient(1200px 600px at 50% -100px, rgba(168,85,247,.28), transparent 60%), linear-gradient(160deg,var(--bg-0) 0%,var(--bg-1) 40%,var(--bg-2) 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center;padding:30px;animation:fade-in .4s;}
+  @keyframes fade-in{from{opacity:0}to{opacity:1}} #splash.hide{animation:fade-out .5s forwards} @keyframes fade-out{to{opacity:0;visibility:hidden}}
+  .splash-logo{width:88px;height:88px;border-radius:50%;background:radial-gradient(circle at 30% 30%, #fff2b0, var(--neon-gold) 45%, #b45309 100%);display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:900;color:#1a0a2e;box-shadow:0 0 40px rgba(250,204,21,.6);animation:spin-pulse 2s infinite;}
   @keyframes spin-pulse{0%,100%{transform:scale(1) rotate(0deg)}50%{transform:scale(1.1) rotate(10deg)}}
-  .splash-title{
-    font-size:24px;font-weight:900;letter-spacing:1px;
-    background:linear-gradient(135deg,var(--neon-gold),var(--neon-pink),var(--neon-cyan));
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-    background-clip:text;text-align:center;line-height:1.25;
-  }
-  .splash-sub{font-size:12px;color:var(--muted);max-width:280px}
-  .splash-loader{display:flex;gap:6px;margin-top:10px}
+  .splash-title{font-size:24px;font-weight:900;letter-spacing:1px;background:linear-gradient(135deg,var(--neon-gold),var(--neon-pink),var(--neon-cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;line-height:1.25;}
+  .splash-sub{font-size:12px;color:var(--muted);max-width:280px} .splash-loader{display:flex;gap:6px;margin-top:10px}
   .splash-loader span{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:dot-bounce 1.4s infinite ease-in-out both}
-  .splash-loader span:nth-child(1){animation-delay:-0.32s;background:var(--neon-pink)}
-  .splash-loader span:nth-child(2){animation-delay:-0.16s;background:var(--neon-gold)}
-  .splash-loader span:nth-child(3){animation-delay:0s;background:var(--neon-cyan)}
+  .splash-loader span:nth-child(1){animation-delay:-0.32s;background:var(--neon-pink)} .splash-loader span:nth-child(2){animation-delay:-0.16s;background:var(--neon-gold)} .splash-loader span:nth-child(3){animation-delay:0s;background:var(--neon-cyan)}
   @keyframes dot-bounce{0%,80%,100%{transform:scale(.5);opacity:.5}40%{transform:scale(1.2);opacity:1}}
 
-  .container{
-    width:100%; max-width:520px; margin:0 auto;
-    display:flex; flex-direction:column;height:100%;overflow:hidden;gap:4px;
-  }
+  .container{width:100%; max-width:520px; margin:0 auto; display:flex; flex-direction:column;height:100%;overflow:hidden;gap:4px;}
 
   /* TOP BAR */
   .topbar{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;flex-shrink:0}
-  .stat{
-    background:linear-gradient(180deg,rgba(139,92,246,.14),rgba(139,92,246,.05));
-    border:1px solid var(--border);border-radius:7px;
-    padding:4px 2px;text-align:center;
-    display:flex;flex-direction:column;justify-content:center;min-height:38px;
-  }
+  .stat{background:linear-gradient(180deg,rgba(139,92,246,.14),rgba(139,92,246,.05));border:1px solid var(--border);border-radius:7px;padding:4px 2px;text-align:center;display:flex;flex-direction:column;justify-content:center;min-height:38px;}
   .stat small{font-size:7px;color:var(--muted);font-weight:800;letter-spacing:.3px;text-transform:uppercase;display:block;line-height:1}
   .stat b{font-size:11px;color:var(--ink);font-weight:900;display:block;margin-top:2px;line-height:1}
-  .stat.purple b{color:var(--neon-pink)}
-  .stat.gold b{color:var(--neon-gold)}
+  .stat.purple b{color:var(--neon-pink)} .stat.gold b{color:var(--neon-gold)}
 
   /* JACKPOT BAR */
-  .jackpot-bar{
-    background:linear-gradient(90deg,#f59e0b,#facc15,#f59e0b);
-    background-size:200% 100%;border-radius:8px;padding:5px 10px;
-    display:flex;justify-content:space-between;align-items:center;
-    font-weight:900;font-size:11px;letter-spacing:.5px;
-    color:#1a0a2e;flex-shrink:0;
-    box-shadow:0 0 16px rgba(250,204,21,.5);
-    animation:jackpot-shine 3s linear infinite;
-  }
+  .jackpot-bar{background:linear-gradient(90deg,#f59e0b,#facc15,#f59e0b);background-size:200% 100%;border-radius:8px;padding:5px 10px;display:flex;justify-content:space-between;align-items:center;font-weight:900;font-size:11px;letter-spacing:.5px;color:#1a0a2e;flex-shrink:0;box-shadow:0 0 16px rgba(250,204,21,.5);animation:jackpot-shine 3s linear infinite;}
   @keyframes jackpot-shine{0%{background-position:0% 50%}100%{background-position:200% 50%}}
 
   /* MAIN SPLIT */
-  .main-split{
-    flex:1 1 auto;min-height:0;
-    display:grid;grid-template-columns: 40% 1fr;gap:5px;overflow:hidden;
-  }
+  .main-split{flex:1 1 auto;min-height:0;display:grid;grid-template-columns: 40% 1fr;gap:5px;overflow:hidden;}
 
   /* LEFT BOARD */
   .board-column{display:flex;flex-direction:column;gap:3px;min-height:0}
@@ -106,18 +57,8 @@
   .bh.b{background:#f97316}.bh.i{background:#10b981}.bh.n{background:#3b82f6}.bh.g{background:#ef4444}.bh.o{background:#a855f7}
   .bh.active{transform:scale(1.06);box-shadow:0 0 12px currentColor}
 
-  .num-grid{
-    flex:1 1 auto; min-height:0;
-    display:grid;grid-template-columns:repeat(5,1fr);
-    grid-template-rows:repeat(15,1fr);gap:2px;
-  }
-  .num-cell{
-    display:flex;align-items:center;justify-content:center;
-    font-weight:800; font-size:9px;border-radius:4px;
-    background:rgba(139,92,246,.06);color:rgba(245,243,255,.45);
-    border:1px solid rgba(167,139,250,.06);
-    transition:all .3s;
-  }
+  .num-grid{flex:1 1 auto; min-height:0;display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(15,1fr);gap:2px;}
+  .num-cell{display:flex;align-items:center;justify-content:center;font-weight:800; font-size:9px;border-radius:4px;background:rgba(139,92,246,.06);color:rgba(245,243,255,.45);border:1px solid rgba(167,139,250,.06);transition:all .3s;}
   .num-cell.called{background:linear-gradient(135deg,var(--neon-orange),#ea580c);color:#fff;font-weight:900;border-color:transparent;box-shadow:0 0 6px rgba(251,146,60,.5)}
   .num-cell.latest{background:linear-gradient(135deg,var(--neon-gold),#eab308);color:#1a0a2e;font-weight:900;border:1.5px solid #fff;box-shadow:0 0 12px rgba(250,204,21,.9);animation:pulse-latest .7s infinite alternate}
   @keyframes pulse-latest{from{transform:scale(1)}to{transform:scale(1.08)}}
@@ -157,8 +98,10 @@
   .progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--neon-cyan),var(--neon-pink),var(--neon-gold));transition:width .5s}
   
   .bottom-bar{display:flex;gap:4px;flex-shrink:0;margin-top:4px}
-  .btn-bingo{flex:1;padding:12px;border-radius:9px;border:none;background:linear-gradient(135deg,#ec4899,#be185d);color:#fff;font-weight:900;font-size:14px}
+  .btn-bingo{flex:1;padding:12px;border-radius:9px;border:none;background:linear-gradient(135deg,#ec4899,#be185d);color:#fff;font-weight:900;font-size:14px;transition:all 0.3s}
   .btn-bingo:disabled{background:#3a2545;color:#7a6b99}
+  .btn-bingo.hot{animation:pulse-bingo .8s infinite alternate}
+  @keyframes pulse-bingo{from{box-shadow:0 3px 12px rgba(236,72,153,.5)}to{box-shadow:0 3px 24px rgba(236,72,153,1);transform:scale(1.03)}}
 
   .icon-bar{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;flex-shrink:0;margin-top:4px}
   .icon-bar button{padding:5px 2px;border-radius:7px;background:rgba(139,92,246,.10);border:1px solid var(--border);color:var(--ink);font-size:13px;display:flex;flex-direction:column;align-items:center}
@@ -266,11 +209,37 @@ const userId = Number(p.get('uid')) || 0;
 const firstName = p.get('name') || 'Player';
 const socket = io();
 
-// Hide splash on load
-setTimeout(() => { document.getElementById('splash').classList.add('hide'); }, 800);
+// Audio Elements
+let audioOn = false;
+let audioCtx = null;
 
+document.getElementById('voiceToggleBtn').onclick = () => {
+  audioOn = !audioOn;
+  document.getElementById('voiceIcon').innerText = audioOn ? '🔊' : '🔇';
+  document.getElementById('voiceLabel').innerText = audioOn ? 'ON' : 'OFF';
+  if (audioOn && !audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioOn) playBeep(600, 0.1);
+};
+
+function playBeep(freq, dur) {
+  if (!audioOn || !audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + dur);
+}
+
+// Game State
 let phase = 'selection', selected = [], myCartelas = [], calledNumbers = [], takenSet = new Set();
-let availableCartelas = 600, fee = 10, userProfile = null, manMarks = new Set();
+let availableCartelas = 600, fee = 10, userProfile = null, autoMode = false;
+
+setTimeout(() => { document.getElementById('splash').classList.add('hide'); }, 800);
 
 async function loadState(){
   try {
@@ -303,6 +272,7 @@ function applyState(s){
   else { showGameScreen(); }
   
   renderPicker(); renderNumberGrid();
+  if (phase === 'running') checkBingoStatus();
 }
 
 function showSelectionScreen(){ document.getElementById('selectScreen').classList.remove('hidden'); document.getElementById('gameScreen').classList.add('hidden'); }
@@ -344,10 +314,21 @@ function onPickClick(id){
 
 document.getElementById('joinBtn').onclick = async () => {
   if (selected.length === 0) return;
+  
+  // BALANCE GUARD FIX
+  const totalBet = selected.length * fee;
+  const userTotalBalance = (userProfile?.balance || 0) + (userProfile?.winBalance || 0);
+  if (userTotalBalance < totalBet) {
+    alert("Insufficient balance. Please deposit funds.");
+    window.location.href = '/profile.html?uid=' + userId; // Redirect to deposit
+    return;
+  }
+
   const r = await fetch('/api/player/join', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({userId, firstName, cartelaIds: selected})
   }).then(x=>x.json());
+  
   if (!r.success) return alert(r.error);
   myCartelas = r.cartelas;
   showGameScreen(); renderCartelas();
@@ -378,14 +359,56 @@ function renderCartelas(){
     <div class="cartela-card">
       <div class="cartela-head"><span>CARTELA</span><span>#${c.id}</span></div>
       <div class="cartela-grid">
+        <div class="cell" style="background:#3b82f6;color:#fff;font-size:10px">B</div>
+        <div class="cell" style="background:#10b981;color:#fff;font-size:10px">I</div>
+        <div class="cell" style="background:#f97316;color:#fff;font-size:10px">N</div>
+        <div class="cell" style="background:#ef4444;color:#fff;font-size:10px">G</div>
+        <div class="cell" style="background:#a855f7;color:#fff;font-size:10px">O</div>
         ${c.grid.flat().map(n => `<div class="cell" data-n="${n}">${n===0?'★':n}</div>`).join('')}
       </div>
     </div>
   `).join('');
+  
+  updateCartelaMarks();
+}
+
+function updateCartelaMarks(){
+  const calledSet = new Set(calledNumbers); calledSet.add(0);
+  document.querySelectorAll('.cartela-card .cell[data-n]').forEach(el => {
+    if (calledSet.has(Number(el.dataset.n))) el.classList.add('marked');
+  });
+}
+
+function checkBingoStatus(){
+  const calledSet = new Set(calledNumbers); calledSet.add(0);
+  const btn = document.getElementById('bingoBtn');
+  
+  // Simple 4-corner check for example
+  let hasWin = false;
+  for (const c of myCartelas) {
+    const corners = [c.grid[0][0], c.grid[0][4], c.grid[4][0], c.grid[4][4]];
+    if (corners.every(n => calledSet.has(n))) hasWin = true;
+  }
+  
+  btn.disabled = !hasWin;
+  if (hasWin) btn.classList.add('hot');
+  else btn.classList.remove('hot');
+  
+  if (hasWin && autoMode) {
+    document.getElementById('bingoBtn').click();
+  }
 }
 
 socket.on('connect', () => { socket.emit('join-room'); loadState(); loadProfile(); });
 socket.on('game-state', s => applyState(s));
+socket.on('number-called', ({number, all}) => {
+  calledNumbers = all;
+  document.getElementById('liveBall').innerText = number;
+  playBeep(880, 0.15);
+  renderNumberGrid();
+  updateCartelaMarks();
+  checkBingoStatus();
+});
 </script>
 </body>
 </html>
