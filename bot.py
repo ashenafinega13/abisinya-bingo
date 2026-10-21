@@ -105,7 +105,6 @@ def profile_url(uid, tab="history"):
 #                        KEYBOARDS
 # ================================================================
 def main_kb(uid, name):
-    """Compact keyboard: Play + Menu button."""
     keyboard = [
         [KeyboardButton("🎯 Play Abisinya Bingo",
                         web_app=WebAppInfo(url=game_url(uid, name)))],
@@ -207,12 +206,13 @@ async def balance_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     play = usr.get("balance", 0)
     win  = usr.get("winBalance", 0)
     total = play + win
+    # FIX: Removed the extra '}' after total
     await update.message.reply_text(
         f"💼 *የእርስዎ ዋሌት*\n\n"
         f"🎯 Playable: *{play:.2f} ብር*\n"
         f"🏆 Winnings: *{win:.2f} ብር*\n"
         f"━━━━━━━━━━━━━━\n"
-        f"💵 *ጠቅላላ: {total:.2f} ብር}*",
+        f"💵 *ጠቅላላ: {total:.2f} ብር*",
         parse_mode="Markdown"
     )
 
