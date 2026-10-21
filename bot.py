@@ -105,63 +105,44 @@ def profile_url(uid, tab="history"):
 #                        KEYBOARDS
 # ================================================================
 def main_kb(uid, name):
-    """Compact keyboard: Play + Menu button."""
+    """Matches the exact layout of the screenshot."""
     keyboard = [
-        [KeyboardButton("🎯 Play Abisinya Bingo",
-                        web_app=WebAppInfo(url=game_url(uid, name)))],
-        [KeyboardButton("☰ Menu"), KeyboardButton("👤 Profile",
-                        web_app=WebAppInfo(url=profile_url(uid, "history")))],
+        [KeyboardButton("🎲 Geez Bingo ይጫወቱ", web_app=WebAppInfo(url=game_url(uid, name)))],
+        [KeyboardButton("💵 ገንዘብ ያስገቡ"), KeyboardButton("📤 ገንዘብ ያውጡ")],
+        [KeyboardButton("💰 Check Balance"), KeyboardButton("👥 ጓደኛ ይጋብዙ")],
+        [KeyboardButton("📜 ታሪክ"), KeyboardButton("💬 ድጋፍ")],
+        [KeyboardButton("🌐 ቋንቋ"), KeyboardButton("❓ እርዳታ")],
+        [KeyboardButton("🏆 ደረጃ ሰልፍ")]
     ]
     return ReplyKeyboardMarkup(
         keyboard, resize_keyboard=True, is_persistent=True,
         input_field_placeholder="Choose an action…"
     )
 
-def menu_text():
-    return (
-        "📋 **Menu Options**\n\n"
-        "• /register - ቁጥርዎን ይመዝግቡ (Register)\n"
-        "• /play - ቢንጎ ይጫወቱ (Play)\n"
-        "• /balance - የመለያ ቀሪ ሂሳብ ይፈትሹ (Balance)\n"
-        "• /deposit - ገንዘብ ያስገቡ (Deposit)\n"
-        "• /withdraw - ገንዘብ ያውጡ (Withdraw)\n"
-        "• /howtoplay - አንዳንድ መጫወቻ ደንቦች (How to Play)\n"
-        "• /invite - ጋብዝ (Invite)\n"
-        "• /support - ድጋፍ (Support)\n"
-        "• /language - ቋንቋ (Language)\n\n"
-        "👇 You can also use the / commands below or tap the buttons."
-    )
-
-def contact_kb():
-    return ReplyKeyboardMarkup(
-        [[KeyboardButton("📱 Share My Contact", request_contact=True)]],
-        resize_keyboard=True, one_time_keyboard=True
-    )
-
 def deposit_kb():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📲 Telebirr", callback_data="dep_telebirr")],
-        [InlineKeyboardButton("🏦 CBE",      callback_data="dep_cbe")],
+        [InlineKeyboardButton("📲  Telebirr", callback_data="dep_telebirr")],
+        [InlineKeyboardButton("🏦  CBE",      callback_data="dep_cbe")],
     ])
 
 def withdraw_kb():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📲 Telebirr", callback_data="wd_telebirr")],
-        [InlineKeyboardButton("🏦 CBE",      callback_data="wd_cbe")],
+        [InlineKeyboardButton("📲  Telebirr", callback_data="wd_telebirr")],
+        [InlineKeyboardButton("🏦  CBE",      callback_data="wd_cbe")],
     ])
 
 def approval_kb(tx_id):
     return InlineKeyboardMarkup([[
-        InlineKeyboardButton("✅ Approve", callback_data=f"approve_{tx_id}"),
-        InlineKeyboardButton("❌ Reject",  callback_data=f"reject_{tx_id}")
+        InlineKeyboardButton("✅  Approve", callback_data=f"approve_{tx_id}"),
+        InlineKeyboardButton("❌  Reject",  callback_data=f"reject_{tx_id}")
     ]])
 
 def language_kb():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🇬🇧 English",   callback_data="lang_en")],
-        [InlineKeyboardButton("🇪🇹 አማርኛ",     callback_data="lang_am")],
-        [InlineKeyboardButton("🇪🇹 Oromiffa",  callback_data="lang_om")],
-        [InlineKeyboardButton("🇪🇹 ትግርኛ",    callback_data="lang_ti")],
+        [InlineKeyboardButton("🇬🇧 English", callback_data="lang_en")],
+        [InlineKeyboardButton("🇪🇹 አማርኛ", callback_data="lang_am")],
+        [InlineKeyboardButton("🇪🇹 Oromiffa", callback_data="lang_om")],
+        [InlineKeyboardButton("🇪🇹 ትግርኛ", callback_data="lang_ti")],
     ])
 
 # ================================================================
@@ -181,7 +162,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ref = int(context.args[0])
         if ref != u.id:
             sv_adj(ref, "balance", 30)
-            try: await context.bot.send_message(ref, "🎉 +30 ብር")
+            try: await context.bot.send_message(ref, "🎉 አዲስ ጓደኛ ጋበዝክ! +30 ብር")
             except: pass
 
     name = u.first_name or "Player"
@@ -191,14 +172,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=main_kb(u.id, name)
     )
 
-async def play_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    u = update.effective_user
+async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """This fires when the user types /menu."""
     await update.message.reply_text(
-        f"👇 Tap the button below to open the game:",
-        reply_markup=ReplyKeyboardMarkup(
-            [[KeyboardButton("🎯 Open Game", web_app=WebAppInfo(url=game_url(u.id, u.first_name or "Player")))]],
-            resize_keyboard=True, one_time_keyboard=True
-        )
+        "📋 **Menu Options**\n\n"
+        "• /register - ቁጥርዎን ይመዝግቡ\n"
+        "• /play - ቢንጎ ይጫወቱ\n"
+        "• /balance - የመለያ ቀሪ ሂሳብ ይፈትሹ\n"
+        "• /deposit - ገንዘብ ያስገቡ\n"
+        "• /withdraw - ገንዘብ ያውጡ\n"
+        "• /howtoplay - መጫወቻ ደንቦች\n"
+        "• /invite - ጋብዝ\n"
+        "• /support - ድጋፍ\n"
+        "• /language - ቋንቋ\n\n"
+        "👇 You can also use the / commands below.",
+        parse_mode="Markdown"
     )
 
 async def balance_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -209,28 +197,21 @@ async def balance_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total = play + win
     await update.message.reply_text(
         f"💼 *የእርስዎ ዋሌት*\n\n"
-        f"🎯 Playable: *{play:.2f} ብር*\n"
-        f"🏆 Winnings: *{win:.2f} ብር*\n"
+        f"🎯 Playable:  *{play:.2f} ብር*\n"
+        f"🏆 Winnings:  *{win:.2f} ብር*\n"
         f"━━━━━━━━━━━━━━\n"
         f"💵 *ጠቅላላ: {total:.2f} ብር*",
         parse_mode="Markdown"
     )
 
-async def how_to_play(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "🎯 *እንዴት እንደሚጫወቱ*\n\n"
-        "1. /play ን ይጫኑ\n"
-        "2. ካርቴላ ይምረጡ\n"
-        "3. አንድ ሙሉ መስመር ሲሟላ BINGO ይጫኑ\n\n"
-        "⚡ Auto-Bingo ን ካበሩ ማሽኑ ራሱ ያሸንፋል።",
-        parse_mode="Markdown"
-    )
-
-async def invite_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    u = update.effective_user
-    link = f"https://t.me/{BOT_USERNAME}?start={u.id}"
-    await update.message.reply_text(
-        f"👥 *የግብዣ ሊንክ*\n\n`{link}`\n\n✨ ጓደኛ ይጋብዙ እና 30 ብር ያግኙ!",
+        "ℹ️ *እርዳታ*\n\n"
+        "1️⃣ *🎯 Play* ይጫኑ\n"
+        "2️⃣ 1–4 ካርቴላ ይምረጡ\n"
+        "3️⃣ *JOIN GAME* ይጫኑ\n"
+        "4️⃣ አንድ ሙሉ መስመር ሲሟላ *BINGO* ይጫኑ\n\n"
+        "⚡ *Auto-Bingo* ን ካበሩ በራስ-ሰር ያሸንፋል።",
         parse_mode="Markdown"
     )
 
@@ -238,18 +219,6 @@ async def invite_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #                        MESSAGE HANDLER
 # ================================================================
 async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Contact sharing
-    if update.message and update.message.contact:
-        u = update.effective_user
-        phone = update.message.contact.phone_number
-        sv_upsert(u.id, u.username or "", u.first_name or "", phone=phone)
-        user_states.pop(u.id, None)
-        await update.message.reply_text(
-            f"✅ *ተመዝግቧል!*\n\n📱 `{phone}`",
-            parse_mode="Markdown",
-            reply_markup=main_kb(u.id, u.first_name or "Player"))
-        return
-
     if not update.message or not update.message.text: return
     if not update.effective_user: return
 
@@ -257,32 +226,17 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
     txt = update.message.text.strip()
     sv_upsert(u.id, u.username or "", u.first_name or "")
 
-    # MENU BUTTON CLICK
-    if txt == "☰ Menu":
-        user_states.pop(u.id, None)
-        await update.message.reply_text(menu_text(), parse_mode="Markdown")
-        return
-
-    # PROFILE BUTTON CLICK
-    if txt == "👤 Profile":
-        await update.message.reply_text(
-            "👇 Tap the button below to open your profile:",
-            reply_markup=ReplyKeyboardMarkup(
-                [[KeyboardButton("👤 Open Profile", web_app=WebAppInfo(url=profile_url(u.id)))]],
-                resize_keyboard=True, one_time_keyboard=True
-            )
-        )
-        return
-
     state = user_states.get(u.id, {})
     action = state.get("action")
 
-    # Registration manual input
+    # Clear state on any menu button tap
+    if any(x in txt for x in ["🎲", "💵", "📤", "💰", "👥", "📜", "💬", "🌐", "❓", "🏆"]):
+        user_states.pop(u.id, None)
+        action = None
+
+    # ---------- REGISTER ----------
     if action == "register":
         phone = txt.strip()
-        if not re.match(r"^\+?\d{9,15}$", phone):
-            await update.message.reply_text("⚠️ Please send a valid phone number or share your contact.")
-            return
         sv_upsert(u.id, u.username or "", u.first_name or "", phone=phone)
         user_states.pop(u.id, None)
         await update.message.reply_text(
@@ -290,79 +244,101 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown", reply_markup=main_kb(u.id, u.first_name or "Player"))
         return
 
-    # Deposit SMS input
+    # ---------- DEPOSIT ----------
     if action == "deposit":
         m = re.search(r"(\d+(?:[.,]\d+)?)", txt)
         amount = float(m.group(1).replace(",", "")) if m else 0
         if amount < 1:
             await update.message.reply_text("⚠️ ትክክለኛ መጠን ያስገቡ (ለምሳሌ: 100)")
             return
+
         tx = sv_tx({
             "userId": u.id, "type": "deposit", "amount": amount,
-            "method": state.get("method", "unknown"), "sms": txt, "status": "pending"
+            "method": state.get("method", "unknown"),
+            "sms": txt, "status": "pending"
         })
         if not tx:
-            await update.message.reply_text("⚠️ ኔትወርክ ችግር።"); return
+            await update.message.reply_text("⚠️ ኔትወርክ ችግር። በድጋሚ ሞክር።"); return
+
         tx_id = tx["_id"]
         method_label = "📲 Telebirr" if state.get("method") == "telebirr" else "🏦 CBE"
+
         await context.bot.send_message(
             ADMIN_ID,
             f"🔔 *አዲስ DEPOSIT*\n\n👤 {u.first_name} (@{u.username or 'N/A'})\n🆔 `{u.id}`\n💰 {amount:.2f} ETB — {method_label}\n🔖 Tx: `{tx_id}`",
-            parse_mode="Markdown", reply_markup=approval_kb(tx_id)
-        )
+            parse_mode="Markdown", reply_markup=approval_kb(tx_id))
+
         user_states.pop(u.id, None)
         await update.message.reply_text(
             f"✅ *ጥያቄዎ ተልኳል!*\n\n💰 {amount:.2f} ETB — {method_label}\n⏳ አስተዳዳሪው ሲያጸድቅ ወደ ዋሌትዎ ይገባል።",
-            parse_mode="Markdown", reply_markup=main_kb(u.id, u.first_name or "Player")
-        )
+            parse_mode="Markdown", reply_markup=main_kb(u.id, u.first_name or "Player"))
         return
 
-    # Withdraw amount input
-    
+    # ---------- WITHDRAW: amount ----------
     if action == "withdraw_amount":
         if not txt.isdigit():
             await update.message.reply_text("⚠️ ቁጥር ብቻ ያስገቡ"); return
         amount = float(txt)
         if amount < 100:
             await update.message.reply_text("⚠️ ዝቅተኛው 100 ብር ነው።"); return
+
         usr = sv_user(u.id) or {}
         total = (usr.get("balance") or 0) + (usr.get("winBalance") or 0)
         if amount > total:
             await update.message.reply_text(f"❌ ቀሪ ሂሳብ አይበቃም! (ያለዎት: {total:.2f})"); return
+
         user_states[u.id] = {"action": "withdraw_phone", "amount": amount, "method": state.get("method", "unknown")}
         await update.message.reply_text("📱 የስልክ ቁጥርዎን ያስገቡ:")
         return
 
-    # Withdraw phone input
+    # ---------- WITHDRAW: phone ----------
     if action == "withdraw_phone":
         phone = txt.strip()
         amount = state.get("amount", 0)
         method = state.get("method", "unknown")
+
         tx = sv_tx({
             "userId": u.id, "type": "withdraw", "amount": amount,
             "method": method, "phone": phone, "status": "pending"
         })
         if not tx:
             await update.message.reply_text("⚠️ ኔትወርክ ችግር።"); return
+
         tx_id = tx["_id"]
         method_label = "📲 Telebirr" if method == "telebirr" else "🏦 CBE"
+
         await context.bot.send_message(
             ADMIN_ID,
             f"🔔 *አዲስ WITHDRAW*\n\n👤 {u.first_name} (@{u.username or 'N/A'})\n🆔 `{u.id}`\n💰 {amount:.2f} ETB — {method_label}\n📱 `{phone}`\n🔖 Tx: `{tx_id}`",
-            parse_mode="Markdown", reply_markup=approval_kb(tx_id)
-        )
+            parse_mode="Markdown", reply_markup=approval_kb(tx_id))
+
         user_states.pop(u.id, None)
         await update.message.reply_text(
             f"✅ *የወጭ ጥያቄዎ ተልኳል!*",
-            parse_mode="Markdown", reply_markup=main_kb(u.id, u.first_name or "Player")
-        )
+            parse_mode="Markdown", reply_markup=main_kb(u.id, u.first_name or "Player"))
         return
 
-    # Fallback
-    await update.message.reply_text(
-        "🤔 ካርቴላ ይምረጡ እና ይጫወቱ። /play",
-        reply_markup=main_kb(u.id, u.first_name or "Player")
-    )
+    # ---------- MENU TEXT FALLBACKS ----------
+    if "💵" in txt: 
+        await update.message.reply_text("💰 *ገንዘብ ማስገባት*\n\nየክፍያ አማራጭ ይምረጡ:", parse_mode="Markdown", reply_markup=deposit_kb())
+    elif "📤" in txt: 
+        await update.message.reply_text("📤 *የወጭ አማራጭ ይምረጡ:*", parse_mode="Markdown", reply_markup=withdraw_kb())
+    elif "💰" in txt: 
+        await balance_cmd(update, context)
+    elif "👥" in txt: 
+        await update.message.reply_text(f"👥 *የግብዣ ሊንክ*\n\n`https://t.me/{BOT_USERNAME}?start={u.id}`", parse_mode="Markdown")
+    elif "📜" in txt: 
+        await update.message.reply_text("📜 ሙሉ ታሪክዎን ለማየት 👤 Profile ን ይጫኑ።")
+    elif "💬" in txt: 
+        await update.message.reply_text("💬 *ድጋፍ*\n\n👤 @Tazikes", parse_mode="Markdown")
+    elif "🌐" in txt: 
+        await update.message.reply_text("🌐 ቋንቋ ይምረጡ:", reply_markup=language_kb())
+    elif "❓" in txt: 
+        await help_cmd(update, context)
+    elif "🏆" in txt: 
+        await update.message.reply_text("🏆 Leaderboard\n\n1. Player1\n2. Player2")
+    else:
+        await update.message.reply_text("ጥያቄዎን አልተረዳሁም።", reply_markup=main_kb(u.id, u.first_name or "Player"))
 
 # ================================================================
 #                        BUTTON HANDLER
@@ -379,10 +355,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if u.id != ADMIN_ID: return
         action, tx_id = data.split("_", 1)
         tx = sv_get_tx(tx_id)
-        if not tx:
-            await q.edit_message_text("❌ Transaction not found"); return
+        if not tx: return await q.edit_message_text("❌ Transaction not found")
+
         status = "approved" if action == "approve" else "rejected"
         sv_set_tx_status(tx_id, status)
+
         if status == "approved":
             if tx["type"] == "deposit":
                 sv_adj(tx["userId"], "balance", tx["amount"])
@@ -440,13 +417,13 @@ async def winner_handler(request):
     return web.json_response({"ok": True})
 
 async def post_init(app):
+    # This creates the list of commands you see when clicking 'Menu'
     commands = [
         BotCommand("start", "ብቀን ይጀምሩ (Start)"),
         BotCommand("play", "ቢንጎ ይጫወቱ (Play)"),
         BotCommand("balance", "የመለያ ቀሪ ሂሳብ ይፈትሹ"),
         BotCommand("deposit", "ገንዘብ ያስገቡ"),
         BotCommand("withdraw", "ገንዘብ ያውጡ"),
-        BotCommand("register", "ቁጥርዎን ይመዝግቡ"),
         BotCommand("howtoplay", "መጫወቻ ደንቦች"),
         BotCommand("invite", "ጓደኛ ይጋብዙ"),
         BotCommand("language", "ቋንቋ ይቀይሩ"),
@@ -458,16 +435,14 @@ async def main():
     tg = ApplicationBuilder().token(TOKEN).post_init(post_init).build()
     
     tg.add_handler(CommandHandler("start", start))
-    tg.add_handler(CommandHandler("play", play_cmd))
+    tg.add_handler(CommandHandler("menu", menu_cmd))
     tg.add_handler(CommandHandler("balance", balance_cmd))
+    tg.add_handler(CommandHandler("help", help_cmd))
     tg.add_handler(CommandHandler("register", lambda u,c: u.message.reply_text("📱 Share your contact below:", reply_markup=contact_kb())))
     tg.add_handler(CommandHandler("deposit", lambda u,c: u.message.reply_text("💰 የክፍያ አማራጭ ይምረጡ:", reply_markup=deposit_kb())))
     tg.add_handler(CommandHandler("withdraw", lambda u,c: u.message.reply_text("📤 የወጭ አማራጭ ይምረጡ:", reply_markup=withdraw_kb())))
-    tg.add_handler(CommandHandler("howtoplay", how_to_play))
-    tg.add_handler(CommandHandler("invite", invite_cmd))
     tg.add_handler(CommandHandler("language", lambda u,c: u.message.reply_text("🌐 ቋንቋ ይምረጡ:", reply_markup=language_kb())))
     
-    tg.add_handler(MessageHandler(filters.CONTACT, handle_msg))
     tg.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_msg))
     tg.add_handler(CallbackQueryHandler(button_handler))
 
