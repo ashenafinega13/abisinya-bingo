@@ -1,337 +1,583 @@
-import os
-import re
-import asyncio
-import requests
+import telebot, os, time, random, string, re, threading
+from telebot import types
 from dotenv import load_dotenv
+from datetime import datetime
+from pymongo import MongoClient
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+# ── Termux DNS fix ─────────────────────────────────────────────
+import dns.resolver
+dns.resolver.default_resolver = dns.resolver.Resolver(configure=False)
+dns.resolver.default_resolver.nameservers = ['8.8.8.8', '1.1.1.1']
+dns.resolver.default_resolver.lifetime = 30.0
 
 load_dotenv()
 
-from aiohttp import web
-from telegram import (
-    Update,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    ReplyKeyboardMarkup,
-    KeyboardButton,
-    WebAppInfo,
-)
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    ContextTypes,
-    MessageHandler,
-    filters,
-    CallbackQueryHandler,
-)
+# ── Config ─────────────────────────────────────────────────────
+BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+WEB_APP_URL = os.getenv('WEB_APP_URL') or os.getenv('WEBAPP_URL', 'https://example.com')
+MONGODB_URI = os.getenv('MONGODB_URI')
 
-# ================================================================
-#                        CONFIG
-# ================================================================
-TOKEN             = os.getenv("TELEGRAM_BOT_TOKEN")
-ADMIN_ID          = int(os.getenv("ADMIN_ID", "0"))
-SERVER_URL        = (os.getenv("SERVER_URL") or "").rstrip("/")
-WEBAPP_URL        = (os.getenv("WEBAPP_URL") or "").rstrip("/")
-BOT_API_SECRET    = os.getenv("BOT_API_SECRET", "change-me")
-BOT_PORT          = int(os.getenv("PORT", os.getenv("BOT_PORT", "8080")))
-BOT_USERNAME      = os.getenv("BOT_USERNAME", "AbyssinaBingobot")
+# Support comma-separated admin IDs
+ADMIN_IDS = [int(x) for x in os.getenv('ADMIN_ID', '5925033073').split(',') if x.strip()]
 
-H = {"x-bot-secret": BOT_API_SECRET, "Content-Type": "application/json"}
+MIN_WITHDRAW = 100
+MIN_DEPOSIT = 10
+REFERRAL_BONUS = 30
+TELEBIRR_NUMBER = "0968940123"
+CBE_NUMBER = "1000390803005"
+ACCOUNT_NAME = "tazebew"
+SUPPORT_USERNAME = "Tazikes"
 
-# ================================================================
-#                        SERVER HELPERS
-# ================================================================
-def _safe(r):
-    try: return r.json()
-    except Exception: return {}
+ROOMS = [
+    ('bronze', '🥉 Bronze', 10),
+    ('silver', '🥈 Silver', 25),
+    ('gold',   '🥇 Gold',   50),
+]
 
-def sv_upsert(uid, uname, fname, phone=None):
-    try:
-        r = requests.post(f"{SERVER_URL}/api/bot/user", headers=H, timeout=10,
-            json={"telegramId": uid, "username": uname,
-                  "firstName": fname, "phone": phone})
-        return _safe(r).get("user")
-    except Exception as e:
-        print("sv_upsert:", e); return None
+if not BOT_TOKEN or not MONGODB_URI:
+    print("❌ Missing TELEGRAM_BOT_TOKEN or MONGODB_URI"); exit()
 
-def sv_user(uid):
-    try:
-        r = requests.get(f"{SERVER_URL}/api/bot/user/{uid}", headers=H, timeout=10)
-        return _safe(r).get("user")
-    except Exception as e:
-        print("sv_user:", e); return None
+bot = telebot.TeleBot(BOT_TOKEN)
 
-def sv_adj(uid, field, delta):
-    try:
-        r = requests.post(f"{SERVER_URL}/api/bot/user/{uid}/adjust", headers=H,
-                          timeout=10, json={"field": field, "delta": delta})
-        return _safe(r).get("user")
-    except Exception as e:
-        print("sv_adj:", e); return None
+try:
+    mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=30000, connectTimeoutMS=30000)
+    mongo_client.admin.command('ping')
+    db = mongo_client.get_database('abisinya')
+    users_col = db['users']
+    txns_col = db['transactions']
+    print("✅ MongoDB connected (Bot)")
+except Exception as e:
+    print(f"❌ DB error: {e}"); exit()
 
-def sv_tx(data):
-    try:
-        r = requests.post(f"{SERVER_URL}/api/bot/transaction", headers=H,
-                          timeout=10, json=data)
-        return _safe(r).get("tx")
-    except Exception as e:
-        print("sv_tx:", e); return None
+# ── DB helpers ─────────────────────────────────────────────────
+def get_user(uid):
+    return users_col.find_one({"id": str(uid)})
 
-def sv_get_tx(tx_id):
-    try:
-        r = requests.get(f"{SERVER_URL}/api/bot/transaction/{tx_id}",
-                         headers=H, timeout=10)
-        return _safe(r).get("tx")
-    except Exception as e:
-        print("sv_get_tx:", e); return None
+def ensure_user(message):
+    uid = str(message.from_user.id)
+    user = get_user(uid)
+    if not user:
+        u = message.from_user
+        full_name = f"{u.first_name or ''} {u.last_name or ''}".strip() or f"Player {uid}"
+        user = {
+            "id": uid, "name": full_name, "username": u.username or "",
+            "phone": "", "play_balance": 20.0, "win_balance": 0.0,
+            "total_games": 0, "total_wins": 0,
+            "referral_code": uid, "referred_by": None, "referral_credited": False,
+            "lang": "am", "registered": False,
+            "registered_at": datetime.utcnow().isoformat()
+        }
+        users_col.insert_one(user)
+    return user
 
-def sv_set_tx_status(tx_id, status):
-    try:
-        requests.post(f"{SERVER_URL}/api/bot/transaction/{tx_id}/status",
-                      headers=H, timeout=10, json={"status": status})
-    except Exception as e:
-        print("sv_set_tx_status:", e)
+def gen_txn_id():
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
-# ================================================================
-#                        URL BUILDERS
-# ================================================================
-def game_url(uid, name):
-    return f"{WEBAPP_URL}/game?uid={uid}&name={name}"
-
-def profile_url(uid, tab="history"):
-    return f"{WEBAPP_URL}/profile.html?uid={uid}&tab={tab}"
-
-# ================================================================
-#                        KEYBOARDS
-# ================================================================
-def main_kb(uid, name):
-    keyboard = [
-        [KeyboardButton("🎲 Abisinya Bingo ይጫወቱ", web_app=WebAppInfo(url=game_url(uid, name)))],
-        [KeyboardButton("💵 ገንዘብ ያስገቡ"), KeyboardButton("📤 ገንዘብ ያውጡ")],
-        [KeyboardButton("💰 Check Balance"), KeyboardButton("👥 ጓደኛ ይጋብዙ")],
-        [KeyboardButton("📜 ታሪክ"), KeyboardButton("💬 ድጋፍ")],
-        [KeyboardButton("🌐 ቋንቋ"), KeyboardButton("❓ እርዳታ")],
-        [KeyboardButton("☰ Menu"), KeyboardButton("🏆 ደረጃ ሰልፍ")]
+def setup_bot_menu():
+    commands = [
+        types.BotCommand("start", "Start"),
+        types.BotCommand("play", "Play"),
+        types.BotCommand("rooms", "Choose Room"),
+        types.BotCommand("balance", "Balance"),
+        types.BotCommand("deposit", "Deposit"),
+        types.BotCommand("withdraw", "Withdraw"),
+        types.BotCommand("invite", "Invite"),
+        types.BotCommand("history", "History"),
+        types.BotCommand("help", "Help"),
     ]
-    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
-
-def menu_kb():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("/withdraw", callback_data="cmd_withdraw"), InlineKeyboardButton("/howtoplay", callback_data="cmd_howtoplay")],
-        [InlineKeyboardButton("/invite", callback_data="cmd_invite"), InlineKeyboardButton("/support", callback_data="cmd_support")],
-        [InlineKeyboardButton("/balance", callback_data="cmd_balance"), InlineKeyboardButton("/deposit", callback_data="cmd_deposit")],
-        [InlineKeyboardButton("❌ Close Menu", callback_data="close_menu")]
-    ])
-
-def contact_kb():
-    return ReplyKeyboardMarkup([[KeyboardButton("📱 Share My Contact", request_contact=True)]], resize_keyboard=True, one_time_keyboard=True)
-
-def deposit_kb():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📲  Telebirr", callback_data="dep_telebirr")],
-        [InlineKeyboardButton("🏦  CBE",      callback_data="dep_cbe")],
-    ])
-
-def withdraw_kb():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📲  Telebirr", callback_data="wd_telebirr")],
-        [InlineKeyboardButton("🏦  CBE",      callback_data="wd_cbe")],
-    ])
-
-def approval_kb(tx_id):
-    return InlineKeyboardMarkup([[
-        InlineKeyboardButton("✅  Approve", callback_data=f"approve_{tx_id}"),
-        InlineKeyboardButton("❌  Reject",  callback_data=f"reject_{tx_id}")
-    ]])
-
-# ================================================================
-#                        USER STATE
-# ================================================================
-user_states = {}
-
-# ================================================================
-#                        COMMANDS
-# ================================================================
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    u = update.effective_user
-    sv_upsert(u.id, u.username or "", u.first_name or "")
-    await update.message.reply_text(
-        f"👋 *ሰላም {u.first_name}!*\n\n🎉 እንኳን ወደ *Abisinya Bingo* በደህና መጡ።",
-        parse_mode="Markdown", reply_markup=main_kb(u.id, u.first_name)
-    )
-
-async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "📋 **Menu Options**\n\n"
-        "• /register - ቁጥርዎን ይመዝግቡ\n"
-        "• /play - ቢንጎ ይጫወቱ\n"
-        "• /balance - ቀሪ ሂሳብ\n"
-        "• /deposit - ገንዘብ ያስገቡ\n"
-        "• /withdraw - ገንዘብ ያውጡ\n"
-        "• /howtoplay - ደንቦች\n"
-        "• /invite - ጋብዝ\n"
-        "• /support - ድጋፍ\n"
-        "• /language - ቋንቋ",
-        parse_mode="Markdown", reply_markup=menu_kb()
-    )
-
-async def balance_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    u = update.effective_user
-    usr = sv_user(u.id) or {}
-    await update.message.reply_text(
-        f"💼 *የእርስዎ ዋሌት*\n\n🎯 Playable:  *{usr.get('balance',0):.2f} ብር*\n🏆 Winnings:  *{usr.get('winBalance',0):.2f} ብር*",
-        parse_mode="Markdown"
-    )
-
-async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("ℹ️ *እርዳታ*\n\n1. Play ይጫኑ\n2. ካርቴላ ይምረጡ\n3. BINGO ሲሆን ይጫኑ", parse_mode="Markdown")
-
-# ================================================================
-#                        MESSAGE HANDLER
-# ================================================================
-async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message and update.message.contact:
-        u = update.effective_user
-        phone = update.message.contact.phone_number
-        sv_upsert(u.id, u.username or "", u.first_name or "", phone=phone)
-        await update.message.reply_text(f"✅ *ተመዝግቧል!*\n\n📱 `{phone}`", parse_mode="Markdown", reply_markup=main_kb(u.id, u.first_name))
-        return
-
-    if not update.message or not update.message.text: return
-    u = update.effective_user
-    txt = update.message.text.strip()
-    sv_upsert(u.id, u.username or "", u.first_name or "")
-    state = user_states.get(u.id, {})
-    action = state.get("action")
-
-    if txt == "☰ Menu": return await menu_cmd(update, context)
-    if any(x in txt for x in ["🎲", "💵", "📤", "💰", "👥", "📜", "💬", "🌐", "❓", "🏆"]): user_states.pop(u.id, None); action = None
-
-    if action == "register":
-        sv_upsert(u.id, u.username or "", u.first_name or "", phone=txt.strip())
-        user_states.pop(u.id, None)
-        await update.message.reply_text(f"✅ *ተመዝግቧል!*", parse_mode="Markdown", reply_markup=main_kb(u.id, u.first_name))
-        return
-
-    if action == "deposit":
-        m = re.search(r"(\d+(?:[.,]\d+)?)", txt); amount = float(m.group(1).replace(",", "")) if m else 0
-        if amount < 1: return await update.message.reply_text("⚠️ ትክክለኛ መጠን ያስገቡ")
-        tx = sv_tx({"userId": u.id, "type": "deposit", "amount": amount, "method": state.get("method"), "sms": txt, "status": "pending"})
-        if not tx: return await update.message.reply_text("⚠️ ኔትወርክ ችግር።")
-        await context.bot.send_message(ADMIN_ID, f"🔔 *DEPOSIT*\n👤 {u.first_name}\n💰 {amount:.2f} ETB\n🔖 Tx: `{tx['_id']}`", parse_mode="Markdown", reply_markup=approval_kb(tx['_id']))
-        user_states.pop(u.id, None)
-        await update.message.reply_text("✅ *ጥያቄዎ ተልኳል!*", parse_mode="Markdown", reply_markup=main_kb(u.id, u.first_name))
-        return
-
-    if action == "withdraw_amount":
-        if not txt.isdigit(): return await update.message.reply_text("⚠️ ቁጥር ብቻ")
-        amount = float(txt)
-        if amount < 100: return await update.message.reply_text("⚠️ ዝቅተኛው 100 ብር")
-        usr = sv_user(u.id) or {}
-        if amount > (usr.get("balance",0) + usr.get("winBalance",0)): return await update.message.reply_text("❌ ቀሪ ሂሳብ አይበቃም!")
-        user_states[u.id] = {"action": "withdraw_phone", "amount": amount, "method": state.get("method")}
-        await update.message.reply_text("📱 የስልክ ቁጥርዎን ያስገቡ:")
-        return
-
-    if action == "withdraw_phone":
-        tx = sv_tx({"userId": u.id, "type": "withdraw", "amount": state.get("amount"), "method": state.get("method"), "phone": txt.strip(), "status": "pending"})
-        if not tx: return await update.message.reply_text("⚠️ ኔትወርክ ችግር።")
-        await context.bot.send_message(ADMIN_ID, f"🔔 *WITHDRAW*\n👤 {u.first_name}\n💰 {state.get('amount'):.2f} ETB\n📱 `{txt.strip()}`\n🔖 Tx: `{tx['_id']}`", parse_mode="Markdown", reply_markup=approval_kb(tx['_id']))
-        user_states.pop(u.id, None)
-        await update.message.reply_text("✅ *የወጭ ጥያቄዎ ተልኳል!*", parse_mode="Markdown", reply_markup=main_kb(u.id, u.first_name))
-        return
-
-    # Text handlers for keyboard
-    if "💵" in txt: await update.message.reply_text("💰 የክፍያ አማራጭ ይምረጡ:", reply_markup=deposit_kb())
-    elif "📤" in txt: await update.message.reply_text("📤 የወጭ አማራጭ ይምረጡ:", reply_markup=withdraw_kb())
-    elif "💰" in txt: await balance_cmd(update, context)
-    elif "👥" in txt: await update.message.reply_text(f"👥 *የግብዣ ሊንክ*\n\n`https://t.me/{BOT_USERNAME}?start={u.id}`", parse_mode="Markdown")
-    elif "📜" in txt: await update.message.reply_text("📜 ሙሉ ታሪክዎን ለማየት 👤 Profile ን ይጫኑ።")
-    elif "💬" in txt: await update.message.reply_text("💬 *ድጋፍ*\n\n👤 @Tazikes", parse_mode="Markdown")
-    elif "🌐" in txt: await update.message.reply_text("🌐 ቋንቋ ይምረጡ:")
-    elif "❓" in txt: await help_cmd(update, context)
-    elif "🏆" in txt: await update.message.reply_text("🏆 Leaderboard\n\n1. Player1\n2. Player2")
-    else: await update.message.reply_text("ጥያቄዎን አልተረዳሁም። ☰ Menu ን ይጫኑ።", reply_markup=main_kb(u.id, u.first_name))
-
-# ================================================================
-#                        BUTTON HANDLER
-# ================================================================
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    q = update.callback_query
-    await q.answer()
-    data = q.data
-    u = q.from_user
-
-    if data == "close_menu": return await q.edit_message_text("Menu closed.")
-    if data == "cmd_withdraw": return await q.edit_message_text("📤 የወጭ አማራጭ ይምረጡ:", reply_markup=withdraw_kb())
-    if data == "cmd_deposit": return await q.edit_message_text("💰 የክፍያ አማራጭ ይምረጡ:", reply_markup=deposit_kb())
-    if data == "cmd_balance":
-        usr = sv_user(u.id) or {}
-        return await q.edit_message_text(f"💼 *ዋሌት*\n🎯 Playable: *{usr.get('balance',0):.2f} ብር*", parse_mode="Markdown")
-    if data == "cmd_howtoplay": return await q.edit_message_text("🎯 1. Play\n2. ካርቴላ ይምረጡ\n3. BINGO")
-    if data == "cmd_invite": return await q.edit_message_text(f"👥 *የግብዣ ሊንክ*\n\n`https://t.me/{BOT_USERNAME}?start={u.id}`", parse_mode="Markdown")
-    if data == "cmd_support": return await q.edit_message_text("💬 *ድጋፍ*\n\n👤 @Tazikes", parse_mode="Markdown")
-
-    if data == "dep_telebirr": user_states[u.id] = {"action": "deposit", "method": "telebirr"}; await q.edit_message_text("🏦 *Telebirr*\n\n📩 SMS ይለጥፉ:", parse_mode="Markdown")
-    elif data == "dep_cbe": user_states[u.id] = {"action": "deposit", "method": "cbe"}; await q.edit_message_text("🏦 *CBE*\n\n📩 SMS ይለጥፉ:", parse_mode="Markdown")
-    elif data == "wd_telebirr": user_states[u.id] = {"action": "withdraw_amount", "method": "telebirr"}; await q.edit_message_text("🏦 *Telebirr*\n\nየወጭ መጠን (min 100):", parse_mode="Markdown")
-    elif data == "wd_cbe": user_states[u.id] = {"action": "withdraw_amount", "method": "cbe"}; await q.edit_message_text("🏦 *CBE*\n\nየወጭ መጠን (min 100):", parse_mode="Markdown")
-
-    if data.startswith("approve_") or data.startswith("reject_"):
-        if u.id != ADMIN_ID: return
-        action, tx_id = data.split("_", 1); tx = sv_get_tx(tx_id)
-        if not tx: return await q.edit_message_text("❌ Not found")
-        status = "approved" if action == "approve" else "rejected"
-        sv_set_tx_status(tx_id, status)
-        if status == "approved":
-            if tx["type"] == "deposit": sv_adj(tx["userId"], "balance", tx["amount"])
-            elif tx["type"] == "withdraw": sv_adj(tx["userId"], "winBalance", -tx["amount"])
-            try: await context.bot.send_message(tx["userId"], f"✅ ጥያቄዎ ፀድቋል! {tx['amount']:.2f} ETB")
-            except: pass
-        else:
-            try: await context.bot.send_message(tx["userId"], f"❌ ጥያቄዎ ተሰርዟል")
-            except: pass
-        await q.edit_message_text(f"✅ Done" if status == "approved" else f"❌ Rejected")
-
-# ================================================================
-#                        WEBHOOKS & MAIN
-# ================================================================
-async def notify_tx(request):
-    if request.headers.get("x-bot-secret") != BOT_API_SECRET: return web.json_response({"ok": False}, status=403)
-    d = await request.json(); tg = request.app["tg_app"]
-    try: await tg.bot.send_message(d["telegramId"], f"{'✅' if d['status']=='approved' else '❌'} {d['type']} {d['amount']} ETB")
+    try:
+        bot.set_my_commands(commands)
+        bot.set_chat_menu_button(menu_button=types.MenuButtonCommands())
     except: pass
-    return web.json_response({"ok": True})
 
-async def winner_handler(request):
-    if request.headers.get("x-bot-secret") != BOT_API_SECRET: return web.json_response({"ok": False}, status=403)
-    d = await request.json(); tg = request.app["tg_app"]
-    try: await tg.bot.send_message(d["userId"], f"🏆 *እንኳን ደስ አለዎት!*\n💰 *{d['prize']:.2f} ETB*\n🎫 ካርቴላ #{d['cartelaId']}", parse_mode="Markdown")
-    except: pass
-    return web.json_response({"ok": True})
+# ── Translations ───────────────────────────────────────────────
+T = {
+    'am': {'welcome': "🎉 እንኳን ወደ Abisinya Bingo በደህና መጡ!", 'name': "ስም", 'id': "መለያ", 'balance': "ባላንስ", 'choose_below': "ከታች ካሉት አማራጮች ይምረጡ 👇", 'play': "🎯 Abisinya Bingo ይጫወቱ", 'deposit': "💰 ገንዘብ ማስገባት", 'withdraw': "💸 ገንዘብ ማውጣት", 'balance_btn': "🏦 ባላንስ ማየት", 'invite': "👥 ጓደኛ መጋበዝ", 'history': "📜 ታሪክ", 'support': "💬 ድጋፍ", 'register': "🔢 መመዝገብ", 'language': "🌐 ቋንቋ", 'help': "ℹ️ እርዳታ", 'leaderboard': "🏆 ደረጃ", 'rooms': "🎮 ክፍሎች", 'rooms_title': "🎮 የጨዋታ ክፍል ይምረጡ", 'stake_line': "{stake} ብር / ካርቴላ", 'your_balance': "የእርስዎ ባላንስ", 'play_bal': "🎮 Play", 'win_bal': "🏆 Win", 'total': "💰 ጠቅላላ", 'share_contact': "📱 ግንኙነት አጋራ", 'share_contact_prompt': "ከታች ያለውን <b>📱 ግንኙነት አጋራ</b> ቁልፍ ይጫኑ:", 'registered': "✅ በተሳካ ሁኔታ ተመዝግበዋል!", 'already_registered': "✅ አስቀድመው ተመዝግበዋል!", 'deposit_choose': "💳 የክፍያ ዘዴ ይምረጡ፦", 'send_txn': "📝 የTransaction/SMS ጽሑፍ ይላኩ", 'txn_example': "ለምሳሌ: <code>TB123456789 500</code>", 'deposit_sent': "✅ የገቢ ጥያቄ ተልኳል!", 'play_below': "👇 ጨዋታውን ለመጀመር ከታች ያለውን ሜኑ ይጫኑ:", 'withdraw_choose': "💸 የወጭ ዘዴ ይምረጡ:", 'to_self': "👤 ወደ ራስዎ", 'to_other': "👥 ወደ ሌላ ቁጥር", 'insufficient': "❌ Insufficient Balance", 'min_withdraw': "ዝቅተኛው የወጭ መጠን: {amt} ETB", 'wd_approved_req': "✅ Your withdrawal {amt} birr request approved", 'send_amount': "💰 የሚወጣውን መጠን ይላኩ (ቢያንስ {min} ETB):", 'send_phone': "📱 የቴሌብር ቁጥር ይላኩ:", 'invalid_amount': "❌ ትክክለኛ ቁጥር ያስገቡ።", 'invalid_phone': "❌ ትክክለኛ ቁጥር ያስገቡ።", 'unknown': "❓ ያልተለየ ትዕዛዝ።\n/start ይጫኑ።", 'pick_lang': "🌐 ቋንቋ ይምረጡ", 'lang_changed': "🇪🇹 ቋንቋ ወደ አማርኛ ተቀይሯል።", 'your_history': "የ{name} ታሪክ", 'deposits': "💰 ገቢዎች:", 'withdrawals': "💸 ወጮች:", 'no_txn': "📭 እስካሁን ግብይት የለም።", 'leaderboard_title': "🏆 ከፍተኛ አሸናፊዎች", 'no_winners': "📭 እስካሁን ማንም አልተመዘገበም።", 'support_msg': "ለእርዳታ ያግኙን", 'invite_msg': "👥 ጓደኞችዎን ይጋብዙ!", 'invite_bonus': "✨ ለእያንዳንዱ ጓደኛ <b>30 ETB</b> ያግኙ!", 'your_link': "🔗 የእርስዎ ሊንክ:", 'txn_ref': "የTransaction ቁጥር:", 'txn_pending': "⏳ Admin እስኪያጸድቅ ይጠብቁ።", 'not_registered': "❌ መጀመሪያ ማስመዝገብ ያስፈልጋል!", 'registered_phone': "📱 የተመዘገበ ስልክ:", 'help_title': "📋 የእርዳታ ማዕከል", 'help_list': "/start - ቦቱን ጀምር\n/play - ቢንጎ ተጫወት\n/rooms - ክፍል ምረጥ\n/balance - ባላንስ ተመልከት\n/deposit - ገንዘብ አስገባ\n/withdraw - ገንዘብ አውጣ\n/register - ስልክ አስመዝግብ\n/invite - ጓደኛ ጋብዝ\n/history - ታሪክ", 'ref_credited': "🎉 <b>አዲስ ጓደኛ ጋብዘዋል!</b>\n\n+{bonus} ETB ተጨምሯል።"},
+    'en': {'welcome': "🎉 Welcome to Abisinya Bingo!", 'name': "Name", 'id': "ID", 'balance': "Balance", 'choose_below': "Choose below 👇", 'play': "🎯 Play Bingo", 'deposit': "💰 Deposit", 'withdraw': "💸 Withdraw", 'balance_btn': "🏦 Balance", 'invite': "👥 Invite", 'history': "📜 History", 'support': "💬 Support", 'register': "🔢 Register", 'language': "🌐 Language", 'help': "ℹ️ Help", 'leaderboard': "🏆 Rank", 'rooms': "🎮 Rooms", 'rooms_title': "🎮 Choose a room", 'stake_line': "{stake} ETB / card", 'your_balance': "Balance", 'play_bal': "🎮 Play", 'win_bal': "🏆 Win", 'total': "💰 Total", 'share_contact': "📱 Share Contact", 'share_contact_prompt': "Tap <b>📱 Share Contact</b>:", 'registered': "✅ Registered!", 'already_registered': "✅ Already registered!", 'deposit_choose': "💳 Choose method:", 'send_txn': "📝 Send TXN text", 'txn_example': "Ex: <code>TB123456789 500</code>", 'deposit_sent': "✅ Deposit sent!", 'play_below': "👇 Tap the Menu below:", 'withdraw_choose': "💸 Withdraw method:", 'to_self': "👤 Self", 'to_other': "👥 Other", 'insufficient': "❌ Insufficient", 'min_withdraw': "Min: {amt} ETB", 'wd_approved_req': "✅ Withdrawal {amt} birr approved", 'send_amount': "💰 Amount (min {min} ETB):", 'send_phone': "📱 Telebirr phone:", 'invalid_amount': "❌ Invalid number.", 'invalid_phone': "❌ Invalid phone.", 'unknown': "❓ Unknown.\n/start", 'pick_lang': "🌐 Choose Language", 'lang_changed': "🇬🇧 English set.", 'your_history': "{name}'s History", 'deposits': "💰 Deposits:", 'withdrawals': "💸 Withdrawals:", 'no_txn': "📭 No transactions.", 'leaderboard_title': "🏆 Top Winners", 'no_winners': "📭 No one yet.", 'support_msg': "Contact us", 'invite_msg': "👥 Invite!", 'invite_bonus': "✨ Get <b>30 ETB</b>!", 'your_link': "🔗 Link:", 'txn_ref': "TXN ID:", 'txn_pending': "⏳ Pending...", 'not_registered': "❌ Register first!", 'registered_phone': "📱 Phone:", 'help_title': "📋 Help Center", 'help_list': "/start - Start\n/play - Play Bingo\n/rooms - Choose Room\n/balance - Balance\n/deposit - Deposit\n/withdraw - Withdraw\n/register - Register\n/invite - Invite\n/history - History", 'ref_credited': "🎉 <b>New friend joined!</b>\n\n+{bonus} ETB credited."},
+    'ti': {'welcome': "🎉 እንቋዕ ናብ Abisinya Bingo ብደሓን መጻእኩም!", 'name': "ስም", 'id': "መለለዪ", 'balance': "ባላንስ", 'choose_below': "ካብ ኣማራጺታት ትሕቲ ምረጹ 👇", 'play': "🎯 Abisinya Bingo ተጻወት", 'deposit': "💰 ገንዘብ ኣእቱ", 'withdraw': "💸 ገንዘብ ኣውጽእ", 'balance_btn': "🏦 ባላንስ ርአ", 'invite': "👥 ኣሕዋት ዓድም", 'history': "📜 ታሪኽ", 'support': "💬 ደገፍ", 'register': "🔢 ተመዝገብ", 'language': "🌐 ቋንቋ", 'help': "ℹ️ ሓገዝ", 'leaderboard': "🏆 ደረጃ", 'rooms': "🎮 ክፍልታት", 'rooms_title': "🎮 ክፍሊ ጸወታ ምረጽ", 'stake_line': "{stake} ብር / ካርቴላ", 'your_balance': "ባላንስካ", 'play_bal': "🎮 Play", 'win_bal': "🏆 Win", 'total': "💰 ጠቕላላ", 'share_contact': "📱 ርክብ ኣካፍል", 'share_contact_prompt': "ነቲ <b>📱 ርክብ ኣካፍል</b> ጠውቕ:", 'registered': "✅ ብዓወት ተመዝጊብካ!", 'already_registered': "✅ ቀድሚሁ ተመዝጊብካ!", 'deposit_choose': "💳 ኣገባብ ክፍሊት ምረጽ:", 'send_txn': "📝 ጽሑፍ Transaction/SMS ስደድ", 'txn_example': "ኣብነት: <code>TB123456789 500</code>", 'deposit_sent': "✅ ሕቶ ኣታዊ ተላኢኹ!", 'play_below': "👇 ነቲ ሜኑ ቁልፊ ጠውቕ:", 'withdraw_choose': "💸 ኣገባብ ወጻኢ ምረጽ:", 'to_self': "👤 ናብ ርእስኻ", 'to_other': "👥 ናብ ካልእ ቁጽሪ", 'insufficient': "❌ Insufficient", 'min_withdraw': "ትሕቲ ወጻኢ: {amt} ETB", 'wd_approved_req': "✅ ሕቶ ወጻኢኻ {amt} birr ተቐቢሉ", 'send_amount': "💰 ወጻኢ መጠን ስደድ (min {min} ETB):", 'send_phone': "📱 ቁጽሪ Telebirr ስደድ:", 'invalid_amount': "❌ ቅኑዕ ቁጽሪ ኣእቱ።", 'invalid_phone': "❌ ቅኑዕ ቁጽሪ ኣእቱ።", 'unknown': "❓ ዘይተፈልጠ ትእዛዝ።\n/start ጠውቕ።", 'pick_lang': "🌐 ቋንቋ ምረጽ", 'lang_changed': "🇪🇹 ቋንቋ ናብ ትግርኛ ተቐይሩ።", 'your_history': "ታሪኽ {name}", 'deposits': "💰 ኣታዊታት:", 'withdrawals': "💸 ወጻኢታት:", 'no_txn': "📭 ክሳብ ሕጂ ግብይት የለን።", 'leaderboard_title': "🏆 ላዕለዎት ተዓወትቲ", 'no_winners': "📭 ክሳብ ሕጂ ዝተመዝገበ የለን።", 'support_msg': "ንሓገዝ ርኸቡና", 'invite_msg': "👥 ኣሕዋትካ ዓድም!", 'invite_bonus': "✨ ንነፍሲ ወከፍ ዓርኪ <b>30 ETB</b> ርኸብ!", 'your_link': "🔗 ሊንክካ:", 'txn_ref': "ቁጽሪ Transaction:", 'txn_pending': "⏳ ንፈቓድ admin ተጸበ።", 'not_registered': "❌ ቅድም ተመዝገብ!", 'registered_phone': "📱 ዝተመዝገበ ቁጽሪ:", 'help_title': "📋 ማእከል ሓገዝ", 'help_list': "/start - ጀምር\n/play - ተጻወት\n/rooms - ክፍሊ\n/balance - ባላንስ\n/deposit - ኣእቱ\n/withdraw - ኣውጽእ\n/register - ተመዝገብ\n/invite - ዓድም\n/history - ታሪኽ", 'ref_credited': "🎉 <b>ሓድሽ ዓርኪ ዓዲምካ!</b>\n\n+{bonus} ETB ተወሲኹ።"},
+    'om': {'welcome': "🎉 Baga gara Abisinya Bingo nagaan dhuftan!", 'name': "Maqaa", 'id': "Eenyummaa", 'balance': "Baalaansii", 'choose_below': "Filannoo gadii keessaa filadhu 👇", 'play': "🎯 Abisinya Bingo Taphadhu", 'deposit': "💰 Maallaqa Galchi", 'withdraw': "💸 Maallaqa Baas", 'balance_btn': "🏦 Baalaansii Ilaali", 'invite': "👥 Hiriyoota Affeeri", 'history': "📜 Seenaa", 'support': "💬 Deeggarsa", 'register': "🔢 Galmaa'i", 'language': "🌐 Afaan", 'help': "ℹ️ Gargaarsa", 'leaderboard': "🏆 Sadarkaa", 'rooms': "🎮 Kutaa", 'rooms_title': "🎮 Kutaa taphaa filadhu", 'stake_line': "{stake} ETB / kaardii", 'your_balance': "Baalaansii Kee", 'play_bal': "🎮 Play", 'win_bal': "🏆 Win", 'total': "💰 Waliigala", 'share_contact': "📱 Quunnamtii Qoodi", 'share_contact_prompt': "Isaa <b>📱 Quunnamtii Qoodi</b> tuqi:", 'registered': "✅ Milkaa'inaan galmaa'te!", 'already_registered': "✅ Duraan galmaa'teerta!", 'deposit_choose': "💳 Mala kaffaltii filadhu:", 'send_txn': "📝 Barruu Transaction/SMS ergi", 'txn_example': "Fkn: <code>TB123456789 500</code>", 'deposit_sent': "✅ Gaaffiin galii ergame!", 'play_below': "👇 Menu button tuqi:", 'withdraw_choose': "💸 Mala baasii filadhu:", 'to_self': "👤 Ofiif", 'to_other': "👥 Lakkoofsa Biroof", 'insufficient': "❌ Insufficient", 'min_withdraw': "Baasii xiqqaan: {amt} ETB", 'wd_approved_req': "✅ Gaaffiin baasii kee {amt} birr fudhatame", 'send_amount': "💰 Hanga baasii ergi (min {min} ETB):", 'send_phone': "📱 Lakkoofsa Telebirr ergi:", 'invalid_amount': "❌ Lakkoofsa sirrii galchi.", 'invalid_phone': "❌ Lakkoofsa sirrii galchi.", 'unknown': "❓ Ajaja hin beekamne.\n/start tuqi.", 'pick_lang': "🌐 Afaan filadhu", 'lang_changed': "🇪🇹 Afaan gara Afaan Oromoo jijjiirame.", 'your_history': "Seenaa {name}", 'deposits': "💰 Galiwwan:", 'withdrawals': "💸 Baasiiwwan:", 'no_txn': "📭 Ammaatti daldala hin jiru.", 'leaderboard_title': "🏆 Mo'attoota Olii", 'no_winners': "📭 Ammaatti namni hin galmaa'ne.", 'support_msg': "Gargaarsaaf nu quunnamaa", 'invite_msg': "👥 Hiriyoota kee affeeri!", 'invite_bonus': "✨ Hiriyoota tokkoon tokkoon <b>30 ETB</b> argadhu!", 'your_link': "🔗 Liinkii kee:", 'txn_ref': "ID Transaction:", 'txn_pending': "⏳ Eegaa admin mirkaneessu.", 'not_registered': "❌ Duraan galmaa'i!", 'registered_phone': "📱 Bilbila galmaa'e:", 'help_title': "📋 Giddu-gala Gargaarsa", 'help_list': "/start - Jalqabi\n/play - Taphadhu\n/rooms - Kutaa\n/balance - Baalaansii\n/deposit - Galchi\n/withdraw - Baasi\n/register - Galmaa'i\n/invite - Affeeri\n/history - Seenaa", 'ref_credited': "🎉 <b>Hiriyyaan haaraan dhufe!</b>\n\n+{bonus} ETB ida'ame."}
+}
 
-async def main():
-    tg = ApplicationBuilder().token(TOKEN).build()
-    tg.add_handler(CommandHandler("start", start))
-    tg.add_handler(CommandHandler("menu", menu_cmd))
-    tg.add_handler(CommandHandler("balance", balance_cmd))
-    tg.add_handler(CommandHandler("help", help_cmd))
-    tg.add_handler(CommandHandler("register", lambda u,c: u.message.reply_text("📱 Share:", reply_markup=contact_kb())))
-    tg.add_handler(MessageHandler(filters.CONTACT, handle_msg))
-    tg.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_msg))
-    tg.add_handler(CallbackQueryHandler(button_handler))
+# ── Health server (keeps Render free-tier Web Service awake) ───
+class _HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b'OK')
+    def do_HEAD(self):
+        self.send_response(200)
+        self.end_headers()
+    def log_message(self, *args):
+        pass
 
-    webapp = web.Application()
-    webapp["tg_app"] = tg
-    webapp.router.add_post("/notify-tx", notify_tx)
-    webapp.router.add_post("/winner", winner_handler)
-    webapp.router.add_get("/", lambda r: web.json_response({"ok": True}))
+def _start_health_server():
+    port = int(os.getenv('PORT', '8080'))
+    try:
+        httpd = HTTPServer(('0.0.0.0', port), _HealthHandler)
+        print(f"💚 Health server listening on 0.0.0.0:{port}")
+        httpd.serve_forever()
+    except Exception as e:
+        print(f"⚠️ Health server error: {e}")
 
-    await tg.initialize(); await tg.start()
-    runner = web.AppRunner(webapp); await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", BOT_PORT); await site.start()
-    print("🤖 Bot running")
-    await asyncio.Event().wait()
+threading.Thread(target=_start_health_server, daemon=True).start()
 
-if __name__ == "__main__":
-    try: asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit): pass
+# ── Helpers ────────────────────────────────────────────────────
+def t(uid, key, **kwargs):
+    user = get_user(uid) or {}
+    lang = user.get('lang', 'am')
+    text = T.get(lang, T['am']).get(key, T['am'].get(key, key))
+    if kwargs:
+        try: return text.format(**kwargs)
+        except: return text
+    return text
+
+def get_action(text):
+    if not text: return None
+    if '🎯' in text or 'Bingo' in text or 'Taphadhu' in text: return 'play'
+    if '💰' in text or 'ማስገባት' in text or 'Deposit' in text or 'Galchi' in text: return 'deposit'
+    if '💸' in text or 'ማውጣት' in text or 'Withdraw' in text or 'Baas' in text: return 'withdraw'
+    if '🏦' in text or 'ባላንስ' in text or 'Balance' in text or 'Baalaansii' in text: return 'balance_btn'
+    if '👥' in text or 'መጋበዝ' in text or 'Invite' in text or 'Affeeri' in text: return 'invite'
+    if '📜' in text or 'ታሪክ' in text or 'History' in text or 'Seenaa' in text: return 'history'
+    if '💬' in text or 'ድጋፍ' in text or 'Support' in text or 'Deeggarsa' in text: return 'support'
+    if '🔢' in text or 'መመዝገብ' in text or 'Register' in text or 'Galmaa' in text: return 'register'
+    if '🌐' in text or 'ቋንቋ' in text or 'Language' in text or 'Afaan' in text: return 'language'
+    if 'ℹ️' in text or 'እርዳታ' in text or 'Help' in text or 'Gargaarsa' in text: return 'help'
+    if '🏆' in text or 'ደረጃ' in text or 'Rank' in text or 'Sadarkaa' in text: return 'leaderboard'
+    if '🎮' in text and ('ክፍል' in text or 'Room' in text or 'Kutaa' in text): return 'rooms'
+    return None
+
+def main_reply_keyboard(uid):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(types.KeyboardButton(text=t(uid, 'play'), web_app=types.WebAppInfo(url=WEB_APP_URL)))
+    markup.add(types.KeyboardButton(t(uid, 'rooms')), types.KeyboardButton(t(uid, 'deposit')))
+    markup.add(types.KeyboardButton(t(uid, 'withdraw')), types.KeyboardButton(t(uid, 'balance_btn')))
+    markup.add(types.KeyboardButton(t(uid, 'invite')), types.KeyboardButton(t(uid, 'history')))
+    markup.add(types.KeyboardButton(t(uid, 'support')), types.KeyboardButton(t(uid, 'register')))
+    markup.add(types.KeyboardButton(t(uid, 'language')), types.KeyboardButton(t(uid, 'help')))
+    markup.add(types.KeyboardButton(t(uid, 'leaderboard')))
+    return markup
+
+def webapp_inline_keyboard(uid, room=None):
+    markup = types.InlineKeyboardMarkup()
+    url = WEB_APP_URL + (f"?room={room}" if room else "")
+    markup.add(types.InlineKeyboardButton(text=t(uid, 'play'), web_app=types.WebAppInfo(url=url)))
+    return markup
+
+def contact_button(uid):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    markup.add(types.KeyboardButton(text=t(uid, 'share_contact'), request_contact=True))
+    return markup
+
+def notify_admins(text, skip_id=None):
+    for aid in ADMIN_IDS:
+        if skip_id and str(aid) == str(skip_id): continue
+        try: bot.send_message(aid, text, parse_mode='HTML')
+        except: pass
+
+# ── Handlers ───────────────────────────────────────────────────
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    user = ensure_user(message)
+    uid = str(message.from_user.id)
+    args = message.text.split()
+
+    # Referral credit (once per new user)
+    if len(args) > 1 and not user.get('referred_by') and not user.get('referral_credited'):
+        ref_code = args[1].strip()
+        if ref_code and ref_code != uid:
+            referrer = users_col.find_one({"referral_code": ref_code})
+            if referrer:
+                users_col.update_one(
+                    {"id": uid},
+                    {"$set": {"referred_by": ref_code, "referral_credited": True}}
+                )
+                users_col.update_one(
+                    {"id": referrer['id']},
+                    {"$inc": {"play_balance": REFERRAL_BONUS}}
+                )
+                try:
+                    bot.send_message(
+                        int(referrer['id']),
+                        t(referrer['id'], 'ref_credited', bonus=REFERRAL_BONUS),
+                        parse_mode='HTML'
+                    )
+                except: pass
+
+    bot.send_message(
+        message.chat.id,
+        f"{t(uid,'welcome')}\n\n"
+        f"👤 {t(uid,'name')}: <b>{user['name']}</b>\n"
+        f"🆔 {t(uid,'id')}: <code>{user['id']}</code>\n"
+        f"💰 {t(uid,'balance')}: <b>{user['play_balance']:.2f} ETB</b>\n\n"
+        f"{t(uid,'choose_below')}",
+        reply_markup=main_reply_keyboard(uid), parse_mode='HTML'
+    )
+    bot.send_message(message.chat.id, t(uid,'play_below'),
+                     reply_markup=webapp_inline_keyboard(uid), parse_mode='HTML')
+
+@bot.message_handler(commands=['play'])
+def cmd_play(message):
+    uid = str(message.from_user.id); ensure_user(message)
+    bot.send_message(message.chat.id, t(uid,'play_below'),
+                     reply_markup=webapp_inline_keyboard(uid), parse_mode='HTML')
+
+@bot.message_handler(commands=['rooms'])
+def cmd_rooms(message):
+    uid = str(message.from_user.id); ensure_user(message)
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    for rid, label, stake in ROOMS:
+        markup.add(types.InlineKeyboardButton(
+            f"{label} — {t(uid,'stake_line', stake=stake)}",
+            web_app=types.WebAppInfo(url=f"{WEB_APP_URL}?room={rid}")
+        ))
+    bot.send_message(message.chat.id, t(uid,'rooms_title'),
+                     reply_markup=markup, parse_mode='HTML')
+
+@bot.message_handler(commands=['balance'])
+def cmd_balance(message):
+    uid = str(message.from_user.id); u = ensure_user(message)
+    bot.send_message(message.chat.id,
+        f"🏦 <b>{t(uid,'your_balance')}</b>\n\n"
+        f"{t(uid,'play_bal')}: <b>{u['play_balance']:.2f} ETB</b>\n"
+        f"{t(uid,'win_bal')}: <b>{u['win_balance']:.2f} ETB</b>\n"
+        f"{t(uid,'total')}: <b>{u['play_balance'] + u['win_balance']:.2f} ETB</b>",
+        parse_mode='HTML')
+
+@bot.message_handler(commands=['invite'])
+def cmd_invite(message):
+    uid = str(message.from_user.id); u = ensure_user(message)
+    try: bot_username = bot.get_me().username
+    except: bot_username = "Ethiobongo_bot"
+    link = f"https://t.me/{bot_username}?start={u['referral_code']}"
+    bot.send_message(message.chat.id,
+        f"{t(uid,'invite_msg')}\n\n{t(uid,'invite_bonus')}\n\n"
+        f"{t(uid,'your_link')}\n<code>{link}</code>",
+        parse_mode='HTML')
+
+@bot.message_handler(commands=['language'])
+def handle_language(message):
+    uid = str(message.from_user.id); ensure_user(message)
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    markup.add(types.InlineKeyboardButton("🇪🇹 አማርኛ", callback_data="lang_am"),
+               types.InlineKeyboardButton("🇬🇧 English", callback_data="lang_en"))
+    markup.add(types.InlineKeyboardButton("🇪🇹 ትግርኛ", callback_data="lang_ti"),
+               types.InlineKeyboardButton("🇪🇹 Afaan Oromoo", callback_data="lang_om"))
+    bot.send_message(message.chat.id, t(uid,'pick_lang'), reply_markup=markup, parse_mode='HTML')
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('lang_'))
+def cb_language(call):
+    uid = str(call.from_user.id); lang = call.data.replace('lang_', '')
+    users_col.update_one({"id": uid}, {"$set": {"lang": lang}}, upsert=True)
+    bot.answer_callback_query(call.id, "✅")
+    bot.send_message(call.message.chat.id, t(uid,'lang_changed'))
+    bot.send_message(call.message.chat.id, t(uid,'choose_below'), reply_markup=main_reply_keyboard(uid))
+
+@bot.message_handler(commands=['register'])
+def handle_register(message):
+    uid = str(message.from_user.id); u = ensure_user(message)
+    if u.get('registered'):
+        bot.send_message(message.chat.id,
+            f"{t(uid,'already_registered')}\n\n👤 {u['name']}\n📱 {u.get('phone','N/A')}",
+            parse_mode='HTML', reply_markup=main_reply_keyboard(uid)); return
+    bot.send_message(message.chat.id,
+        f"🔢 <b>{t(uid,'register')}</b>\n\n{t(uid,'share_contact_prompt')}",
+        reply_markup=contact_button(uid), parse_mode='HTML')
+
+@bot.message_handler(content_types=['contact'])
+def handle_contact(message):
+    uid = str(message.from_user.id); u = ensure_user(message)
+    if message.contact.user_id != message.from_user.id:
+        bot.send_message(message.chat.id, "❌ Share your own contact only.",
+                         reply_markup=main_reply_keyboard(uid)); return
+    phone = message.contact.phone_number
+    if not phone.startswith('+'): phone = '+' + phone
+    if u.get('registered'):
+        bot.send_message(message.chat.id, t(uid,'already_registered'),
+                         reply_markup=main_reply_keyboard(uid)); return
+    users_col.update_one({"id": uid}, {"$set": {"phone": phone, "registered": True}})
+    u = get_user(uid)
+    bot.send_message(message.chat.id,
+        f"{t(uid,'registered')}\n\n👤 {u['name']}\n📱 {phone}\n💰 {t(uid,'balance')}: <b>{u['play_balance']:.2f} ETB</b>",
+        parse_mode='HTML', reply_markup=main_reply_keyboard(uid))
+
+def parse_deposit_text(text):
+    text_clean = (text or "").strip()
+    if not text_clean: return None, None
+    amount, reference = None, None
+    for pat in [r'transaction\s+number\s+is\s+([A-Z0-9]{6,})',
+                r'transaction\s+(?:id|no)\s*[:\-]?\s*([A-Z0-9]{6,})',
+                r'txn\s*[:\-]?\s*([A-Z0-9]{6,})',
+                r'reference\s*[:\-]?\s*([A-Z0-9]{6,})']:
+        m = re.search(pat, text_clean, re.IGNORECASE)
+        if m: reference = m.group(1).upper(); break
+    for pat in [r'you\s+have\s+received\s+ETB\s+(\d+(?:[.,]\d+)?)',
+                r'received\s+ETB\s+(\d+(?:[.,]\d+)?)',
+                r'credited\s+with\s+(?:ETB|Birr)\s+(\d+(?:[.,]\d+)?)',
+                r'(?:ETB|Birr)\s+(\d+(?:[.,]\d+)?)']:
+        m = re.search(pat, text_clean, re.IGNORECASE)
+        if m:
+            try:
+                val = float(m.group(1).replace(',', ''))
+                if 10 <= val <= 100000: amount = val; break
+            except: pass
+    if not amount:
+        for p in reversed(text_clean.split()[-5:]):
+            try:
+                val = float(p.replace(',', ''))
+                if 10 <= val <= 100000: amount = val; break
+            except: pass
+    return reference, amount
+
+@bot.message_handler(commands=['deposit'])
+def handle_deposit(message):
+    uid = str(message.from_user.id); ensure_user(message)
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    markup.add(types.InlineKeyboardButton("📲 Telebirr", callback_data="dep_telebirr"),
+               types.InlineKeyboardButton("🏦 CBE", callback_data="dep_cbe"))
+    bot.send_message(message.chat.id, f"💳 <b>{t(uid,'deposit_choose')}</b>",
+                     reply_markup=markup, parse_mode='HTML')
+
+@bot.callback_query_handler(func=lambda call: call.data == "dep_telebirr")
+def cb_dep_telebirr(call):
+    uid = str(call.from_user.id); bot.answer_callback_query(call.id)
+    msg = bot.send_message(call.message.chat.id,
+        f"📲 <b>Telebirr</b>\n\n📞 <code>{TELEBIRR_NUMBER}</code>\n👤 <b>{ACCOUNT_NAME}</b>\n\n"
+        f"{t(uid,'send_txn')}\n{t(uid,'txn_example')}", parse_mode='HTML')
+    bot.register_next_step_handler(msg, process_deposit_reference, 'Telebirr')
+
+@bot.callback_query_handler(func=lambda call: call.data == "dep_cbe")
+def cb_dep_cbe(call):
+    uid = str(call.from_user.id); bot.answer_callback_query(call.id)
+    msg = bot.send_message(call.message.chat.id,
+        f"🏦 <b>CBE</b>\n\n🔢 <code>{CBE_NUMBER}</code>\n👤 <b>{ACCOUNT_NAME}</b>\n\n"
+        f"{t(uid,'send_txn')}\n{t(uid,'txn_example')}", parse_mode='HTML')
+    bot.register_next_step_handler(msg, process_deposit_reference, 'CBE')
+
+def process_deposit_reference(message, method):
+    uid = str(message.from_user.id); text = message.text or ""
+    reference, amount = parse_deposit_text(text)
+    if not amount or amount < MIN_DEPOSIT:
+        bot.send_message(message.chat.id, f"❌ {t(uid,'invalid_amount')}\n\n{t(uid,'txn_example')}",
+                         parse_mode='HTML', reply_markup=main_reply_keyboard(uid)); return
+    if not reference: reference = gen_txn_id()
+    u = ensure_user(message); txn_id = gen_txn_id()
+    txns_col.insert_one({
+        "id": txn_id, "type": "deposit", "user_id": u['id'], "user_name": u['name'],
+        "amount": amount, "method": method, "reference": reference,
+        "status": "pending", "created": datetime.utcnow().isoformat(), "notified": False
+    })
+    bot.send_message(message.chat.id,
+        f"{t(uid,'deposit_sent')}\n\n🆔 <code>{txn_id}</code>\n💳 {method}\n"
+        f"💰 <b>{amount:.2f} ETB</b>\n{t(uid,'txn_ref')} <code>{reference}</code>\n\n{t(uid,'txn_pending')}",
+        parse_mode='HTML', reply_markup=main_reply_keyboard(uid))
+    notify_admins(f"💰 <b>New Deposit</b>\n\n👤 {u['name']} (<code>{u['id']}</code>)\n"
+                  f"💳 {method}\n💰 {amount:.2f} ETB\n🔢 <code>{reference}</code>", skip_id=u['id'])
+
+@bot.message_handler(commands=['withdraw'])
+def handle_withdraw(message):
+    uid = str(message.from_user.id); u = ensure_user(message)
+    if not u.get('registered'):
+        bot.send_message(message.chat.id, t(uid,'not_registered'),
+                         reply_markup=main_reply_keyboard(uid)); return
+    if u['win_balance'] < MIN_WITHDRAW:
+        bot.send_message(message.chat.id,
+            f"{t(uid,'insufficient')}\n\n{t(uid,'win_bal')}: <b>{u['win_balance']:.2f} ETB</b>\n"
+            f"{t(uid,'min_withdraw', amt=MIN_WITHDRAW)}",
+            parse_mode='HTML', reply_markup=main_reply_keyboard(uid)); return
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    markup.add(types.InlineKeyboardButton(t(uid,'to_self'), callback_data="wd_self"),
+               types.InlineKeyboardButton(t(uid,'to_other'), callback_data="wd_other"))
+    bot.send_message(message.chat.id,
+        f"💸 <b>{t(uid,'withdraw_choose')}</b>\n\n{t(uid,'win_bal')}: <b>{u['win_balance']:.2f} ETB</b>\n"
+        f"{t(uid,'min_withdraw', amt=MIN_WITHDRAW)}",
+        reply_markup=markup, parse_mode='HTML')
+
+@bot.callback_query_handler(func=lambda call: call.data == "wd_self")
+def cb_wd_self(call):
+    uid = str(call.from_user.id); bot.answer_callback_query(call.id); u = get_user(uid)
+    if u and u.get('phone'):
+        msg = bot.send_message(call.message.chat.id,
+            f"👤 <b>{t(uid,'to_self')}</b>\n\n{t(uid,'registered_phone')} <b>{u['phone']}</b>\n\n"
+            f"{t(uid,'send_amount', min=MIN_WITHDRAW)}",
+            parse_mode='HTML', reply_markup=main_reply_keyboard(uid))
+        bot.register_next_step_handler(msg, process_withdraw_amount_final, u['phone'])
+    else:
+        bot.send_message(call.message.chat.id, t(uid,'share_contact_prompt'),
+                         reply_markup=contact_button(uid), parse_mode='HTML')
+
+@bot.callback_query_handler(func=lambda call: call.data == "wd_other")
+def cb_wd_other(call):
+    uid = str(call.from_user.id); bot.answer_callback_query(call.id)
+    msg = bot.send_message(call.message.chat.id,
+        f"👥 <b>{t(uid,'to_other')}</b>\n\n{t(uid,'send_phone')}",
+        parse_mode='HTML')
+    bot.register_next_step_handler(msg, process_wd_other_phone)
+
+def process_wd_other_phone(message):
+    uid = str(message.from_user.id); phone = (message.text or "").strip()
+    if not phone.replace('+', '').isdigit() or len(phone) < 9:
+        bot.send_message(message.chat.id, t(uid,'invalid_phone'),
+                         reply_markup=main_reply_keyboard(uid)); return
+    msg = bot.send_message(message.chat.id,
+        f"✅ <b>{phone}</b>\n\n{t(uid,'send_amount', min=MIN_WITHDRAW)}",
+        parse_mode='HTML', reply_markup=main_reply_keyboard(uid))
+    bot.register_next_step_handler(msg, process_withdraw_amount_final, phone)
+
+def process_withdraw_amount_final(message, phone):
+    uid = str(message.from_user.id)
+    try: amount = float((message.text or "").strip())
+    except:
+        bot.send_message(message.chat.id, t(uid,'invalid_amount'),
+                         reply_markup=main_reply_keyboard(uid)); return
+    u = ensure_user(message)
+    if amount < MIN_WITHDRAW:
+        bot.send_message(message.chat.id,
+            f"{t(uid,'insufficient')}\n\n{t(uid,'min_withdraw', amt=MIN_WITHDRAW)}",
+            parse_mode='HTML', reply_markup=main_reply_keyboard(uid)); return
+    if amount > u['win_balance']:
+        bot.send_message(message.chat.id,
+            f"{t(uid,'insufficient')}\n\n{t(uid,'win_bal')}: <b>{u['win_balance']:.2f} ETB</b>",
+            parse_mode='HTML', reply_markup=main_reply_keyboard(uid)); return
+
+    # Atomic debit — if a concurrent request drains balance, this returns modified_count=0
+    result = users_col.update_one(
+        {"id": uid, "win_balance": {"$gte": amount}},
+        {"$inc": {"win_balance": -amount}}
+    )
+    if result.modified_count == 0:
+        bot.send_message(message.chat.id,
+            f"{t(uid,'insufficient')}\n\n{t(uid,'win_bal')}: <b>{u['win_balance']:.2f} ETB</b>",
+            parse_mode='HTML', reply_markup=main_reply_keyboard(uid)); return
+
+    u = get_user(uid); txn_id = gen_txn_id()
+    txns_col.insert_one({
+        "id": txn_id, "type": "withdrawal", "user_id": u['id'], "user_name": u['name'],
+        "amount": amount, "phone": phone, "status": "pending",
+        "created": datetime.utcnow().isoformat(), "notified": False
+    })
+    bot.send_message(message.chat.id,
+        f"{t(uid,'wd_approved_req', amt=f'{amount:.2f}')}\n\n🆔 <code>{txn_id}</code>\n"
+        f"📱 <b>{phone}</b>\n💰 <b>{amount:.2f} ETB</b>\n\n{t(uid,'txn_pending')}",
+        parse_mode='HTML', reply_markup=main_reply_keyboard(uid))
+    notify_admins(f"💸 <b>New Withdrawal</b>\n\n👤 {u['name']} (<code>{u['id']}</code>)\n"
+                  f"💰 {amount:.2f} ETB\n📱 {phone}\n🆔 <code>{txn_id}</code>", skip_id=u['id'])
+
+@bot.message_handler(commands=['history'])
+def h_history(message):
+    uid = str(message.from_user.id); u = ensure_user(message)
+    deps = list(txns_col.find({"user_id": uid, "type": "deposit"}).sort("_id", -1).limit(5))
+    wds = list(txns_col.find({"user_id": uid, "type": "withdrawal"}).sort("_id", -1).limit(5))
+    text = f"📜 <b>{t(uid,'your_history', name=u['name'])}</b>\n\n"
+    if deps:
+        text += f"<b>{t(uid,'deposits')}</b>\n" + "".join(
+            [f"{'✅' if tt['status']=='approved' else '❌' if tt['status']=='rejected' else '⏳'} {tt['amount']:.2f} ETB\n" for tt in deps]) + "\n"
+    if wds:
+        text += f"<b>{t(uid,'withdrawals')}</b>\n" + "".join(
+            [f"{'✅' if tt['status']=='approved' else '❌' if tt['status']=='rejected' else '⏳'} {tt['amount']:.2f} ETB\n" for tt in wds]) + "\n"
+    if not deps and not wds: text += t(uid,'no_txn')
+    bot.send_message(message.chat.id, text, parse_mode='HTML')
+
+@bot.message_handler(commands=['help'])
+def h_help(message):
+    uid = str(message.from_user.id); ensure_user(message)
+    bot.send_message(message.chat.id, f"{t(uid,'help_title')}\n\n{t(uid,'help_list')}", parse_mode='HTML')
+
+# ── Button handlers ────────────────────────────────────────────
+@bot.message_handler(func=lambda m: get_action(m.text) == 'play')
+def h_play_btn(message): cmd_play(message)
+
+@bot.message_handler(func=lambda m: get_action(m.text) == 'rooms')
+def h_rooms_btn(message): cmd_rooms(message)
+
+@bot.message_handler(func=lambda m: get_action(m.text) == 'deposit')
+def h_dep_btn(message): handle_deposit(message)
+
+@bot.message_handler(func=lambda m: get_action(m.text) == 'withdraw')
+def h_wd_btn(message): handle_withdraw(message)
+
+@bot.message_handler(func=lambda m: get_action(m.text) == 'balance_btn')
+def h_bal_btn(message): cmd_balance(message)
+
+@bot.message_handler(func=lambda m: get_action(m.text) == 'invite')
+def h_inv_btn(message): cmd_invite(message)
+
+@bot.message_handler(func=lambda m: get_action(m.text) == 'history')
+def h_hist_btn(message): h_history(message)
+
+@bot.message_handler(func=lambda m: get_action(m.text) == 'register')
+def h_reg_btn(message): handle_register(message)
+
+@bot.message_handler(func=lambda m: get_action(m.text) == 'language')
+def h_lang_btn(message): handle_language(message)
+
+@bot.message_handler(func=lambda m: get_action(m.text) == 'help')
+def h_help_btn(message): h_help(message)
+
+@bot.message_handler(func=lambda m: get_action(m.text) == 'support')
+def h_sup_btn(message):
+    uid = str(message.from_user.id); ensure_user(message)
+    markup = types.InlineKeyboardMarkup().add(
+        types.InlineKeyboardButton(f"📞 @{SUPPORT_USERNAME}", url=f"https://t.me/{SUPPORT_USERNAME}"))
+    bot.send_message(message.chat.id, f"💬 <b>{t(uid,'support_msg')}</b>\n\n📞 @{SUPPORT_USERNAME}\n⏰ 24/7",
+                     reply_markup=markup, parse_mode='HTML')
+
+@bot.message_handler(func=lambda m: get_action(m.text) == 'leaderboard')
+def h_lead_btn(message):
+    uid = str(message.from_user.id); ensure_user(message)
+    sorted_u = list(users_col.find().sort("win_balance", -1).limit(5))
+    text = f"<b>{t(uid,'leaderboard_title')}</b>\n\n"
+    medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
+    for i, uu in enumerate(sorted_u):
+        text += f"{medals[i]} <b>{uu.get('name','?')[:20]}</b> — {uu.get('win_balance',0):.2f} ETB\n"
+    if not sorted_u: text += t(uid,'no_winners')
+    bot.send_message(message.chat.id, text, parse_mode='HTML')
+
+@bot.message_handler(func=lambda m: True)
+def fallback(message):
+    uid = str(message.from_user.id); ensure_user(message)
+    bot.send_message(message.chat.id, t(uid,'unknown'))
+
+# ── Notifier thread ────────────────────────────────────────────
+def notify_txn_users():
+    print("🔔 Txn notifier started")
+    while True:
+        try:
+            time.sleep(5)
+            pending = txns_col.find({"status": {"$in": ["approved", "rejected"]}, "notified": {"$ne": True}})
+            for txn in pending:
+                tid = txn.get('id'); uid = str(txn.get('user_id', ''))
+                if not tid or not uid: continue
+                try:
+                    amount_str = f"{txn.get('amount', 0):.2f}"
+                    if txn.get('type') == 'deposit' and txn['status'] == 'approved':
+                        user = get_user(uid); bal = f"{user.get('play_balance', 0):.2f}" if user else "0.00"
+                        bot.send_message(int(uid),
+                            f"✅ <b>ገቢ ያደረጉት {amount_str} ETB ወደ ዋሌትዎ ተደምሯል</b>\n\n💰 አዲስ ባላንስ: <b>{bal} ETB</b>",
+                            parse_mode='HTML')
+                    elif txn.get('type') == 'withdrawal' and txn['status'] == 'approved':
+                        bot.send_message(int(uid),
+                            f"✅ <b>ወጭዎ በተሳካ ሁኔታ ገብቷል!</b>\n\n💰 መጠን: <b>{amount_str} ETB</b>",
+                            parse_mode='HTML')
+                    elif txn['status'] == 'rejected':
+                        bot.send_message(int(uid),
+                            f"❌ <b>የ{txn.get('type')} ጥያቄዎ ተከልክሏል</b>\n\n💰 መጠን: <b>{amount_str} ETB</b>",
+                            parse_mode='HTML')
+                    txns_col.update_one({"id": tid}, {"$set": {"notified": True}})
+                except:
+                    txns_col.update_one({"id": tid}, {"$set": {"notified": True}})
+        except: pass
+
+# ── Main ───────────────────────────────────────────────────────
+if __name__ == '__main__':
+    print("🤖 Bot started...")
+    setup_bot_menu()
+    threading.Thread(target=notify_txn_users, daemon=True).start()
+    while True:
+        try:
+            bot.infinity_polling(timeout=60, long_polling_timeout=60)
+        except Exception as e:
+            print(f"⚠️ Error: {e}")
+            time.sleep(5)
