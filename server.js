@@ -1,273 +1,336 @@
-require('dotenv').config();
 const express = require('express');
 const http = require('http');
-const cors = require('cors');
-const mongoose = require('mongoose');
 const { Server } = require('socket.io');
-const path = require('path');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const crypto = require('crypto');
-const axios = require('axios');
+require('dotenv').config();
 
-const User = require('./models/User');
-const Transaction = require('./models/Transaction');
+const dns = require('dns');
+dns.setServers(['8.8.8.8', '1.1.1.1']);
+
+const { User, Transaction, AdminSession, Round, AuditLog } = require('./models');
+const { GameManager, generateCard } = require('./game/engine');
+const { verifyTelegramInitData, requireTelegramUser, requireAdmin } = require('./auth');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
-
 const PORT = process.env.PORT || 3000;
-const BOT_API_SECRET = process.env.BOT_API_SECRET || 'change-me';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
-const BOT_CALLBACK_URL = process.env.BOT_CALLBACK_URL || '';
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const MONGODB_URI = process.env.MONGODB_URI;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
-// Secure Admin Route
-const ADMIN_SECRET_PATH = '/admin-panel-' + crypto.createHash('sha256').update('adm-' + ADMIN_PASSWORD).digest('hex').slice(0, 20);
-console.log('\n👑 ADMIN URL: https://abisinya-bingo-server.onrender.com' + ADMIN_SECRET_PATH + '\n');
+if (!BOT_TOKEN || !MONGODB_URI || !ADMIN_PASSWORD) {
+  console.error('Missing env: TELEGRAM_BOT_TOKEN, MONGODB_URI, ADMIN_PASSWORD');
+  process.exit(1);
+}
 
 app.use(cors());
-app.use(express.json({ limit: '1mb' }));
-const PUBLIC_DIR = path.join(__dirname, 'public');
-app.get('/admin.html', (req, res) => res.status(404).send('Not found'));
-app.get(ADMIN_SECRET_PATH, (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'admin.html')));
-app.use(express.static(PUBLIC_DIR));
+app.use(express.json({ limit: '64kb' }));
+app.use(express.static('public'));
 
-mongoose.connect(process.env.MONGODB_URI).then(() => console.log('✅ MongoDB connected'));
+const gameLimiter = rateLimit({ windowMs: 60_000, max: 60 });
+const globalLimiter = rateLimit({ windowMs: 60_000, max: 180 });
+const loginLimiter = rateLimit({ windowMs: 10 * 60_000, max: 20 });
+app.use('/api/game', gameLimiter);
+app.use('/api/wallet', gameLimiter);
+app.use('/api/admin/login', loginLimiter);
+app.use('/api/', globalLimiter);
 
-// --- GAME ENGINE STATE ---
-const CARTELA_COUNT = 600;
-const SELECTION_SECONDS = 30;
-const CALL_INTERVAL_MS = 4000;
-const LATE_JOIN_GRACE_MS = 15000; // 15 seconds to join after game starts
-const BETWEEN_ROUNDS_MS = 8000;
+// ─── Boot recovery ─────────────────────────────────────────────
+async function bootRecovery() {
+  const cutoff = new Date(Date.now() - 15 * 60_000);
+  const stuck = await Round.find({
+    phase: { $in: ['countdown', 'calling', 'gameover'] },
+    startedAt: { $lt: cutoff }
+  });
 
-const state = {
-  roundId: 0,
-  phase: 'selection', // selection | running | finished
-  selectionEndsAt: 0,
-  startedAt: 0,
-  calledNumbers: [],
-  currentCall: null,
-  players: new Map(), // userId -> { firstName, cartelas }
-  takenCartelas: new Set(),
-  prizePool: 0,
-  winner: null,
-  cartelas: [],
-  jackpot: 0,
-  callTimer: null,
-  phaseTimer: null,
-  entryFee: 10,
-  prizePct: 0.8,
-  selectionSeconds: SELECTION_SECONDS,
-  callIntervalMs: CALL_INTERVAL_MS
-};
-
-// Generate Cartelas
-function generateCartela(id) {
-  const cols = [];
-  for (let c = 0; c < 5; c++) {
-    const min = c * 15 + 1;
-    const pool = Array.from({ length: 15 }, (_, i) => min + i);
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
+  for (const r of stuck) {
+    if (r.phase === 'gameover' && r.winners?.length > 0) {
+      const perWinner = Math.floor((r.totalPrize || 0) / r.winners.length);
+      for (const w of r.winners) {
+        await User.updateOne({ id: w.userId }, { $inc: { win_balance: perWinner, total_wins: 1 } });
+      }
+      await Round.updateOne({ _id: r._id }, { $set: { phase: 'settled', settledAt: new Date() } });
+      console.log(`[boot] settled orphaned round ${r.roundId}`);
+    } else {
+      const byUser = {};
+      for (const c of r.cards) byUser[c.userId] = (byUser[c.userId] || 0) + 1;
+      const stake = r.roomId === 'bronze' ? 10 : r.roomId === 'silver' ? 25 : 50;
+      for (const [uid, count] of Object.entries(byUser)) {
+        await User.updateOne({ id: uid }, { $inc: { play_balance: count * stake } });
+      }
+      await Round.updateOne({ _id: r._id }, { $set: { phase: 'crashed', settledAt: new Date() } });
+      console.log(`[boot] refunded crashed round ${r.roundId} (${r.cards.length} cards)`);
     }
-    cols.push(pool.slice(0, 5));
   }
-  const grid = [];
-  for (let r = 0; r < 5; r++) {
-    const row = [];
-    for (let c = 0; c < 5; c++) row.push(cols[c][r]);
-    grid.push(row);
-  }
-  grid[2][2] = 0;
-  return { id, grid };
-}
-console.log('🎴 Generating cartelas...');
-for (let id = 1; id <= CARTELA_COUNT; id++) state.cartelas.push(generateCartela(id));
-
-function letterOf(n) { return n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O'; }
-
-function evaluateWin(cartela, calledSet) {
-  const g = cartela.grid;
-  for (let r=0;r<5;r++){ if(g[r].every(n=>n===0 || calledSet.has(n))) return { pattern: 'row:'+r }; }
-  for (let c=0;c<5;c++){ if([0,1,2,3,4].every(r=>g[r][c]===0 || calledSet.has(g[r][c]))) return { pattern: 'col:'+c }; }
-  if([0,1,2,3,4].every(i=>g[i][i]===0 || calledSet.has(g[i][i]))) return { pattern: 'diag:main' };
-  if([0,1,2,3,4].every(i=>g[i][4-i]===0 || calledSet.has(g[i][4-i]))) return { pattern: 'diag:anti' };
-  return null;
 }
 
-function publicState() {
-  return {
-    roundId: state.roundId, phase: state.phase,
-    selectionEndsAt: state.selectionEndsAt, startedAt: state.startedAt,
-    calledNumbers: state.calledNumbers, currentCall: state.currentCall,
-    playerCount: state.players.size, prizePool: state.prizePool,
-    takenCartelas: [...state.takenCartelas],
-    winner: state.winner, jackpot: state.jackpot
-  };
-}
-function broadcastState() { io.emit('game-state', publicState()); }
+mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 10_000, dbName: 'abisinya' })
+  .then(async () => {
+    console.log('✅ MongoDB connected');
+    await bootRecovery();
+  })
+  .catch(err => { console.error('❌ DB:', err.message); process.exit(1); });
 
-function startSelectionPhase() {
-  state.phase = 'selection';
-  state.selectionEndsAt = Date.now() + state.selectionSeconds * 1000;
-  state.calledNumbers = [];
-  state.currentCall = null;
-  state.players.clear();
-  state.takenCartelas.clear();
-  state.prizePool = 0;
-  state.winner = null;
-  state.startedAt = 0;
-  state.roundId++;
-  clearTimeout(state.phaseTimer);
-  clearInterval(state.callTimer);
-  console.log(`🟢 Round ${state.roundId}: selection`);
-  broadcastState();
-  state.phaseTimer = setTimeout(startRunningPhase, state.selectionSeconds * 1000);
-}
+const gameManager = new GameManager(io);
 
-function startRunningPhase() {
-  if (state.players.size === 0) {
-    console.log('⏳ No players, extending selection');
-    state.selectionEndsAt = Date.now() + state.selectionSeconds * 1000;
-    broadcastState();
-    state.phaseTimer = setTimeout(startRunningPhase, state.selectionSeconds * 1000);
-    return;
-  }
-  state.phase = 'running';
-  state.startedAt = Date.now();
-  broadcastState();
-  console.log(`▶️ Round ${state.roundId}: running`);
-  state.callTimer = setInterval(callNextNumber, state.callIntervalMs);
-  setTimeout(callNextNumber, 1000);
-}
-
-function callNextNumber() {
-  if (state.phase !== 'running') return;
-  if (state.calledNumbers.length >= 75) return finishRound(null);
-  let n;
-  do { n = Math.floor(Math.random() * 75) + 1; } while (state.calledNumbers.includes(n));
-  state.calledNumbers.push(n);
-  state.currentCall = n;
-  io.emit('number-called', { number: n, all: state.calledNumbers });
-  broadcastState();
-}
-
-async function finishRound(winnerInfo) {
-  state.phase = 'finished';
-  clearInterval(state.callTimer);
-  clearTimeout(state.phaseTimer);
-
-  if (winnerInfo) {
-    const prize = Math.floor(state.prizePool * state.prizePct);
-    const winner = { ...winnerInfo, prize };
-    state.winner = winner;
-    try {
-      await User.updateOne({ telegramId: winner.userId }, { $inc: { winBalance: prize, totalWins: 1, totalEarnings: prize } });
-      await Transaction.create({ userId: winner.userId, type: 'win', amount: prize, status: 'approved', method: 'game', gameId: state.roundId, cartelas: [winner.cartelaId], pattern: winner.pattern });
-    } catch(e) {}
-    
-    const wc = state.cartelas.find(c => c.id === winner.cartelaId);
-    io.emit('round-finished', { ...winner, cartelaGrid: wc ? wc.grid : null });
-    
-    if (BOT_CALLBACK_URL) axios.post(`${BOT_CALLBACK_URL}/winner`, winner, { headers: { 'x-bot-secret': BOT_API_SECRET } }).catch(()=>{});
+// ─── Admin auth ────────────────────────────────────────────────
+app.post('/api/admin/login', async (req, res) => {
+  if (req.body.password === ADMIN_PASSWORD) {
+    const token = crypto.randomBytes(32).toString('hex');
+    await AdminSession.create({ token, expires: Date.now() + 86_400_000 });
+    res.json({ success: true, token });
   } else {
-    io.emit('round-finished', null);
+    res.status(401).json({ success: false, error: 'Wrong password' });
   }
-
-  state.jackpot += Math.floor(state.prizePool * 0.1);
-  broadcastState();
-  state.phaseTimer = setTimeout(startSelectionPhase, BETWEEN_ROUNDS_MS);
-}
-
-startSelectionPhase();
-
-// --- ROUTES ---
-function botAuth(req, res, next) { if (req.headers['x-bot-secret'] !== BOT_API_SECRET) return res.status(403).json({error:'forbidden'}); next(); }
-function adminAuth(req, res, next) { if (req.headers['x-admin-pass'] !== ADMIN_PASSWORD) return res.status(403).json({error:'forbidden'}); next(); }
-
-app.get('/api/game', (req, res) => res.json({ success: true, ...publicState() }));
-app.get('/api/my-cartelas/:userId', (req, res) => {
-  const p = state.players.get(Number(req.params.userId));
-  if (!p) return res.json({ success: true, cartelas: [] });
-  const grids = state.cartelas.filter(c => p.cartelas.includes(c.id));
-  res.json({ success: true, cartelas: grids });
 });
 
-app.post('/api/player/join', async (req, res) => {
-  try {
-    const { userId, firstName, cartelaIds } = req.body;
-    const graceActive = state.phase === 'running' && state.startedAt && (Date.now() - state.startedAt) < LATE_JOIN_GRACE_MS;
-    if (state.phase !== 'selection' && !graceActive) return res.status(400).json({ error: 'Selection closed' });
-    if (state.players.has(userId)) return res.status(400).json({ error: 'Already joined' });
+app.get('/api/admin/verify', requireAdmin, (req, res) => res.json({ success: true }));
 
-    for (const id of cartelaIds) {
-      if (state.takenCartelas.has(id)) return res.status(400).json({ error: `Cartela ${id} taken` });
+app.get('/api/admin/dashboard', requireAdmin, async (req, res) => {
+  const [totalPlayers, pendD, pendW, depAgg, wdAgg] = await Promise.all([
+    User.countDocuments(),
+    Transaction.countDocuments({ type: 'deposit', status: 'pending' }),
+    Transaction.countDocuments({ type: 'withdrawal', status: 'pending' }),
+    Transaction.aggregate([{ $match: { type: 'deposit', status: 'approved' } }, { $group: { _id: null, t: { $sum: '$amount' } } }]),
+    Transaction.aggregate([{ $match: { type: 'withdrawal', status: 'approved' } }, { $group: { _id: null, t: { $sum: '$amount' } } }])
+  ]);
+  res.json({ success: true, data: {
+    totalPlayers, pendingDeposits: pendD, pendingWithdrawals: pendW,
+    totalDeposits: depAgg[0]?.t || 0,
+    totalWithdrawals: wdAgg[0]?.t || 0,
+    rooms: gameManager.list()
+  }});
+});
+
+app.get('/api/admin/rooms', requireAdmin, (req, res) => {
+  res.json({ success: true, data: gameManager.list() });
+});
+
+app.get('/api/admin/users', requireAdmin, async (req, res) => {
+  res.json({ success: true, data: await User.find({}).sort({ play_balance: -1 }) });
+});
+
+app.get('/api/admin/transactions', requireAdmin, async (req, res) => {
+  const filter = {};
+  if (req.query.type) filter.type = req.query.type;
+  if (req.query.status) filter.status = req.query.status;
+  res.json({ success: true, data: await Transaction.find(filter).sort({ created: -1 }).limit(200) });
+});
+
+app.post('/api/admin/transactions/:id/approve', requireAdmin, async (req, res) => {
+  const txn = await Transaction.findOneAndUpdate(
+    { id: req.params.id, status: 'pending' },
+    { $set: { status: 'approved' } },
+    { new: true }
+  );
+  if (!txn) return res.status(409).json({ success: false, error: 'Already processed' });
+  if (txn.type === 'deposit')
+    await User.updateOne({ id: String(txn.user_id) }, { $inc: { play_balance: txn.amount } });
+  await AuditLog.create({ ts: new Date(), actor: 'admin', action: 'txn_approve', detail: { id: txn.id, type: txn.type } }).catch(() => {});
+  res.json({ success: true });
+});
+
+app.post('/api/admin/transactions/:id/reject', requireAdmin, async (req, res) => {
+  const txn = await Transaction.findOneAndUpdate(
+    { id: req.params.id, status: 'pending' },
+    { $set: { status: 'rejected' } },
+    { new: true }
+  );
+  if (!txn) return res.status(409).json({ success: false, error: 'Already processed' });
+  if (txn.type === 'withdrawal')
+    await User.updateOne({ id: String(txn.user_id) }, { $inc: { win_balance: txn.amount } });
+  await AuditLog.create({ ts: new Date(), actor: 'admin', action: 'txn_reject', detail: { id: txn.id, type: txn.type } }).catch(() => {});
+  res.json({ success: true });
+});
+
+app.post('/api/admin/broadcast', requireAdmin, async (req, res) => {
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ success: false });
+  const users = await User.find({}, { id: 1 });
+  let sent = 0;
+  for (let i = 0; i < users.length; i++) {
+    try {
+      const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: users[i].id, text: `📢 <b>ማስታወቂያ</b>\n\n${message}`, parse_mode: 'HTML' })
+      });
+      const d = await r.json();
+      if (d.ok) sent++;
+    } catch (e) {}
+    if (i % 25 === 24) await new Promise(r => setTimeout(r, 1000));
+  }
+  res.json({ success: true, sent });
+});
+
+// ─── Wallet ────────────────────────────────────────────────────
+const tg = requireTelegramUser(BOT_TOKEN);
+
+app.get('/api/wallet/me', tg, async (req, res) => {
+  const u = await User.findOne({ id: String(req.tgUser.id) });
+  res.json({ success: true, data: u || { play_balance: 0, win_balance: 0 } });
+});
+
+app.get('/api/wallet/history', tg, async (req, res) => {
+  res.json({ success: true, data: await Transaction.find({ user_id: String(req.tgUser.id) }).sort({ created: -1 }).limit(50) });
+});
+
+// ─── Game ──────────────────────────────────────────────────────
+app.get('/api/game/rooms', (req, res) => {
+  res.json({ success: true, data: gameManager.list() });
+});
+
+app.post('/api/game/select-card', tg, async (req, res) => {
+  const userId = String(req.tgUser.id);
+  const { roomId, cardNum } = req.body;
+  const room = gameManager.get(roomId);
+  if (!room) return res.status(400).json({ success: false, error: 'Unknown room' });
+  if (!Number.isInteger(cardNum) || cardNum < 1 || cardNum > 600)
+    return res.status(400).json({ success: false, error: 'Invalid card' });
+  if (room.phase !== 'countdown')
+    return res.status(400).json({ success: false, error: 'Selection closed' });
+
+  const existingOwner = room.takenCards[cardNum];
+  if (existingOwner && String(existingOwner) !== userId)
+    return res.status(409).json({ success: false, error: 'Card already taken' });
+  if (String(existingOwner) === userId)
+    return res.json({ success: true, alreadyOwned: true });
+
+  const myCount = Object.values(room.takenCards).filter(v => String(v) === userId).length;
+  if (myCount >= room.maxCards)
+    return res.status(400).json({ success: false, error: `Max ${room.maxCards} cards` });
+
+  const updated = await User.findOneAndUpdate(
+    { id: userId, play_balance: { $gte: room.stake } },
+    { $inc: { play_balance: -room.stake } },
+    { new: true }
+  );
+  if (!updated) return res.status(400).json({ success: false, error: 'Insufficient balance' });
+
+  room.takenCards[cardNum] = userId;
+
+  await Round.updateOne(
+    { roundId: room.roundId },
+    { $push: { cards: { userId, cardNum, ts: new Date() } } }
+  ).catch(() => {});
+
+  io.to(`room:${roomId}`).emit('taken_cards', Object.keys(room.takenCards).map(Number));
+  res.json({
+    success: true,
+    data: {
+      play_balance: updated.play_balance,
+      win_balance: updated.win_balance,
+      card: { cardNum, layout: generateCard(cardNum, room.seed) }
     }
-
-    const total = state.entryFee * cartelaIds.length;
-    let u = await User.findOne({ telegramId: userId });
-    if (!u) u = await User.create({ telegramId: userId, firstName, balance: 0 });
-    if (u.balance < total) return res.status(400).json({ error: `Need ${total} ETB, have ${u.balance.toFixed(2)}` });
-
-    u.balance -= total;
-    u.totalGames = (u.totalGames || 0) + 1;
-    await u.save();
-    await Transaction.create({ userId, type: 'bet', amount: total, status: 'approved', method: 'game', gameId: state.roundId, cartelas: cartelaIds });
-
-    state.prizePool += total;
-    state.players.set(userId, { firstName, cartelas: cartelaIds });
-    cartelaIds.forEach(id => state.takenCartelas.add(id));
-
-    broadcastState();
-    res.json({ success: true, cartelas: state.cartelas.filter(c => cartelaIds.includes(c.id)), balance: u.balance });
-  } catch (e) { res.status(500).json({ error: 'Server error' }); }
+  });
 });
 
-app.post('/api/player/bingo', async (req, res) => {
-  try {
-    const { userId, cartelaId } = req.body;
-    if (state.phase !== 'running') return res.status(400).json({ error: 'Not running' });
-    const player = state.players.get(userId);
-    if (!player || !player.cartelas.includes(cartelaId)) return res.status(400).json({ error: 'Not your cartela' });
+app.post('/api/game/deselect-card', tg, async (req, res) => {
+  const userId = String(req.tgUser.id);
+  const { roomId, cardNum } = req.body;
+  const room = gameManager.get(roomId);
+  if (!room || String(room.takenCards[cardNum]) !== userId)
+    return res.status(403).json({ success: false, error: 'Not your card' });
+  if (room.phase !== 'countdown')
+    return res.status(400).json({ success: false, error: 'Selection closed' });
 
-    const calledSet = new Set(state.calledNumbers); calledSet.add(0);
-    const w = evaluateWin(state.cartelas.find(c => c.id === cartelaId), calledSet);
-    if (!w) return res.status(400).json({ error: 'No win yet' });
-
-    await finishRound({ userId, firstName: player.firstName, cartelaId, pattern: w.pattern });
-    res.json({ success: true, prize: state.winner.prize });
-  } catch (e) { res.status(500).json({ error: 'Server error' }); }
+  delete room.takenCards[cardNum];
+  const updated = await User.findOneAndUpdate({ id: userId }, { $inc: { play_balance: room.stake } }, { new: true });
+  io.to(`room:${roomId}`).emit('taken_cards', Object.keys(room.takenCards).map(Number));
+  res.json({ success: true, data: { play_balance: updated.play_balance } });
 });
 
-// Bot endpoints
-app.post('/api/bot/user', botAuth, async (req, res) => {
-  const { telegramId, username, firstName, phone } = req.body;
-  const update = { username, firstName };
-  if (phone) update.phone = phone;
-  res.json({ success: true, user: await User.findOneAndUpdate({ telegramId }, { $set: update }, { new: true, upsert: true }) });
+app.get('/api/leaderboard', async (req, res) => {
+  const users = await User.find().sort({ win_balance: -1 }).limit(10);
+  res.json({ success: true, data: users.map(u => ({ name: u.name, win_balance: u.win_balance })) });
 });
-app.get('/api/bot/user/:id', botAuth, async (req, res) => {
-  res.json({ success: true, user: await User.findOne({ telegramId: Number(req.params.id) }) });
+
+app.get('/healthz', (req, res) => res.json({
+  status: 'ok',
+  rooms: gameManager.list().map(r => ({ id: r.roomId, phase: r.phase, cards: r.takenCards.length }))
+}));
+
+// ─── Admin room controls ───────────────────────────────────────
+app.post('/api/admin/rooms/:id/start', requireAdmin, async (req, res) => {
+  const room = gameManager.get(req.params.id);
+  if (!room) return res.status(404).json({ success: false });
+  await room.start();
+  res.json({ success: true });
 });
-app.post('/api/bot/user/:id/adjust', botAuth, async (req, res) => {
-  res.json({ success: true, user: await User.findOneAndUpdate({ telegramId: Number(req.params.id) }, { $inc: { [req.body.field]: req.body.delta } }, { new: true }) });
+
+app.post('/api/admin/rooms/:id/stop', requireAdmin, async (req, res) => {
+  const room = gameManager.get(req.params.id);
+  if (!room) return res.status(404).json({ success: false });
+  await room.refundAndCrash('admin stop');
+  res.json({ success: true });
 });
-app.get('/api/bot/all-users', botAuth, async (req, res) => {
-  res.json({ success: true, users: await User.find({}, { telegramId: 1, firstName: 1 }) });
+
+app.post('/api/admin/rooms/:id/call', requireAdmin, async (req, res) => {
+  const room = gameManager.get(req.params.id);
+  if (!room || room.phase !== 'calling') return res.status(400).json({ success: false });
+  await room.callNumber();
+  res.json({ success: true });
 });
-app.post('/api/bot/transaction', botAuth, async (req, res) => {
-  res.json({ success: true, tx: await Transaction.create(req.body) });
+
+app.post('/api/admin/rooms/:id/auto', requireAdmin, (req, res) => {
+  const room = gameManager.get(req.params.id);
+  if (!room) return res.status(404).json({ success: false });
+  const { autoOn, interval } = req.body;
+  if (typeof autoOn !== 'undefined') room.autoOn = !!autoOn;
+  if (interval) room.callInterval = Number(interval);
+  if (room.autoOn && room.phase === 'calling') room.startAutoCalling();
+  else if (!room.autoOn && room.callTimer) { clearInterval(room.callTimer); room.callTimer = null; }
+  res.json({ success: true });
 });
-app.get('/api/bot/transaction/:id', botAuth, async (req, res) => {
-  res.json({ success: true, tx: await Transaction.findById(req.params.id) });
-});
-app.post('/api/bot/transaction/:id/status', botAuth, async (req, res) => {
-  res.json({ success: true, tx: await Transaction.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true }) });
+
+// ─── Socket ────────────────────────────────────────────────────
+io.use((socket, next) => {
+  const user = verifyTelegramInitData(socket.handshake.auth?.initData, BOT_TOKEN);
+  if (!user) return next(new Error('unauthorized'));
+  socket.userId = String(user.id);
+  next();
 });
 
 io.on('connection', socket => {
-  socket.emit('game-state', publicState());
-  socket.on('join-room', () => socket.emit('game-state', publicState()));
+  socket.on('subscribe', ({ roomId }) => {
+    const room = gameManager.get(roomId);
+    if (!room) return;
+    socket.leaveAll();
+    socket.join(`room:${roomId}`);
+
+    const myCards = Object.entries(room.takenCards)
+      .filter(([, uid]) => String(uid) === socket.userId)
+      .map(([n]) => Number(n));
+
+    socket.emit('init_state', {
+      ...room.snapshot(),
+      myCards,
+      cards: (room.phase !== 'idle' && room.seed)
+        ? myCards.reduce((acc, n) => { acc[n] = generateCard(n, room.seed); return acc; }, {})
+        : {}
+    });
+
+    if (room.phase === 'idle') room.scheduleAutoStart(5000);
+  });
+
+  socket.on('unsubscribe', () => socket.leaveAll());
 });
-server.listen(PORT, () => console.log(`🚀 Server on ${PORT}`));
+
+// ─── Graceful shutdown ─────────────────────────────────────────
+let shuttingDown = false;
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`[shutdown] ${signal} — refunding active rounds`);
+  try { await gameManager.gracefulShutdown(); } catch (e) { console.error(e); }
+  server.close(() => mongoose.connection.close().then(() => process.exit(0)));
+  setTimeout(() => process.exit(1), 15_000);
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT',  () => shutdown('SIGINT'));
+
+server.listen(PORT, () => console.log(`🚀 Server on port ${PORT}`));

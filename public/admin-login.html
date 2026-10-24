@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Admin Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: radial-gradient(ellipse at top, #0f1728 0%, #0a0f1c 60%);
+  color: #e8eefc; min-height: 100vh;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.login-box {
+  background: #111a2e; border: 1px solid #1e2d4a; border-radius: 18px;
+  padding: 32px 28px; width: 100%; max-width: 380px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; overflow: hidden;
+}
+.login-box::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, #22d3ee, #3b82f6, #a78bfa);
+}
+.logo-wrap {
+  width: 64px; height: 64px;
+  background: linear-gradient(135deg, #22d3ee, #2563eb);
+  border-radius: 16px; display: flex; align-items: center; justify-content: center;
+  font-size: 28px; margin: 0 auto 20px;
+  box-shadow: 0 8px 24px rgba(34,211,238,0.4);
+}
+h1 { font-size: 20px; font-weight: 800; text-align: center; letter-spacing: -0.5px; margin-bottom: 6px; }
+.subtitle { text-align: center; font-size: 12.5px; color: #8fa3c7; margin-bottom: 24px; }
+.input-wrap { position: relative; margin-bottom: 16px; }
+.input-wrap i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #5a6d8f; font-size: 14px; }
+.password-input {
+  width: 100%; background: #0a0f1c; border: 1px solid #2b4063; border-radius: 11px;
+  padding: 14px 14px 14px 42px; color: #e8eefc; font-family: inherit; font-size: 14px;
+  outline: none; transition: all 0.2s; letter-spacing: 1px;
+}
+.password-input:focus { border-color: #22d3ee; box-shadow: 0 0 0 3px rgba(34,211,238,0.1); }
+.password-input::placeholder { color: #5a6d8f; letter-spacing: 0; }
+.login-btn {
+  width: 100%; background: linear-gradient(135deg, #22d3ee, #0891b2); color: white;
+  border: none; border-radius: 11px; padding: 14px; font-family: inherit;
+  font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.15s;
+  box-shadow: 0 4px 14px rgba(34,211,238,0.35); margin-top: 6px;
+}
+.login-btn:active { transform: scale(0.97); }
+.login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.error-msg {
+  background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3);
+  color: #f87171; border-radius: 10px; padding: 12px 14px; font-size: 12.5px;
+  font-weight: 600; margin-bottom: 16px; display: none; text-align: center;
+}
+.error-msg.show { display: block; animation: shake 0.4s; }
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+.hint { text-align: center; font-size: 11px; color: #5a6d8f; margin-top: 20px; line-height: 1.6; }
+.loading { display: none; text-align: center; padding: 20px; color: #22d3ee; font-size: 13px; font-weight: 600; }
+.loading i { animation: spin 0.8s linear infinite; margin-right: 8px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="login-box">
+  <div class="logo-wrap">🔐</div>
+  <h1>Admin Panel</h1>
+  <div class="subtitle">AbisinyaBingo — Password Required</div>
+
+  <div class="error-msg" id="error-msg"></div>
+
+  <div class="input-wrap">
+    <i class="fas fa-lock"></i>
+    <input type="password" class="password-input" id="password" placeholder="Admin password" autocomplete="current-password">
+  </div>
+
+  <button class="login-btn" id="login-btn" onclick="doLogin()">
+    <i class="fas fa-sign-in-alt"></i> Login
+  </button>
+
+  <div class="loading" id="loading">
+    <i class="fas fa-spinner"></i> Verifying...
+  </div>
+
+  <div class="hint">
+    🔒 This panel is password protected.<br>
+    Contact the administrator if you forgot the password.
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'abisinya_admin_token';
+
+async function checkExisting() {
+  const token = localStorage.getItem(STORAGE_KEY);
+  if (!token) return;
+  try {
+    const r = await fetch('/api/admin/verify', { headers: { 'X-Admin-Token': token } });
+    const d = await r.json();
+    if (d.success) window.location.href = '/admin.html';
+    else localStorage.removeItem(STORAGE_KEY);
+  } catch (e) {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+}
+checkExisting();
+
+async function doLogin() {
+  const pwd = document.getElementById('password').value.trim();
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('error-msg');
+  const loading = document.getElementById('loading');
+
+  err.classList.remove('show');
+  if (!pwd) {
+    err.innerText = '❌ Password required';
+    err.classList.add('show');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.style.display = 'none';
+  loading.style.display = 'block';
+
+  try {
+    const r = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pwd })
+    });
+    const d = await r.json();
+    if (d.success && d.token) {
+      localStorage.setItem(STORAGE_KEY, d.token);
+      window.location.href = '/admin.html';
+    } else {
+      err.innerText = '❌ ' + (d.error || 'Wrong password');
+      err.classList.add('show');
+      btn.disabled = false;
+      btn.style.display = 'flex';
+      btn.style.justifyContent = 'center';
+      loading.style.display = 'none';
+      document.getElementById('password').value = '';
+    }
+  } catch (e) {
+    err.innerText = '❌ Network error: ' + e.message;
+    err.classList.add('show');
+    btn.disabled = false;
+    btn.style.display = 'flex';
+    btn.style.justifyContent = 'center';
+    loading.style.display = 'none';
+  }
+}
+
+document.getElementById('password').addEventListener('keypress', e => {
+  if (e.key === 'Enter') doLogin();
+});
+</script>
+</body>
+</html>
