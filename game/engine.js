@@ -2,10 +2,9 @@ const crypto = require('crypto');
 const { User, Round } = require('../models');
 
 const COUNTDOWN_SECONDS = 30;
-const POST_GAME_SECONDS = 10;
-const MAX_CARDS = 50; // Allow users to buy many cards
+const POST_GAME_SECONDS = 5; // Exact 5 seconds for celebration
+const MAX_CARDS = 50;
 
-// ─── Seeded PRNG ───────────────────────────────────────────────
 function mulberry32(seed) {
   let h = seed >>> 0;
   return () => {
@@ -24,7 +23,6 @@ function seedFrom(str) {
   return h >>> 0;
 }
 
-// ─── Card generation ───────────────────────────────────────────
 function generateCard(cardNum, roundSeed) {
   const rng = mulberry32(seedFrom(`${roundSeed}:${cardNum}`));
   const cols = [];
@@ -41,7 +39,6 @@ function generateCard(cardNum, roundSeed) {
   return cols;
 }
 
-// ─── Win verification ──────────────────────────────────────────
 function checkWin(cardNum, roundSeed, calledNumbers) {
   const cols = generateCard(cardNum, roundSeed);
   const called = new Set(calledNumbers);
@@ -73,12 +70,11 @@ function checkWin(cardNum, roundSeed, calledNumbers) {
   return null;
 }
 
-// ─── Room ──────────────────────────────────────────────────────
 class Room {
   constructor(id, config, io) {
     this.id = id;
     this.stake = config.stake;
-    this.prizePerCard = Math.floor(config.stake * 0.8); // 20% rake
+    this.prizePerCard = Math.floor(config.stake * 0.8);
     this.maxCards = config.maxCards ?? MAX_CARDS;
     this.io = io;
 
@@ -91,11 +87,8 @@ class Room {
     this.remainingTime = COUNTDOWN_SECONDS;
     this.countdownTimer = null;
     this.callTimer = null;
-    this.autoOn = true;
-    this.callInterval = 4; // Call a number every 4 seconds
     
-    // Auto-start logic: if idle, wait 10s before starting a new round
-    this._autoStartTimer = setTimeout(() => this.start(), 10000);
+    setTimeout(() => this.start(), 3000); // Start first round after 3s
   }
 
   broadcast(event, payload) {
@@ -148,12 +141,7 @@ class Room {
     this.phase = 'calling';
     this.broadcast('phase_change', { phase: 'calling', roomId: this.id });
     Round.updateOne({ roundId: this.roundId }, { $set: { phase: 'calling' } }).catch(() => {});
-    this.startAutoCalling();
-  }
-
-  startAutoCalling() {
-    if (this.callTimer) clearInterval(this.callTimer);
-    this.callTimer = setInterval(() => this.callNumber(), this.callInterval * 1000);
+    this.callTimer = setInterval(() => this.callNumber(), 4000); // Call every 4s
   }
 
   async callNumber() {
@@ -171,9 +159,8 @@ class Room {
     Round.updateOne({ roundId: this.roundId }, { $set: { calledNumbers: this.calledNumbers } }).catch(() => {});
 
     for (const [cardNumStr, userId] of Object.entries(this.takenCards)) {
-      const cardNum = Number(cardNumStr);
-      const win = checkWin(cardNum, this.seed, this.calledNumbers);
-      if (win) { await this.end([{ userId: String(userId), cardNum, ...win }]); return; }
+      const win = checkWin(Number(cardNumStr), this.seed, this.calledNumbers);
+      if (win) { await this.end([{ userId: String(userId), cardNum: Number(cardNumStr), ...win }]); return; }
     }
   }
 
@@ -193,13 +180,11 @@ class Room {
       const user = await User.findOne({ id: w.userId });
       w.name = user?.name || 'Player';
       w.prize = perWinner;
-      if (perWinner > 0)
-        await User.updateOne({ id: w.userId }, { $inc: { win_balance: perWinner, total_wins: 1 } });
+      if (perWinner > 0) await User.updateOne({ id: w.userId }, { $inc: { win_balance: perWinner, total_wins: 1 } });
     }
 
     const playerIds = [...new Set(Object.values(this.takenCards).map(String))];
-    if (playerIds.length > 0)
-      await User.updateMany({ id: { $in: playerIds } }, { $inc: { total_games: 1 } });
+    if (playerIds.length > 0) await User.updateMany({ id: { $in: playerIds } }, { $inc: { total_games: 1 } });
 
     await Round.updateOne({ roundId: this.roundId }, {
       $set: {
@@ -222,12 +207,12 @@ class Room {
   reset() {
     this.phase = 'idle';
     this.roundId = null; this.seed = null; this.seedHash = null;
-    this.calledNumbers = []; this.takenCards = [];
-    this.takenCards = {}; this.remainingTime = COUNTDOWN_SECONDS;
+    this.calledNumbers = []; this.takenCards = {};
+    this.remainingTime = COUNTDOWN_SECONDS;
     this.broadcast('reset_game', { roomId: this.id });
     
-    // Auto-start next round after 10 seconds of idle time
-    setTimeout(() => this.start(), 10000);
+    // Auto-start next round after 5 seconds of idle time
+    setTimeout(() => this.start(), 5000);
   }
 }
 
@@ -235,7 +220,6 @@ class GameManager {
   constructor(io) {
     this.io = io;
     this.rooms = new Map();
-    // Single room, 10 ETB stake, up to 50 cards per player
     this.addRoom('main', { stake: 10, maxCards: 50 });
   }
   addRoom(id, cfg) { this.rooms.set(id, new Room(id, cfg, this.io)); }

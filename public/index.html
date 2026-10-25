@@ -13,14 +13,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .main-content-area { flex: 1; overflow: hidden; display: flex; flex-direction: column; position: relative; }
 
 /* ── Top Dashboard ── */
-.header-btns { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #064e3b; }
-.header-btns button { background: #1e293b; border: 1px solid #334155; color: #fff; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
+.header-btns { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; background: #064e3b; }
 .top-dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 6px; background: #0f172a; border-bottom: 1px solid #1e293b; }
 .dash-card { background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 6px 2px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
 .dash-label { font-size: 8px; color: #94a3b8; font-weight: 700; text-transform: uppercase; }
 .dash-value { font-size: 13px; color: #fff; font-weight: 800; }
 .dash-value.wallet { color: #facc15; }
 .dash-value.timer { color: #60a5fa; }
+.dash-value.timer.urgent { color: #ef4444; animation: pulse 1s infinite; }
 
 /* ── Grid & Cards ── */
 .grid-container { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; flex: 1; overflow-y: auto; margin: 0 6px 4px 6px; background: #f3e8ff; padding: 6px; border-radius: 10px; border: 1px solid #d8b4fe; }
@@ -39,6 +39,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
 /* ── Live Board ── */
 #page-live { width: 100%; height: 100%; display: flex; flex-direction: column; padding: 6px; position: relative; }
+.spectator-banner { background: #f59e0b; color: #000; font-weight: 900; text-align: center; padding: 8px; border-radius: 6px; margin-bottom: 6px; font-size: 12px; animation: pulse 2s infinite; }
 .stats-header { display: flex; justify-content: space-between; background: #0f172a; color: #fff; padding: 8px 4px; border-radius: 8px; font-size: 11px; font-weight: 800; text-align: center; margin-bottom: 4px; border: 2px solid #3b82f6; }
 .stats-header div { flex: 1; border-right: 1px solid #334155; display: flex; flex-direction: column; align-items: center; }
 .stats-header div:last-child { border-right: none; }
@@ -52,24 +53,23 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .current-call-box { background: #0f172a; border: 2px solid #3b82f6; border-radius: 8px; text-align: center; padding: 8px; margin-bottom: 4px; }
 .current-call-number { background: #3b82f6; color: #fff; font-size: 28px; font-weight: 900; display: inline-block; padding: 4px 16px; border-radius: 50px; margin-top: 2px; }
 .live-cards-container { background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 6px; flex: 1; overflow-y: auto; }
-.interactive-card-view { background: #1e293b; color: #fff; border-radius: 8px; padding: 8px; margin-bottom: 6px; border: 1.5px solid #334155; transition: 0.2s; }
-.interactive-card-view.nearing { border-color: #facc15; box-shadow: 0 0 12px rgba(250,204,21,0.7); animation: nearPulse 1.2s infinite; }
-@keyframes nearPulse { 0%,100% { box-shadow: 0 0 12px rgba(250,204,21,0.5); } 50% { box-shadow: 0 0 22px rgba(250,204,21,0.9); } }
+.interactive-card-view { background: #1e293b; color: #fff; border-radius: 8px; padding: 8px; margin-bottom: 6px; border: 1.5px solid #334155; }
 .interactive-matrix { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-bottom: 6px; }
 .interactive-cell { background: #334155; border: 1px solid #475569; text-align: center; padding: 8px 0; font-size: 12px; font-weight: 900; color: #fff; border-radius: 5px; }
 .interactive-cell.free { background: #3b82f6; color: #fff; font-size: 9px; }
 .interactive-cell.marked-cell { background: #3b82f6 !important; color: #fff !important; }
-.h-b { background: #2563eb; color: white; text-align: center; font-size: 9px; font-weight: bold; padding: 3px 0; border-radius: 3px; }
-.h-i { background: #0d9488; color: white; text-align: center; font-size: 9px; font-weight: bold; padding: 3px 0; border-radius: 3px; }
-.h-n { background: #4f46e5; color: white; text-align: center; font-size: 9px; font-weight: bold; padding: 3px 0; border-radius: 3px; }
-.h-g { background: #d97706; color: white; text-align: center; font-size: 9px; font-weight: bold; padding: 3px 0; border-radius: 3px; }
-.h-o { background: #dc2626; color: white; text-align: center; font-size: 9px; font-weight: bold; padding: 3px 0; border-radius: 3px; }
+.h-b { background: #2563eb; text-align: center; font-size: 9px; font-weight: bold; padding: 3px 0; border-radius: 3px; }
+.h-i { background: #0d9488; text-align: center; font-size: 9px; font-weight: bold; padding: 3px 0; border-radius: 3px; }
+.h-n { background: #4f46e5; text-align: center; font-size: 9px; font-weight: bold; padding: 3px 0; border-radius: 3px; }
+.h-g { background: #d97706; text-align: center; font-size: 9px; font-weight: bold; padding: 3px 0; border-radius: 3px; }
+.h-o { background: #dc2626; text-align: center; font-size: 9px; font-weight: bold; padding: 3px 0; border-radius: 3px; }
 
 /* ── Winner Modal ── */
 #game-over-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.92); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; padding: 10px; overflow: hidden; }
-.game-over-box { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); width: 95%; max-width: 360px; border-radius: 16px; padding: 20px 14px; text-align: center; border: 3px solid #facc15; color: #fff; position: relative; z-index: 103; box-shadow: 0 0 40px rgba(250,204,21,0.3); }
-.game-over-title { font-size: 22px; font-weight: 900; color: #facc15; margin-bottom: 12px; }
-.winner-name-big { font-size: 24px; font-weight: 900; color: #fff; margin: 10px 0; padding: 12px; background: linear-gradient(135deg, #16a34a, #15803d); border-radius: 10px; }
+.game-over-box { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); width: 95%; max-width: 360px; border-radius: 16px; padding: 20px 14px; text-align: center; border: 3px solid #facc15; color: #fff; position: relative; z-index: 103; box-shadow: 0 0 40px rgba(250,204,21,0.3); animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+@keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.game-over-title { font-size: 24px; font-weight: 900; color: #facc15; margin-bottom: 12px; }
+.winner-name-big { font-size: 22px; font-weight: 900; color: #fff; margin: 10px 0; padding: 12px; background: linear-gradient(135deg, #16a34a, #15803d); border-radius: 10px; }
 .pattern-display { font-size: 14px; font-weight: 800; color: #facc15; background: #0f172a; padding: 6px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #334155; }
 .prize-display { font-size: 32px; font-weight: 900; color: #facc15; margin: 12px 0; }
 .modal-matrix { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 8px 0; }
@@ -90,26 +90,26 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .nav-item.active { color: #facc15; }
 .nav-icon { font-size: 16px; }
 .info-note { background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 10px; font-size: 11px; color: #94a3b8; line-height: 1.5; }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 </style>
 </head>
 <body>
 
 <div class="main-content-area">
   <div class="header-btns">
-    <span style="font-weight:900;color:#facc15;font-size:14px;">Abisinya Bingo</span>
-    <div>
-      <button id="voice-toggle" onclick="toggleVoice()" style="margin-right:4px;">🔊 ON</button>
-      <button onclick="toggleLang()">🌐 <span id="current-lang-display">AM</span></button>
+    <span style="font-weight:900;color:#facc15;font-size:14px;" id="lang-title">Abisinya Bingo</span>
+    <div style="display:flex; gap:8px;">
+      <button id="mute-btn" onclick="toggleMute()" style="background:#1e293b;border:1px solid #334155;color:#fff;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:14px;">🔊</button>
+      <button onclick="toggleLang()" style="background:#1e293b;border:1px solid #334155;color:#fff;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:12px;">🌐 <span id="current-lang-display">AM</span></button>
     </div>
   </div>
 
-  <!-- TICKET PAGE -->
   <div id="page-ticket" style="flex:1; display:flex; flex-direction:column;">
     <div class="top-dashboard">
       <div class="dash-card"><span class="dash-label" id="lbl-wallet">Wallet</span><span class="dash-value wallet"><span id="wallet-display">0.00</span></span></div>
       <div class="dash-card"><span class="dash-label" id="lbl-stake">Stake</span><span class="dash-value">10 ብር</span></div>
       <div class="dash-card"><span class="dash-label" id="lbl-selected">Selected</span><span class="dash-value" id="taken-cards-badge">0</span></div>
-      <div class="dash-card"><span class="dash-label" id="lbl-time">Time</span><span class="dash-value timer"><span id="timer-val">30</span>s</span></div>
+      <div class="dash-card"><span class="dash-label" id="lbl-time">Time</span><span class="dash-value timer" id="timer-container"><span id="timer-val">30</span>s</span></div>
     </div>
     
     <div class="grid-container" id="number-grid"></div>
@@ -120,7 +120,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
   </div>
 
-  <!-- LIVE PAGE -->
   <div id="page-live" class="hidden">
     <div id="game-over-overlay" class="hidden">
       <div class="game-over-box">
@@ -129,10 +128,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <div class="pattern-display" id="modal-pattern">Pattern</div>
         <div class="prize-display" id="modal-prize-val">0 ETB</div>
         <div id="modal-winning-card-container"></div>
-        <div style="font-size:10px;color:#94a3b8;margin-top:10px;">Closing in <span id="modal-countdown">10</span>s</div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:10px;">Closing in <span id="modal-countdown">5</span>s</div>
       </div>
     </div>
     
+    <div id="spectator-banner" class="spectator-banner hidden">
+      👀 You are spectating this round. Next round starts soon!
+    </div>
+
     <div class="stats-header">
       <div><span class="stat-label" id="lbl-prize">PRIZE</span><span class="stat-value" id="prize-pool-val">0</span></div>
       <div><span class="stat-label" id="lbl-players">PLAYERS</span><span class="stat-value" id="players-val">0</span></div>
@@ -151,7 +154,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
   </div>
 
-  <!-- WALLET -->
   <div id="page-wallet" class="page-inner-content hidden">
     <div class="sec-title" id="lbl-balances">YOUR BALANCES</div>
     <div class="balance-box"><div class="balance-box-title">🎮 PLAY</div><div class="balance-box-val" id="wallet-page-val">0.00</div></div>
@@ -159,13 +161,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="info-note" style="margin-top:12px;" id="lbl-wd-note">Withdrawals are processed via the Telegram Bot.</div>
   </div>
 
-  <!-- HISTORY -->
   <div id="page-history" class="page-inner-content hidden">
     <div class="sec-title" id="lbl-history">HISTORY</div>
     <div id="history-list" style="display:flex;flex-direction:column;gap:8px;"></div>
   </div>
   
-  <!-- PROFILE / LEADERBOARD -->
   <div id="page-profile" class="page-inner-content hidden">
     <div class="sec-title" id="lbl-profile">PROFILE</div>
     <div class="profile-card" style="background:#0f172a;padding:12px;border-radius:10px;">
@@ -178,7 +178,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="sec-title" id="lbl-rank">TOP WINNERS</div>
     <div id="leaderboard-list" style="display:flex;flex-direction:column;gap:8px;"></div>
   </div>
-
 </div>
 
 <nav class="bottom-nav">
@@ -193,42 +192,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 const tg = window.Telegram?.WebApp;
 if (tg) tg.expand();
 
-/* ─── Voice (Text-to-Speech) ──────────────────────────────── */
-let voiceEnabled = localStorage.getItem('bingo_voice') !== 'false'; // Default ON
-const voiceBtn = document.getElementById('voice-toggle');
-
-function updateVoiceUI() {
-  if (voiceEnabled) {
-    voiceBtn.innerHTML = '🔊 ON';
-    voiceBtn.style.color = '#22c55e';
-    voiceBtn.style.borderColor = '#22c55e';
-  } else {
-    voiceBtn.innerHTML = '🔇 OFF';
-    voiceBtn.style.color = '#94a3b8';
-    voiceBtn.style.borderColor = '#334155';
-  }
+/* ─── Sound Engine ────────────────────────────────────────── */
+let isMuted = false;
+function toggleMute() {
+  isMuted = !isMuted;
+  document.getElementById('mute-btn').innerText = isMuted ? '🔇' : '🔊';
 }
-updateVoiceUI();
-
-function toggleVoice() {
-  voiceEnabled = !voiceEnabled;
-  localStorage.setItem('bingo_voice', voiceEnabled);
-  updateVoiceUI();
-  if (voiceEnabled) speakNumber("Voice On"); // Test voice
-}
-
-function speakNumber(text) {
-  if (!voiceEnabled) return;
-  try {
-    window.speechSynthesis.cancel(); // Stop any ongoing speech
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9; // Slightly slower for clarity
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0;
-    window.speechSynthesis.speak(utterance);
-  } catch (e) {
-    console.warn("Speech Synthesis not supported");
-  }
+function playCallSound(num) {
+  if (isMuted) return;
+  const prefix = num <= 15 ? 'B' : num <= 30 ? 'I' : num <= 45 ? 'N' : num <= 60 ? 'G' : 'O';
+  const audio = new Audio(`/audio/${prefix}${num}.mp3`);
+  audio.play().catch(e => {
+    // Fallback if named with dash e.g., B-1.mp3
+    const fallback = new Audio(`/audio/${prefix}-${num}.mp3`);
+    fallback.play().catch(err => console.log('Audio file not found', err));
+  });
 }
 
 /* ─── Translations ────────────────────────────────────────── */
@@ -239,7 +217,7 @@ const I18N = {
   om: { wallet:"Baalaansii", stake:"Waliigaltee", selected:"Filatame", time:"Yeroo", preview:"KAARDII KEE", noCards:"Kaardii hin jiru", prize:"Badhaasa", players:"Taphattoota", call:"Waamicha", currentCall:"Waamicha Ammaa", patternRow:"Tarree", patternCol:"Utubaa", patternDiag1:"Qarqara", patternDiag2:"Qarqara", patternCorners:"4 Qarqara", balances:"Baalaansii Kee", play:"🎮 Play", win:"🏆 Win", wdNote:"Maallaqa baasuuf botii Telegram (/withdraw) fayyadamaa.", history:"SEENAA", rank:"SADARKAA", profile:"EENYUMMAA", navPlay:"BINGO", navWallet:"BAALAANSII", navHistory:"SEENAA", navRank:"SADARKAA", navProfile:"EENYUMMAA" }
 };
 
-let currentLang = 'am'; 
+let currentLang = 'am';
 try {
   const tgLang = tg?.initDataUnsafe?.user?.language_code;
   if (['am','en','ti','om'].includes(tgLang)) currentLang = tgLang;
@@ -326,8 +304,9 @@ function boot() {
   socket.on('phase_change', onPhaseChange);
   socket.on('timer_tick', (d) => {
     const el = document.getElementById('timer-val'); if (el) el.innerText = d.remaining;
-    const t = document.querySelector('.dash-value.timer');
-    if (t) t.style.color = (d.remaining <= 5 && d.remaining > 0) ? '#ef4444' : '#60a5fa';
+    const container = document.getElementById('timer-container');
+    if (d.remaining <= 5 && d.remaining > 0) container.classList.add('urgent');
+    else container.classList.remove('urgent');
   });
   socket.on('game_over', onGameOver);
   socket.on('reset_game', onResetGame);
@@ -372,6 +351,8 @@ function onInitState(state) {
     switchTab('live');
     ensureLiveGame();
     updateLiveCardsContainer();
+    if (selectedCards.size === 0) document.getElementById('spectator-banner').classList.remove('hidden');
+    else document.getElementById('spectator-banner').classList.add('hidden');
   } else {
     switchTab('ticket');
   }
@@ -381,11 +362,8 @@ function onNumberCalled(data) {
   roomPhase = 'calling';
   calledNumbersSet.add(data.number);
   updateCalledNumbersUI(data.allCalled);
+  playCallSound(data.number);
   
-  // ─── VOICE ANNOUNCEMENT ───
-  const letter = data.number <= 15 ? 'B' : data.number <= 30 ? 'I' : data.number <= 45 ? 'N' : data.number <= 60 ? 'G' : 'O';
-  speakNumber(`${letter} ${data.number}`);
-
   if (!liveInitialized) { switchTab('live'); ensureLiveGame(); }
   updateLiveCardsContainer();
 }
@@ -394,19 +372,17 @@ function onPhaseChange(data) {
   roomPhase = data.phase;
   if (data.phase === 'calling') {
     switchTab('live'); ensureLiveGame(); updateLiveCardsContainer();
+    if (selectedCards.size === 0) document.getElementById('spectator-banner').classList.remove('hidden');
   } else if (data.phase === 'countdown') {
     switchTab('ticket');
+    document.getElementById('spectator-banner').classList.add('hidden');
   }
 }
 
 function onGameOver(data) {
-  if (data.noWinner) {
-    alert("No winner this round.");
-    return;
-  }
+  if (data.noWinner) return;
   if (isModalShown) return;
   isModalShown = true;
-  speakNumber("Bingo!");
 
   const isMe = data.winners.some(w => String(w.userId) === String(userProfile.id));
   const names = data.winners.map(w => w.name).join(', ') || 'Player';
@@ -452,15 +428,18 @@ function onGameOver(data) {
     </div><div class="modal-board-footer">Card #${data.winningCard}</div>`;
   }
 
-  let cd = 10;
+  let cd = 5;
   const el = document.getElementById('modal-countdown');
   el.innerText = cd;
-  const timer = setInterval(() => { cd--; el.innerText = cd; if (cd <= 0) clearInterval(timer); }, 1000);
+  const interval = setInterval(() => { 
+    cd--; el.innerText = cd; 
+    if (cd <= 0) clearInterval(interval); 
+  }, 1000);
   
   setTimeout(() => {
     document.getElementById('game-over-overlay').classList.add('hidden');
     isModalShown = false;
-  }, 10000);
+  }, 5000);
   loadWallet();
 }
 
@@ -479,6 +458,7 @@ function onResetGame() {
   document.getElementById('players-val').innerText = '0';
   document.getElementById('live-cards-container').innerHTML = '';
   document.getElementById('game-over-overlay').classList.add('hidden');
+  document.getElementById('spectator-banner').classList.add('hidden');
   
   for (let i = 1; i <= 75; i++) {
     const c = document.getElementById('cell-' + i); if (c) c.classList.remove('marked');
@@ -589,7 +569,7 @@ function ensureLiveGame() { buildBingoBoard(); liveInitialized = true; }
 function buildBingoBoard() {
   const b = document.getElementById('bingo-board');
   b.innerHTML = '';
-  ['B','I','N','G','O'].forEach((char, i) => {
+  ['B','I','N','G','O'].forEach((char) => {
     const d = document.createElement('div'); d.className = 'h-' + char.toLowerCase(); d.innerText = char; b.appendChild(d);
   });
   for (let row = 1; row <= 15; row++) for (let col = 0; col < 5; col++) {
