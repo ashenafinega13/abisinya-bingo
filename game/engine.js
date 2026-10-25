@@ -3,7 +3,7 @@ const { User, Round } = require('../models');
 
 const COUNTDOWN_SECONDS = 30;
 const POST_GAME_SECONDS = 10;
-const MAX_CARDS = 3;
+const MAX_CARDS = 50; // Allow users to buy many cards
 
 // ─── Seeded PRNG ───────────────────────────────────────────────
 function mulberry32(seed) {
@@ -78,7 +78,7 @@ class Room {
   constructor(id, config, io) {
     this.id = id;
     this.stake = config.stake;
-    this.prizePerCard = Math.floor(config.stake * 0.8);
+    this.prizePerCard = Math.floor(config.stake * 0.8); // 20% rake
     this.maxCards = config.maxCards ?? MAX_CARDS;
     this.io = io;
 
@@ -91,10 +91,11 @@ class Room {
     this.remainingTime = COUNTDOWN_SECONDS;
     this.countdownTimer = null;
     this.callTimer = null;
-    this.autoOn = false;
-    this.callInterval = 5;
-    this._autoStartTimer = null;
-    this._callBusy = false;
+    this.autoOn = true;
+    this.callInterval = 4; // Call a number every 4 seconds
+    
+    // Auto-start logic: if idle, wait 10s before starting a new round
+    this._autoStartTimer = setTimeout(() => this.start(), 10000);
   }
 
   broadcast(event, payload) {
@@ -109,27 +110,13 @@ class Room {
       calledNumbers: this.calledNumbers,
       takenCards: Object.keys(this.takenCards).map(Number),
       remainingTime: this.remainingTime,
-      callInterval: this.callInterval,
-      autoOn: this.autoOn,
       seedHash: this.seedHash,
       players: new Set(Object.values(this.takenCards).map(String)).size
     };
   }
 
-  clearAutoStart() {
-    if (this._autoStartTimer) { clearTimeout(this._autoStartTimer); this._autoStartTimer = null; }
-  }
-
-  scheduleAutoStart(delayMs = 5000) {
-    this.clearAutoStart();
-    this._autoStartTimer = setTimeout(() => {
-      if (this.phase === 'idle') this.start();
-    }, delayMs);
-  }
-
   async start() {
     if (this.phase !== 'idle') return;
-    this.clearAutoStart();
     this.phase = 'countdown';
     this.roundId = crypto.randomBytes(8).toString('hex');
     this.seed = crypto.randomBytes(32).toString('hex');
@@ -139,15 +126,8 @@ class Room {
     this.remainingTime = COUNTDOWN_SECONDS;
 
     await Round.create({
-      roundId: this.roundId,
-      roomId: this.id,
-      phase: 'countdown',
-      seed: this.seed,
-      seedHash: this.seedHash,
-      cards: [],
-      calledNumbers: [],
-      winners: [],
-      startedAt: new Date()
+      roundId: this.roundId, roomId: this.id, phase: 'countdown',
+      seed: this.seed, seedHash: this.seedHash, cards: [], calledNumbers: [], winners: [], startedAt: new Date()
     }).catch(() => {});
 
     this.broadcast('phase_change', { phase: 'countdown', roomId: this.id, seedHash: this.seedHash });
@@ -165,40 +145,15 @@ class Room {
   }
 
   enterCalling() {
-    if (Object.keys(this.takenCards).length === 0) {
-      console.log(`[${this.id}] no cards selected, aborting round`);
-      this.abortEmpty();
-      return;
-    }
     this.phase = 'calling';
     this.broadcast('phase_change', { phase: 'calling', roomId: this.id });
     Round.updateOne({ roundId: this.roundId }, { $set: { phase: 'calling' } }).catch(() => {});
-    if (this.autoOn) this.startAutoCalling();
-  }
-
-  abortEmpty() {
-    if (this.countdownTimer) clearInterval(this.countdownTimer);
-    if (this.callTimer) clearInterval(this.callTimer);
-    this.countdownTimer = null;
-    this.callTimer = null;
-    this.phase = 'idle';
-    this.roundId = null;
-    this.seed = null;
-    this.seedHash = null;
-    this.calledNumbers = [];
-    this.remainingTime = COUNTDOWN_SECONDS;
-    this.broadcast('reset_game', { roomId: this.id });
-    this.scheduleAutoStart(3000);
+    this.startAutoCalling();
   }
 
   startAutoCalling() {
     if (this.callTimer) clearInterval(this.callTimer);
-    this._callBusy = false;
-    this.callTimer = setInterval(async () => {
-      if (this._callBusy) return;
-      this._callBusy = true;
-      try { await this.callNumber(); } finally { this._callBusy = false; }
-    }, this.callInterval * 1000);
+    this.callTimer = setInterval(() => this.callNumber(), this.callInterval * 1000);
   }
 
   async callNumber() {
@@ -210,14 +165,11 @@ class Room {
     this.calledNumbers.push(n);
 
     this.broadcast('number_called', {
-      number: n,
-      allCalled: this.calledNumbers,
-      remaining: 75 - this.calledNumbers.length
+      number: n, allCalled: this.calledNumbers, remaining: 75 - this.calledNumbers.length
     });
 
     Round.updateOne({ roundId: this.roundId }, { $set: { calledNumbers: this.calledNumbers } }).catch(() => {});
 
-    // Auto-bingo check on every owned card
     for (const [cardNumStr, userId] of Object.entries(this.takenCards)) {
       const cardNum = Number(cardNumStr);
       const win = checkWin(cardNum, this.seed, this.calledNumbers);
@@ -229,8 +181,6 @@ class Room {
     if (this.phase === 'gameover' || this.phase === 'idle') return;
     if (this.countdownTimer) clearInterval(this.countdownTimer);
     if (this.callTimer) clearInterval(this.callTimer);
-    this.countdownTimer = null;
-    this.callTimer = null;
     this.phase = 'gameover';
 
     const cardsInPlay = Object.keys(this.takenCards).length;
@@ -253,28 +203,17 @@ class Room {
 
     await Round.updateOne({ roundId: this.roundId }, {
       $set: {
-        phase: 'settled',
-        endedAt: new Date(),
-        settledAt: new Date(),
-        winners: winners.map(w => ({
-          userId: w.userId, name: w.name, cardNum: w.cardNum, prize: w.prize, pattern: w.desc
-        })),
+        phase: 'settled', endedAt: new Date(), settledAt: new Date(),
+        winners: winners.map(w => ({ userId: w.userId, name: w.name, cardNum: w.cardNum, prize: w.prize, pattern: w.desc })),
         totalPrize, rake
       }
     }).catch(() => {});
 
     this.broadcast('game_over', {
-      roomId: this.id,
-      winners,
-      noWinner: winners.length === 0,
-      totalPrize,
-      winningCard: winners[0]?.cardNum,
-      winDesc: winners[0]?.desc,
-      winType: winners[0]?.pattern,
-      winIndex: winners[0]?.index,
-      seed: this.seed,
-      seedHash: this.seedHash,
-      calledCount: this.calledNumbers.length
+      roomId: this.id, winners, noWinner: winners.length === 0, totalPrize,
+      winningCard: winners[0]?.cardNum, winDesc: winners[0]?.desc,
+      winType: winners[0]?.pattern, winIndex: winners[0]?.index,
+      seed: this.seed, seedHash: this.seedHash, calledCount: this.calledNumbers.length
     });
 
     setTimeout(() => this.reset(), POST_GAME_SECONDS * 1000);
@@ -282,66 +221,26 @@ class Room {
 
   reset() {
     this.phase = 'idle';
-    this.roundId = null;
-    this.seed = null;
-    this.seedHash = null;
-    this.calledNumbers = [];
-    this.takenCards = {};
-    this.remainingTime = COUNTDOWN_SECONDS;
-    this.autoOn = false;
+    this.roundId = null; this.seed = null; this.seedHash = null;
+    this.calledNumbers = []; this.takenCards = [];
+    this.takenCards = {}; this.remainingTime = COUNTDOWN_SECONDS;
     this.broadcast('reset_game', { roomId: this.id });
-    this.scheduleAutoStart(5000);
-  }
-
-  async refundAndCrash(reason) {
-    if (this.countdownTimer) clearInterval(this.countdownTimer);
-    if (this.callTimer) clearInterval(this.callTimer);
-    this.countdownTimer = null;
-    this.callTimer = null;
-
-    const cardCount = Object.keys(this.takenCards).length;
-    const userIds = [...new Set(Object.values(this.takenCards).map(String))];
-
-    for (const uid of userIds) {
-      const theirCards = Object.entries(this.takenCards).filter(([, v]) => String(v) === uid).length;
-      if (theirCards > 0)
-        await User.updateOne({ id: uid }, { $inc: { play_balance: theirCards * this.stake } });
-    }
-
-    if (this.roundId) {
-      await Round.updateOne({ roundId: this.roundId }, {
-        $set: { phase: 'crashed', endedAt: new Date(), settledAt: new Date() }
-      }).catch(() => {});
-    }
-    console.log(`[${this.id}] crashed (${reason}): refunded ${cardCount} cards`);
-    this.reset();
+    
+    // Auto-start next round after 10 seconds of idle time
+    setTimeout(() => this.start(), 10000);
   }
 }
 
-// ─── Manager ───────────────────────────────────────────────────
 class GameManager {
   constructor(io) {
     this.io = io;
     this.rooms = new Map();
-    this.addRoom('bronze', { stake: 10, maxCards: 3 });
-    this.addRoom('silver', { stake: 25, maxCards: 3 });
-    this.addRoom('gold',   { stake: 50, maxCards: 2 });
+    // Single room, 10 ETB stake, up to 50 cards per player
+    this.addRoom('main', { stake: 10, maxCards: 50 });
   }
-
-  addRoom(id, cfg) {
-    this.rooms.set(id, new Room(id, cfg, this.io));
-  }
-
+  addRoom(id, cfg) { this.rooms.set(id, new Room(id, cfg, this.io)); }
   get(id) { return this.rooms.get(id); }
   list() { return [...this.rooms.values()].map(r => r.snapshot()); }
-
-  async gracefulShutdown() {
-    for (const room of this.rooms.values()) {
-      if (room.phase === 'countdown' || room.phase === 'calling') {
-        await room.refundAndCrash('server shutdown');
-      }
-    }
-  }
 }
 
 module.exports = { GameManager, generateCard, checkWin };

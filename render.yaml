@@ -9,12 +9,12 @@ services:
     envVars:
       - key: MONGODB_URI
         sync: false
-      - key: BOT_API_SECRET
+      - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
-      - key: BOT_CALLBACK_URL
-        sync: false      # set to the bot's public URL
+      - key: WEB_APP_URL
+        sync: false
 
   - type: web
     name: abisinya-bingo-bot
@@ -24,17 +24,11 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python bot.py
     envVars:
+      - key: MONGODB_URI
+        sync: false
       - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: WEB_APP_URL
         sync: false
       - key: ADMIN_ID
         sync: false
-      - key: SERVER_URL
-        sync: false      # URL of the Node service
-      - key: WEBAPP_URL
-        sync: false      # same as SERVER_URL
-      - key: BOT_API_SECRET
-        sync: false
-      - key: BOT_CALLBACK_URL
-        sync: false      # URL of the Python service
-      - key: BOT_USERNAME
-        value: AbisinyaBingo_Bot
