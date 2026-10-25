@@ -75,7 +75,7 @@ mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 10_000, dbName: 'abisi
 
 const gameManager = new GameManager(io);
 
-// ─── Admin auth ────────────────────────────────────────────────
+// ─── Admin Auth ────────────────────────────────────────────────
 app.post('/api/admin/login', async (req, res) => {
   if (req.body.password === ADMIN_PASSWORD) {
     const token = crypto.randomBytes(32).toString('hex');
@@ -104,18 +104,41 @@ app.get('/api/admin/dashboard', requireAdmin, async (req, res) => {
   }});
 });
 
-app.get('/api/admin/rooms', requireAdmin, (req, res) => {
-  res.json({ success: true, data: gameManager.list() });
+// ─── Admin User Management (NEW) ───────────────────────────────
+app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
+  try {
+    await User.deleteOne({ id: req.params.id });
+    await Transaction.deleteMany({ user_id: req.params.id }); // Cleanup history
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/users/:id/clear', requireAdmin, async (req, res) => {
+  try {
+    // Reset balances and stats, but keep the user profile
+    await User.updateOne({ id: req.params.id }, { 
+      $set: { play_balance: 0, win_balance: 0, total_games: 0, total_wins: 0 } 
+    });
+    await Transaction.deleteMany({ user_id: req.params.id }); // Wipe transaction history
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 app.get('/api/admin/users', requireAdmin, async (req, res) => {
   res.json({ success: true, data: await User.find({}).sort({ play_balance: -1 }) });
 });
 
+// ─── Admin Transactions ────────────────────────────────────────
 app.get('/api/admin/transactions', requireAdmin, async (req, res) => {
   const filter = {};
   if (req.query.type) filter.type = req.query.type;
   if (req.query.status) filter.status = req.query.status;
+  if (req.query.method) filter.method = req.query.method; // Filter by CBE or Telebirr
+  
   res.json({ success: true, data: await Transaction.find(filter).sort({ created: -1 }).limit(200) });
 });
 
@@ -129,7 +152,7 @@ app.post('/api/admin/transactions/:id/approve', requireAdmin, async (req, res) =
   
   if (txn.type === 'deposit') {
     await User.updateOne({ id: String(txn.user_id) }, { $inc: { play_balance: txn.amount } });
-    // Send real-time notification to the user
+    // REAL-TIME WALLET UPDATE
     io.to(`user:${txn.user_id}`).emit('wallet_updated', { 
       type: 'deposit', 
       amount: txn.amount,
@@ -151,7 +174,7 @@ app.post('/api/admin/transactions/:id/reject', requireAdmin, async (req, res) =>
   if (txn.type === 'withdrawal') {
     await User.updateOne({ id: String(txn.user_id) }, { $inc: { win_balance: txn.amount } });
   }
-  // Send real-time notification to the user
+  // REAL-TIME WALLET UPDATE (Refund)
   io.to(`user:${txn.user_id}`).emit('wallet_updated', { 
     type: 'rejected', 
     amount: txn.amount,
@@ -161,6 +184,7 @@ app.post('/api/admin/transactions/:id/reject', requireAdmin, async (req, res) =>
   res.json({ success: true });
 });
 
+// ─── Admin Broadcast ───────────────────────────────────────────
 app.post('/api/admin/broadcast', requireAdmin, async (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ success: false });
@@ -181,7 +205,7 @@ app.post('/api/admin/broadcast', requireAdmin, async (req, res) => {
   res.json({ success: true, sent });
 });
 
-// ─── Wallet ────────────────────────────────────────────────────
+// ─── Wallet & Game Endpoints ───────────────────────────────────
 const tg = requireTelegramUser(BOT_TOKEN);
 
 app.get('/api/wallet/me', tg, async (req, res) => {
@@ -191,11 +215,6 @@ app.get('/api/wallet/me', tg, async (req, res) => {
 
 app.get('/api/wallet/history', tg, async (req, res) => {
   res.json({ success: true, data: await Transaction.find({ user_id: String(req.tgUser.id) }).sort({ created: -1 }).limit(50) });
-});
-
-// ─── Game ──────────────────────────────────────────────────────
-app.get('/api/game/rooms', (req, res) => {
-  res.json({ success: true, data: gameManager.list() });
 });
 
 app.post('/api/game/select-card', tg, async (req, res) => {
@@ -268,7 +287,7 @@ app.get('/healthz', (req, res) => res.json({
   rooms: gameManager.list().map(r => ({ id: r.roomId, phase: r.phase, cards: r.takenCards.length }))
 }));
 
-// ─── Admin room controls ───────────────────────────────────────
+// ─── Admin Room Controls ───────────────────────────────────────
 app.post('/api/admin/rooms/:id/start', requireAdmin, async (req, res) => {
   const room = gameManager.get(req.params.id);
   if (!room) return res.status(404).json({ success: false });
@@ -310,7 +329,6 @@ io.use((socket, next) => {
 });
 
 io.on('connection', socket => {
-  // Join a personal room so admin can send real-time wallet updates
   socket.join(`user:${socket.userId}`);
 
   socket.on('subscribe', ({ roomId }) => {
@@ -318,7 +336,6 @@ io.on('connection', socket => {
     if (!room) return;
     socket.leaveAll();
     socket.join(`room:${roomId}`);
-    // Re-join user room since leaveAll() removes it
     socket.join(`user:${socket.userId}`); 
 
     const myCards = Object.entries(room.takenCards)
@@ -337,22 +354,19 @@ io.on('connection', socket => {
   socket.on('claim_bingo', async (data) => {
     const room = gameManager.get('main');
     if (!room) return;
-    
     const result = await room.claimBingo(socket.userId, data.cardNum);
-    if (!result.success) {
-      socket.emit('card_error', { message: result.msg });
-    }
+    if (!result.success) socket.emit('card_error', { message: result.msg });
   });
 
   socket.on('unsubscribe', () => socket.leaveAll());
 });
 
-// ─── Graceful shutdown ─────────────────────────────────────────
+// ─── Graceful Shutdown ─────────────────────────────────────────
 let shuttingDown = false;
 async function shutdown(signal) {
   if (shuttingDown) return;
   shuttingDown = true;
-  console.log(`[shutdown] ${signal} — refunding active rounds`);
+  console.log(`[shutdown] ${signal}`);
   try { await gameManager.gracefulShutdown(); } catch (e) { console.error(e); }
   server.close(() => mongoose.connection.close().then(() => process.exit(0)));
   setTimeout(() => process.exit(1), 15_000);
