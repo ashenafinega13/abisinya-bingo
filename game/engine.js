@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const { User, Round } = require('../models');
 
 const COUNTDOWN_SECONDS = 30;
-const POST_GAME_SECONDS = 5; // Exact 5 seconds for celebration
+const POST_GAME_SECONDS = 5; 
 const MAX_CARDS = 50;
 
 function mulberry32(seed) {
@@ -13,7 +13,6 @@ function mulberry32(seed) {
     return ((h ^ (h >>> 14)) >>> 0) / 4294967296;
   };
 }
-
 function seedFrom(str) {
   let h = 2166136261;
   for (let i = 0; i < str.length; i++) {
@@ -22,7 +21,6 @@ function seedFrom(str) {
   }
   return h >>> 0;
 }
-
 function generateCard(cardNum, roundSeed) {
   const rng = mulberry32(seedFrom(`${roundSeed}:${cardNum}`));
   const cols = [];
@@ -38,7 +36,6 @@ function generateCard(cardNum, roundSeed) {
   cols[2][2] = 'FREE';
   return cols;
 }
-
 function checkWin(cardNum, roundSeed, calledNumbers) {
   const cols = generateCard(cardNum, roundSeed);
   const called = new Set(calledNumbers);
@@ -51,8 +48,7 @@ function checkWin(cardNum, roundSeed, calledNumbers) {
     }
     m.push(row);
   }
-  for (let r = 0; r < 5; r++)
-    if (m[r].every(Boolean)) return { pattern: 'row', index: r, desc: `Row ${r + 1}` };
+  for (let r = 0; r < 5; r++) if (m[r].every(Boolean)) return { pattern: 'row', index: r, desc: `Row ${r + 1}` };
   for (let c = 0; c < 5; c++) {
     let ok = true;
     for (let r = 0; r < 5; r++) if (!m[r][c]) { ok = false; break; }
@@ -65,8 +61,7 @@ function checkWin(cardNum, roundSeed, calledNumbers) {
   }
   if (d1) return { pattern: 'diag1', desc: 'Diagonal 1' };
   if (d2) return { pattern: 'diag2', desc: 'Diagonal 2' };
-  if (m[0][0] && m[0][4] && m[4][0] && m[4][4])
-    return { pattern: 'corners', desc: '4 Corners' };
+  if (m[0][0] && m[0][4] && m[4][0] && m[4][4]) return { pattern: 'corners', desc: '4 Corners' };
   return null;
 }
 
@@ -87,8 +82,9 @@ class Room {
     this.remainingTime = COUNTDOWN_SECONDS;
     this.countdownTimer = null;
     this.callTimer = null;
+    this.isEnding = false;
     
-    setTimeout(() => this.start(), 3000); // Start first round after 3s
+    setTimeout(() => this.start(), 3000);
   }
 
   broadcast(event, payload) {
@@ -97,13 +93,10 @@ class Room {
 
   snapshot() {
     return {
-      roomId: this.id,
-      stake: this.stake,
-      phase: this.phase,
+      roomId: this.id, stake: this.stake, phase: this.phase,
       calledNumbers: this.calledNumbers,
       takenCards: Object.keys(this.takenCards).map(Number),
-      remainingTime: this.remainingTime,
-      seedHash: this.seedHash,
+      remainingTime: this.remainingTime, seedHash: this.seedHash,
       players: new Set(Object.values(this.takenCards).map(String)).size
     };
   }
@@ -117,6 +110,7 @@ class Room {
     this.calledNumbers = [];
     this.takenCards = {};
     this.remainingTime = COUNTDOWN_SECONDS;
+    this.isEnding = false;
 
     await Round.create({
       roundId: this.roundId, roomId: this.id, phase: 'countdown',
@@ -131,17 +125,36 @@ class Room {
       this.broadcast('timer_tick', { remaining: this.remainingTime });
       if (this.remainingTime <= 0) {
         clearInterval(this.countdownTimer);
-        this.countdownTimer = null;
-        this.enterCalling();
+        this.checkStartConditions();
       }
     }, 1000);
+  }
+
+  checkStartConditions() {
+    const uniquePlayers = new Set(Object.values(this.takenCards).map(String)).size;
+    if (uniquePlayers < 2) {
+      this.remainingTime = 15; // Wait 15s and check again
+      this.broadcast('waiting_for_players', {});
+      this.broadcast('timer_tick', { remaining: this.remainingTime });
+      this.countdownTimer = setInterval(() => {
+        this.remainingTime--;
+        this.broadcast('timer_tick', { remaining: this.remainingTime });
+        if (this.remainingTime <= 0) {
+          clearInterval(this.countdownTimer);
+          this.checkStartConditions();
+        }
+      }, 1000);
+      return;
+    }
+    this.enterCalling();
   }
 
   enterCalling() {
     this.phase = 'calling';
     this.broadcast('phase_change', { phase: 'calling', roomId: this.id });
     Round.updateOne({ roundId: this.roundId }, { $set: { phase: 'calling' } }).catch(() => {});
-    this.callTimer = setInterval(() => this.callNumber(), 4000); // Call every 4s
+    
+    this.callTimer = setInterval(() => this.callNumber(), 4000);
   }
 
   async callNumber() {
@@ -152,16 +165,28 @@ class Room {
     do { n = Math.floor(Math.random() * 75) + 1; } while (this.calledNumbers.includes(n));
     this.calledNumbers.push(n);
 
-    this.broadcast('number_called', {
-      number: n, allCalled: this.calledNumbers, remaining: 75 - this.calledNumbers.length
-    });
-
+    this.broadcast('number_called', { number: n, allCalled: this.calledNumbers });
     Round.updateOne({ roundId: this.roundId }, { $set: { calledNumbers: this.calledNumbers } }).catch(() => {});
+    
+    // Note: Auto-bingo logic is removed. We wait for a player to click the BINGO button.
+  }
 
-    for (const [cardNumStr, userId] of Object.entries(this.takenCards)) {
-      const win = checkWin(Number(cardNumStr), this.seed, this.calledNumbers);
-      if (win) { await this.end([{ userId: String(userId), cardNum: Number(cardNumStr), ...win }]); return; }
+  async claimBingo(userId, cardNum) {
+    if (this.phase !== 'calling' || this.isEnding) return { success: false, msg: "Game is not active" };
+    
+    // Check if the card actually belongs to the player
+    if (String(this.takenCards[cardNum]) !== String(userId)) {
+      return { success: false, msg: "This card does not belong to you!" };
     }
+
+    const win = checkWin(cardNum, this.seed, this.calledNumbers);
+    if (!win) return { success: false, msg: "No valid Bingo pattern found!" };
+
+    this.isEnding = true;
+    const user = await User.findOne({ id: String(userId) });
+    
+    await this.end([{ userId: String(userId), cardNum, ...win, name: user?.name || 'Player' }]);
+    return { success: true };
   }
 
   async end(winners) {
@@ -177,8 +202,6 @@ class Room {
     const perWinner = winners.length > 0 ? Math.floor(totalPrize / winners.length) : 0;
 
     for (const w of winners) {
-      const user = await User.findOne({ id: w.userId });
-      w.name = user?.name || 'Player';
       w.prize = perWinner;
       if (perWinner > 0) await User.updateOne({ id: w.userId }, { $inc: { win_balance: perWinner, total_wins: 1 } });
     }
@@ -197,8 +220,7 @@ class Room {
     this.broadcast('game_over', {
       roomId: this.id, winners, noWinner: winners.length === 0, totalPrize,
       winningCard: winners[0]?.cardNum, winDesc: winners[0]?.desc,
-      winType: winners[0]?.pattern, winIndex: winners[0]?.index,
-      seed: this.seed, seedHash: this.seedHash, calledCount: this.calledNumbers.length
+      winType: winners[0]?.pattern, winIndex: winners[0]?.index
     });
 
     setTimeout(() => this.reset(), POST_GAME_SECONDS * 1000);
@@ -210,8 +232,6 @@ class Room {
     this.calledNumbers = []; this.takenCards = {};
     this.remainingTime = COUNTDOWN_SECONDS;
     this.broadcast('reset_game', { roomId: this.id });
-    
-    // Auto-start next round after 5 seconds of idle time
     setTimeout(() => this.start(), 5000);
   }
 }

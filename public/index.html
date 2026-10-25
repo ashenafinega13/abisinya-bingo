@@ -12,6 +12,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .hidden { display: none !important; }
 .main-content-area { flex: 1; overflow: hidden; display: flex; flex-direction: column; position: relative; }
 
+/* Header & Dashboard */
 .header-btns { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; background: #064e3b; }
 .top-dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 6px; background: #0f172a; border-bottom: 1px solid #1e293b; }
 .dash-card { background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 6px 2px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
@@ -21,11 +22,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .dash-value.timer { color: #60a5fa; }
 .dash-value.timer.urgent { color: #ef4444; animation: pulse 1s infinite; }
 
+/* Ticket Grid */
 .grid-container { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; flex: 1; overflow-y: auto; margin: 0 6px 4px 6px; background: #f3e8ff; padding: 6px; border-radius: 10px; border: 1px solid #d8b4fe; }
 .number-btn { background: #fff; color: #581c87; border: 1px solid #d8b4fe; padding: 6px 0; font-size: 13px; font-weight: 900; border-radius: 6px; cursor: pointer; transition: 0.15s; }
 .number-btn.selected { background: #3b82f6 !important; color: #fff !important; box-shadow: 0 0 8px rgba(59,130,246,0.6); }
 .number-btn.taken-by-other { background: #22c55e !important; color: #fff !important; cursor: not-allowed; opacity: 0.95; }
-
 .preview-section { background: #f3e8ff; border-radius: 10px 10px 0 0; padding: 6px; border: 1px solid #d8b4fe; max-height: 22vh; overflow-y: auto; margin: 0 6px; }
 .preview-title { text-align: center; font-size: 10px; color: #6b21a8; margin-bottom: 3px; font-weight: 700; }
 .card-preview-card { background: #fff; color: #581c87; border-radius: 6px; padding: 4px; margin-bottom: 3px; border: 1px solid #d8b4fe; }
@@ -34,6 +35,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .mini-cell { background: #f3e8ff; border: 1px solid #d8b4fe; text-align: center; padding: 4px 0; font-size: 10px; font-weight: 800; color: #581c87; border-radius: 3px; }
 .mini-cell.free { background: #3b82f6; color: #fff; font-size: 8px; }
 
+/* Live Page */
 #page-live { width: 100%; height: 100%; display: flex; flex-direction: column; padding: 6px; position: relative; }
 .spectator-banner { background: #f59e0b; color: #000; font-weight: 900; text-align: center; padding: 8px; border-radius: 6px; margin-bottom: 6px; font-size: 12px; animation: pulse 2s infinite; }
 .stats-header { display: flex; justify-content: space-between; background: #0f172a; color: #fff; padding: 8px 4px; border-radius: 8px; font-size: 11px; font-weight: 800; text-align: center; margin-bottom: 4px; border: 2px solid #3b82f6; }
@@ -49,17 +51,23 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .current-call-box { background: #0f172a; border: 2px solid #3b82f6; border-radius: 8px; text-align: center; padding: 8px; margin-bottom: 4px; }
 .current-call-number { background: #3b82f6; color: #fff; font-size: 28px; font-weight: 900; display: inline-block; padding: 4px 16px; border-radius: 50px; margin-top: 2px; }
 .live-cards-container { background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 6px; flex: 1; overflow-y: auto; }
-.interactive-card-view { background: #1e293b; color: #fff; border-radius: 8px; padding: 8px; margin-bottom: 6px; border: 1.5px solid #334155; }
+
+/* Interactive Card */
+.interactive-card-view { background: #1e293b; color: #fff; border-radius: 8px; padding: 8px; margin-bottom: 8px; border: 1.5px solid #334155; }
 .interactive-matrix { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-bottom: 6px; }
-.interactive-cell { background: #334155; border: 1px solid #475569; text-align: center; padding: 8px 0; font-size: 12px; font-weight: 900; color: #fff; border-radius: 5px; }
-.interactive-cell.free { background: #3b82f6; color: #fff; font-size: 9px; }
-.interactive-cell.marked-cell { background: #3b82f6 !important; color: #fff !important; }
+.interactive-cell { background: #334155; border: 1px solid #475569; text-align: center; padding: 10px 0; font-size: 13px; font-weight: 900; color: #fff; border-radius: 5px; cursor: pointer; transition: 0.1s; }
+.interactive-cell:active { transform: scale(0.95); }
+.interactive-cell.free { background: #3b82f6; color: #fff; font-size: 9px; cursor: default; }
+.interactive-cell.marked-cell { background: #3b82f6 !important; color: #fff !important; box-shadow: inset 0 0 8px rgba(0,0,0,0.3); }
+.bingo-btn { background: linear-gradient(135deg, #ef4444, #b91c1c); color: #fff; border: none; width: 100%; padding: 12px; font-size: 16px; font-weight: 900; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(239,68,68,0.4); animation: pulse 1.5s infinite; }
+.bingo-btn:active { transform: scale(0.97); }
 .h-b { background: #2563eb; text-align: center; font-size: 9px; font-weight: bold; padding: 3px 0; border-radius: 3px; }
 .h-i { background: #0d9488; text-align: center; font-size: 9px; font-weight: bold; padding: 3px 0; border-radius: 3px; }
 .h-n { background: #4f46e5; text-align: center; font-size: 9px; font-weight: bold; padding: 3px 0; border-radius: 3px; }
 .h-g { background: #d97706; text-align: center; font-size: 9px; font-weight: bold; padding: 3px 0; border-radius: 3px; }
 .h-o { background: #dc2626; text-align: center; font-size: 9px; font-weight: bold; padding: 3px 0; border-radius: 3px; }
 
+/* Winner Modal */
 #game-over-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.92); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; padding: 10px; overflow: hidden; }
 .game-over-box { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); width: 95%; max-width: 360px; border-radius: 16px; padding: 20px 14px; text-align: center; border: 3px solid #facc15; color: #fff; position: relative; z-index: 103; box-shadow: 0 0 40px rgba(250,204,21,0.3); animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
@@ -74,6 +82,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .modal-cell.winning-highlight { background: #22c55e !important; box-shadow: 0 0 8px #22c55e; }
 .modal-board-footer { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 4px; }
 
+/* Shared Pages & Nav */
 .page-inner-content { width: 100%; height: 100%; display: flex; flex-direction: column; padding: 12px; background: #064e3b; overflow-y: auto; }
 .sec-title { font-size: 13px; font-weight: 900; color: #fff; margin-bottom: 8px; text-transform: uppercase; }
 .balance-box { background: #0f172a; border: 1.5px solid #1e293b; border-radius: 12px; padding: 12px; text-align: center; margin-bottom: 10px; }
@@ -84,7 +93,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .nav-item.active { color: #facc15; }
 .nav-icon { font-size: 16px; }
 .info-note { background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 10px; font-size: 11px; color: #94a3b8; line-height: 1.5; }
-@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 </style>
 </head>
 <body>
@@ -127,7 +136,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     
     <div id="spectator-banner" class="spectator-banner hidden">
-      👀 You are spectating this round. Next round starts soon!
+      👀 Waiting for 2+ players to start. You are spectating.
     </div>
 
     <div class="stats-header">
@@ -143,6 +152,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
           <div class="current-call-title" id="lbl-call-title">Current Call</div>
           <div class="current-call-number" id="current-call-display">--</div>
         </div>
+        
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px; gap:4px;">
+          <button id="daub-toggle-btn" onclick="toggleDaubMode()" style="flex:1; padding:6px; border-radius:6px; border:none; font-weight:bold; background:#3b82f6; color:#fff; cursor:pointer;">🤖 Auto</button>
+        </div>
+
         <div class="live-cards-container" id="live-cards-container"></div>
       </div>
     </div>
@@ -186,6 +200,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 const tg = window.Telegram?.WebApp;
 if (tg) tg.expand();
 
+/* ─── Audio Engine ────────────────────────────────────────── */
 let isMuted = false;
 function toggleMute() {
   isMuted = !isMuted;
@@ -193,21 +208,28 @@ function toggleMute() {
 }
 function playCallSound(num) {
   if (isMuted) return;
-  const prefix = num <= 15 ? 'B' : num <= 30 ? 'I' : num <= 45 ? 'N' : num <= 60 ? 'G' : 'O';
-  const audio = new Audio(`/audio/${prefix}${num}.mp3`);
+  
+  // Primary target: /audio/call_1.mp3
+  const audio = new Audio(`/audio/call_${num}.mp3`);
   audio.play().catch(e => {
-    const fallback = new Audio(`/audio/${prefix}-${num}.mp3`);
-    fallback.play().catch(err => console.log('Audio file not found', err));
+    // Fallback 1: /audio/B1.mp3
+    const prefix = num <= 15 ? 'B' : num <= 30 ? 'I' : num <= 45 ? 'N' : num <= 60 ? 'G' : 'O';
+    const fallback1 = new Audio(`/audio/${prefix}${num}.mp3`);
+    fallback1.play().catch(err => {
+      // Fallback 2: /audio/B-1.mp3
+      const fallback2 = new Audio(`/audio/${prefix}-${num}.mp3`);
+      fallback2.play().catch(e2 => console.log('Audio file completely missing for', num));
+    });
   });
 }
 
+/* ─── Translations ────────────────────────────────────────── */
 const I18N = {
-  am: { wallet:"ባላንስ", stake:"ውርርድ", selected:"የተመረጡ", time:"ጊዜ", preview:"የተመረጡ ካርቴላዎች", noCards:"ካርቴላ የለም", prize:"ሽልማት", players:"ተጫዋቾች", call:"ጥሪ", currentCall:"የአሁኑ ጥሪ", patternRow:"ረድፍ", patternCol:"አምድ", patternDiag1:"ሰያፍ", patternDiag2:"ሰያፍ", patternCorners:"4 ማዕዘን", balances:"የእርስዎ ባላንስ", play:"🎮 Play", win:"🏆 Win", wdNote:"ገንዘብ ማውጣት በቴሌግራም ቦት (/withdraw) በኩል ይከናወናል።", history:"ታሪክ", rank:"ደረጃ", profile:"መገለጫ", navPlay:"ቢንጎ", navWallet:"ባላንስ", navHistory:"ታሪክ", navRank:"ደረጃ", navProfile:"መገለጫ" },
-  en: { wallet:"Wallet", stake:"Stake", selected:"Selected", time:"Time", preview:"YOUR CARDS", noCards:"No cards", prize:"PRIZE", players:"PLAYERS", call:"CALL", currentCall:"Current Call", patternRow:"Row", patternCol:"Col", patternDiag1:"Diagonal", patternDiag2:"Diagonal", patternCorners:"4 Corners", balances:"YOUR BALANCES", play:"🎮 Play", win:"🏆 Win", wdNote:"Withdrawals are processed via the Telegram Bot (/withdraw).", history:"HISTORY", rank:"RANK", profile:"PROFILE", navPlay:"BINGO", navWallet:"WALLET", navHistory:"HISTORY", navRank:"RANK", navProfile:"PROFILE" },
-  ti: { wallet:"ባላንስ", stake:"ውርርድ", selected:"ዝተመርጹ", time:"ግዜ", preview:"ዝተመርጹ ካርቴላታት", noCards:"ካርቴላ የለን", prize:"ሽልማት", players:"ተጻወትቲ", call:"ጻውዒት", currentCall:"ናይ ሕጂ ጻውዒት", patternRow:"ሪጅ", patternCol:"ኣምድ", patternDiag1:"ሰያፍ", patternDiag2:"ሰያፍ", patternCorners:"4 ኩርናዕ", balances:"ባላንስካ", play:"🎮 Play", win:"🏆 Win", wdNote:"ገንዘብ ምውጻእ ብቴሌግራም ቦት (/withdraw) ይካየድ።", history:"ታሪኽ", rank:"ደረጃ", profile:"መግለጺ", navPlay:"ቢንጎ", navWallet:"ባላንስ", navHistory:"ታሪኽ", navRank:"ደረጃ", navProfile:"መግለጺ" },
-  om: { wallet:"Baalaansii", stake:"Waliigaltee", selected:"Filatame", time:"Yeroo", preview:"KAARDII KEE", noCards:"Kaardii hin jiru", prize:"Badhaasa", players:"Taphattoota", call:"Waamicha", currentCall:"Waamicha Ammaa", patternRow:"Tarree", patternCol:"Utubaa", patternDiag1:"Qarqara", patternDiag2:"Qarqara", patternCorners:"4 Qarqara", balances:"Baalaansii Kee", play:"🎮 Play", win:"🏆 Win", wdNote:"Maallaqa baasuuf botii Telegram (/withdraw) fayyadamaa.", history:"SEENAA", rank:"SADARKAA", profile:"EENYUMMAA", navPlay:"BINGO", navWallet:"BAALAANSII", navHistory:"SEENAA", navRank:"SADARKAA", navProfile:"EENYUMMAA" }
+  am: { wallet:"ባላንስ", stake:"ውርርድ", selected:"የተመረጡ", time:"ጊዜ", preview:"የተመረጡ ካርቴላዎች", noCards:"ካርቴላ የለም", prize:"ሽልማት", players:"ተጫዋቾች", call:"ጥሪ", currentCall:"የአሁኑ ጥሪ", patternRow:"ረድፍ", patternCol:"አምድ", patternDiag1:"ሰያፍ", patternDiag2:"ሰያፍ", patternCorners:"4 ማዕዘን", balances:"የእርስዎ ባላንስ", wdNote:"ገንዘብ ማውጣት በቴሌግራም ቦት (/withdraw) በኩል ይከናወናል።", history:"ታሪክ", rank:"ደረጃ", profile:"መገለጫ", navPlay:"ቢንጎ", navWallet:"ባላንስ", navHistory:"ታሪክ", navRank:"ደረጃ", navProfile:"መገለጫ" },
+  en: { wallet:"Wallet", stake:"Stake", selected:"Selected", time:"Time", preview:"YOUR CARDS", noCards:"No cards", prize:"PRIZE", players:"PLAYERS", call:"CALL", currentCall:"Current Call", patternRow:"Row", patternCol:"Col", patternDiag1:"Diagonal", patternDiag2:"Diagonal", patternCorners:"4 Corners", balances:"YOUR BALANCES", wdNote:"Withdrawals are processed via the Telegram Bot (/withdraw).", history:"HISTORY", rank:"RANK", profile:"PROFILE", navPlay:"BINGO", navWallet:"WALLET", navHistory:"HISTORY", navRank:"RANK", navProfile:"PROFILE" },
+  ti: { wallet:"ባላንስ", stake:"ውርርድ", selected:"ዝተመርጹ", time:"ግዜ", preview:"ዝተመርጹ ካርቴላታት", noCards:"ካርቴላ የለን", prize:"ሽልማት", players:"ተጻወትቲ", call:"ጻውዒት", currentCall:"ናይ ሕጂ ጻውዒት", patternRow:"ሪጅ", patternCol:"ኣምድ", patternDiag1:"ሰያፍ", patternDiag2:"ሰያፍ", patternCorners:"4 ኩርናዕ", balances:"ባላንስካ", wdNote:"ገንዘብ ምውጻእ ብቴሌግራም ቦት (/withdraw) ይካየድ።", history:"ታሪኽ", rank:"ደረጃ", profile:"መግለጺ", navPlay:"ቢንጎ", navWallet:"ባላንስ", navHistory:"ታሪኽ", navRank:"ደረጃ", navProfile:"መግለጺ" },
+  om: { wallet:"Baalaansii", stake:"Waliigaltee", selected:"Filatame", time:"Yeroo", preview:"KAARDII KEE", noCards:"Kaardii hin jiru", prize:"Badhaasa", players:"Taphattoota", call:"Waamicha", currentCall:"Waamicha Ammaa", patternRow:"Tarree", patternCol:"Utubaa", patternDiag1:"Qarqara", patternDiag2:"Qarqara", patternCorners:"4 Qarqara", balances:"Baalaansii Kee", wdNote:"Maallaqa baasuuf botii Telegram (/withdraw) fayyadamaa.", history:"SEENAA", rank:"SADARKAA", profile:"EENYUMMAA", navPlay:"BINGO", navWallet:"BAALAANSII", navHistory:"SEENAA", navRank:"SADARKAA", navProfile:"EENYUMMAA" }
 };
-
 let currentLang = 'am';
 try {
   const tgLang = tg?.initDataUnsafe?.user?.language_code;
@@ -241,7 +263,6 @@ function applyLanguage() {
   document.getElementById('nav-lbl-profile').innerText = dict.navProfile;
   if (selectedCards.size === 0) document.getElementById('preview-container').innerHTML = `<div style="text-align:center;color:#6b21a8;font-size:10px;">${dict.noCards}</div>`;
 }
-
 function toggleLang() {
   const langs = ['am','en','ti','om'];
   currentLang = langs[(langs.indexOf(currentLang) + 1) % langs.length];
@@ -250,6 +271,7 @@ function toggleLang() {
   updateWalletUI();
 }
 
+/* ─── App State ───────────────────────────────────────────── */
 const TG_INIT_DATA = tg?.initData || '';
 const _fetch = window.fetch;
 window.fetch = (url, opts = {}) => {
@@ -278,6 +300,10 @@ let liveInitialized = false;
 let roomPhase = 'idle';
 let isModalShown = false;
 
+// Manual / Auto Marking
+let isAutoMark = true;
+let manualMarks = new Set();
+
 applyLanguage();
 
 function boot() {
@@ -300,6 +326,10 @@ function boot() {
   socket.on('game_over', onGameOver);
   socket.on('reset_game', onResetGame);
   socket.on('card_error', (d) => alert(d.message || 'Error'));
+  socket.on('waiting_for_players', () => {
+    document.getElementById('spectator-banner').innerText = "⏳ Waiting for at least 2 players to start...";
+    document.getElementById('spectator-banner').classList.remove('hidden');
+  });
 
   buildGrid();
   loadWallet();
@@ -327,6 +357,7 @@ function onInitState(state) {
   selectedCards = new Set((state.myCards || []).map(Number));
   cardLayouts = state.cards || {};
   calledNumbersSet = new Set(state.calledNumbers || []);
+  manualMarks.clear();
   
   refreshGridTakenStatus(state.takenCards || []);
   updatePreview();
@@ -340,7 +371,10 @@ function onInitState(state) {
     switchTab('live');
     ensureLiveGame();
     updateLiveCardsContainer();
-    if (selectedCards.size === 0) document.getElementById('spectator-banner').classList.remove('hidden');
+    if (selectedCards.size === 0) {
+      document.getElementById('spectator-banner').innerText = "👀 You are spectating this round.";
+      document.getElementById('spectator-banner').classList.remove('hidden');
+    }
     else document.getElementById('spectator-banner').classList.add('hidden');
   } else {
     switchTab('ticket');
@@ -361,7 +395,11 @@ function onPhaseChange(data) {
   roomPhase = data.phase;
   if (data.phase === 'calling') {
     switchTab('live'); ensureLiveGame(); updateLiveCardsContainer();
-    if (selectedCards.size === 0) document.getElementById('spectator-banner').classList.remove('hidden');
+    if (selectedCards.size === 0) {
+      document.getElementById('spectator-banner').innerText = "👀 You are spectating this round.";
+      document.getElementById('spectator-banner').classList.remove('hidden');
+    }
+    else document.getElementById('spectator-banner').classList.add('hidden');
   } else if (data.phase === 'countdown') {
     switchTab('ticket');
     document.getElementById('spectator-banner').classList.add('hidden');
@@ -435,6 +473,7 @@ function onGameOver(data) {
 function onResetGame() {
   selectedCards.clear();
   calledNumbersSet.clear();
+  manualMarks.clear();
   cardLayouts = {};
   liveInitialized = false;
   isModalShown = false;
@@ -496,7 +535,6 @@ async function toggleCard(num, btn) {
   
   const isDeselect = selectedCards.has(num);
   
-  // SPECTATOR MODE CHECK: If they try to buy but have no money
   if (!isDeselect && currentWallet < 10) {
     return alert("Insufficient balance! You can watch the current game as a spectator, but you need at least 10 ETB to buy a card.");
   }
@@ -587,6 +625,35 @@ function updateCalledNumbersUI(allCalled) {
   });
 }
 
+/* ─── Manual / Auto Daubing ───────────────────────────────── */
+function toggleDaubMode() {
+  isAutoMark = !isAutoMark;
+  const btn = document.getElementById('daub-toggle-btn');
+  if (isAutoMark) {
+    btn.innerText = "🤖 Auto";
+    btn.style.background = "#3b82f6";
+  } else {
+    btn.innerText = "🖐️ Manual";
+    btn.style.background = "#f59e0b";
+  }
+  updateLiveCardsContainer();
+}
+
+function handleCellClick(cardNum, val) {
+  if (isAutoMark) return; // Auto mode handles this
+  if (!calledNumbersSet.has(val)) return; // Can't mark numbers that haven't been called
+  
+  const key = `${cardNum}-${val}`;
+  if (manualMarks.has(key)) manualMarks.delete(key);
+  else manualMarks.add(key);
+  
+  updateLiveCardsContainer();
+}
+
+function claimBingo(cardNum) {
+  socket.emit('claim_bingo', { cardNum });
+}
+
 function updateLiveCardsContainer() {
   const c = document.getElementById('live-cards-container');
   c.innerHTML = '';
@@ -599,13 +666,30 @@ function updateLiveCardsContainer() {
     for (let r = 0; r < 5; r++) for (let cc = 0; cc < 5; cc++) {
       const v = layout[cc][r];
       const isFree = v === 'FREE';
-      const marked = isFree || calledNumbersSet.has(v);
-      const cls = `interactive-cell ${isFree?'free':''} ${marked&&!isFree?'marked-cell':''}`;
-      cells += `<div class="${cls}">${isFree?'FREE':v}</div>`;
+      
+      let isMarked = false;
+      if (isFree) {
+        isMarked = true;
+      } else if (isAutoMark) {
+        isMarked = calledNumbersSet.has(v);
+      } else {
+        isMarked = manualMarks.has(`${cn}-${v}`);
+      }
+      
+      const cls = `interactive-cell ${isFree?'free':''} ${isMarked&&!isFree?'marked-cell':''}`;
+      if (isFree) {
+        cells += `<div class="${cls}">FREE</div>`;
+      } else {
+        cells += `<div class="${cls}" onclick="handleCellClick(${cn}, ${v})">${v}</div>`;
+      }
     }
     const d = document.createElement('div');
     d.className = 'interactive-card-view';
-    d.innerHTML = `<div class="card-preview-header">CARD ${cn}</div><div class="interactive-matrix">${cells}</div>`;
+    d.innerHTML = `
+      <div class="card-preview-header">CARD ${cn}</div>
+      <div class="interactive-matrix">${cells}</div>
+      <button class="bingo-btn" onclick="claimBingo(${cn})">CLAIM BINGO!</button>
+    `;
     c.appendChild(d);
   });
 }

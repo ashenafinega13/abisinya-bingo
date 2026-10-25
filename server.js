@@ -313,8 +313,16 @@ io.on('connection', socket => {
         ? myCards.reduce((acc, n) => { acc[n] = generateCard(n, room.seed); return acc; }, {})
         : {}
     });
+  });
 
-    if (room.phase === 'idle') room.scheduleAutoStart(5000);
+  socket.on('claim_bingo', async (data) => {
+    const room = gameManager.get('main');
+    if (!room) return;
+    
+    const result = await room.claimBingo(socket.userId, data.cardNum);
+    if (!result.success) {
+      socket.emit('card_error', { message: result.msg });
+    }
   });
 
   socket.on('unsubscribe', () => socket.leaveAll());
