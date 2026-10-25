@@ -1,801 +1,267 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Abisinya Bingo</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="/socket.io/socket.io.js"></script>
-<style>
-:root {
-  --bg: #064e3b;
-  --card: #0f172a;
-  --card-light: #1e293b;
-  --text: #fff;
-  --text-muted: #94a3b8;
-  --primary: #3b82f6;
-  --success: #22c55e;
-  --danger: #ef4444;
-  --warning: #f59e0b;
+const crypto = require('crypto');
+const { User, Round } = require('../models');
+
+const COUNTDOWN_SECONDS = 30;
+const POST_GAME_SECONDS = 5; 
+const MAX_CARDS = 50;
+
+function mulberry32(seed) {
+  let h = seed >>> 0;
+  return () => {
+    h = Math.imul(h ^ (h >>> 15), h | 1);
+    h ^= h + Math.imul(h ^ (h >>> 7), h | 61);
+    return ((h ^ (h >>> 14)) >>> 0) / 4294967296;
+  };
 }
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); width: 100vw; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-.hidden { display: none !important; }
-.main-content-area { flex: 1; overflow: hidden; display: flex; flex-direction: column; position: relative; }
-
-/* ── Toast Notification ── */
-#toast {
-  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-  background: rgba(239, 68, 68, 0.95); color: #fff; padding: 12px 24px;
-  border-radius: 12px; font-weight: 700; z-index: 9999; display: none;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; width: 90%; max-width: 320px;
-  backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); animation: slideDown 0.3s ease-out;
-}
-@keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 20px; opacity: 1; } }
-
-/* ── Header & Dashboard ── */
-.header-btns { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: var(--bg); }
-.top-dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px; background: var(--card); border-bottom: 1px solid var(--card-light); }
-.dash-card { background: var(--card-light); border: 1px solid #334155; border-radius: 10px; padding: 8px 4px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-.dash-label { font-size: 9px; color: var(--text-muted); font-weight: 800; text-transform: uppercase; margin-bottom: 2px; }
-.dash-value { font-size: 14px; color: var(--text); font-weight: 900; }
-.dash-value.wallet { color: #facc15; }
-.dash-value.timer { color: #60a5fa; }
-.dash-value.timer.urgent { color: var(--danger); animation: pulse 1s infinite; }
-
-/* ── Ticket Grid ── */
-.grid-container { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; flex: 1; overflow-y: auto; margin: 6px; background: #f8fafc; padding: 8px; border-radius: 14px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
-.number-btn { background: #fff; color: #0f172a; border: 1px solid #cbd5e1; padding: 8px 0; font-size: 14px; font-weight: 900; border-radius: 8px; cursor: pointer; transition: 0.1s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-.number-btn:active { transform: scale(0.95); }
-.number-btn.selected { background: var(--primary) !important; color: #fff !important; border-color: #2563eb; box-shadow: 0 0 10px rgba(59,130,246,0.5); }
-.number-btn.taken-by-other { background: var(--success) !important; color: #fff !important; border-color: #16a34a; cursor: not-allowed; opacity: 0.9; }
-
-/* ── Preview Section ── */
-.preview-section { background: var(--card-light); border-radius: 14px 14px 0 0; padding: 10px; margin: 0 6px; max-height: 22vh; overflow-y: auto; box-shadow: 0 -4px 10px rgba(0,0,0,0.2); }
-.preview-title { text-align: center; font-size: 11px; color: var(--text-muted); margin-bottom: 6px; font-weight: 800; letter-spacing: 1px; }
-.card-preview-card { background: var(--card); border-radius: 8px; padding: 6px; margin-bottom: 6px; border: 1px solid #334155; }
-.card-preview-header { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; font-size: 11px; font-weight: 900; text-align: center; padding: 6px; margin-bottom: 6px; border-radius: 6px; }
-.mini-matrix { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
-.mini-cell { background: var(--card-light); text-align: center; padding: 6px 0; font-size: 11px; font-weight: 800; color: #fff; border-radius: 4px; }
-.mini-cell.free { background: var(--primary); font-size: 9px; }
-
-/* ── Live Page ── */
-#page-live { width: 100%; height: 100%; display: flex; flex-direction: column; padding: 8px; position: relative; }
-.spectator-banner { background: var(--warning); color: #000; font-weight: 900; text-align: center; padding: 10px; border-radius: 10px; margin-bottom: 8px; font-size: 13px; animation: pulse 2s infinite; }
-.stats-header { display: flex; justify-content: space-between; background: var(--card); padding: 10px 6px; border-radius: 12px; margin-bottom: 8px; border: 1px solid #334155; }
-.stats-header div { flex: 1; border-right: 1px solid #334155; display: flex; flex-direction: column; align-items: center; }
-.stats-header div:last-child { border-right: none; }
-.stats-header .stat-label { color: var(--text-muted); font-size: 9px; font-weight: 800; text-transform: uppercase; margin-bottom: 4px; }
-.stats-header .stat-value { color: #facc15; font-size: 18px; font-weight: 900; }
-.game-main-layout { display: flex; gap: 8px; flex: 1; overflow: hidden; }
-.bingo-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; background: #f8fafc; padding: 8px; border-radius: 12px; width: 50%; align-content: start; overflow-y: auto; }
-.board-cell { background: #fff; color: #0f172a; text-align: center; padding: 6px 0; font-size: 11px; font-weight: 800; border-radius: 6px; border: 1px solid #cbd5e1; }
-.board-cell.marked { background: var(--primary) !important; color: #fff !important; border-color: #2563eb; }
-.right-panel { width: 50%; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
-.current-call-box { background: var(--card); border: 2px solid var(--primary); border-radius: 12px; text-align: center; padding: 12px 8px; }
-.current-call-title { color: var(--text-muted); font-size: 10px; font-weight: 800; text-transform: uppercase; margin-bottom: 6px; }
-.current-call-number { background: var(--primary); color: #fff; font-size: 32px; font-weight: 900; display: inline-block; padding: 6px 20px; border-radius: 50px; box-shadow: 0 4px 12px rgba(59,130,246,0.4); }
-.live-cards-container { background: var(--card); border: 1px solid #334155; border-radius: 12px; padding: 8px; flex: 1; overflow-y: auto; }
-
-/* Interactive Card */
-.interactive-card-view { background: var(--card-light); border-radius: 10px; padding: 10px; margin-bottom: 10px; border: 1px solid #334155; }
-.interactive-matrix { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 10px; }
-.interactive-cell { background: #334155; text-align: center; padding: 12px 0; font-size: 14px; font-weight: 900; color: #fff; border-radius: 6px; cursor: pointer; transition: 0.1s; border: 1px solid #475569; }
-.interactive-cell:active { transform: scale(0.92); }
-.interactive-cell.free { background: var(--primary); font-size: 10px; cursor: default; border-color: #2563eb; }
-.interactive-cell.marked-cell { background: var(--primary) !important; border-color: #2563eb; box-shadow: inset 0 0 10px rgba(0,0,0,0.4); }
-.bingo-btn { background: linear-gradient(135deg, #ef4444, #b91c1c); color: #fff; border: none; width: 100%; padding: 14px; font-size: 18px; font-weight: 900; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 15px rgba(239,68,68,0.5); animation: pulse 1.5s infinite; }
-.bingo-btn:active { transform: scale(0.97); }
-.h-b { background: #2563eb; text-align: center; font-size: 10px; font-weight: bold; padding: 4px 0; border-radius: 4px; }
-.h-i { background: #0d9488; text-align: center; font-size: 10px; font-weight: bold; padding: 4px 0; border-radius: 4px; }
-.h-n { background: #4f46e5; text-align: center; font-size: 10px; font-weight: bold; padding: 4px 0; border-radius: 4px; }
-.h-g { background: #d97706; text-align: center; font-size: 10px; font-weight: bold; padding: 4px 0; border-radius: 4px; }
-.h-o { background: #dc2626; text-align: center; font-size: 10px; font-weight: bold; padding: 4px 0; border-radius: 4px; }
-
-/* Winner Modal */
-#game-over-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.92); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; padding: 10px; overflow: hidden; }
-.game-over-box { background: linear-gradient(180deg, var(--card-light) 0%, var(--card) 100%); width: 95%; max-width: 360px; border-radius: 20px; padding: 24px 16px; text-align: center; border: 3px solid #facc15; position: relative; z-index: 103; box-shadow: 0 0 50px rgba(250,204,21,0.3); animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-@keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-.game-over-title { font-size: 26px; font-weight: 900; color: #facc15; margin-bottom: 16px; text-shadow: 0 2px 10px rgba(250,204,21,0.5); }
-.winner-name-big { font-size: 22px; font-weight: 900; color: #fff; margin: 12px 0; padding: 14px; background: linear-gradient(135deg, var(--success), #15803d); border-radius: 12px; box-shadow: 0 4px 15px rgba(34,197,94,0.4); }
-.pattern-display { font-size: 15px; font-weight: 800; color: #facc15; background: var(--card); padding: 8px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155; }
-.prize-display { font-size: 36px; font-weight: 900; color: #facc15; margin: 12px 0; }
-.modal-matrix { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 10px 0; }
-.modal-cell { background: #334155; text-align: center; padding: 8px 0; font-size: 12px; font-weight: 800; border-radius: 5px; }
-.modal-cell.free { background: var(--primary); font-size: 9px; }
-.modal-cell.marked { background: var(--primary); }
-.modal-cell.winning-highlight { background: var(--success) !important; box-shadow: 0 0 10px var(--success); color: #000; }
-.modal-board-footer { text-align: center; font-size: 13px; color: var(--text-muted); margin-top: 8px; font-weight: bold; }
-
-/* Shared Pages & Nav */
-.page-inner-content { width: 100%; height: 100%; display: flex; flex-direction: column; padding: 16px; background: var(--bg); overflow-y: auto; }
-.sec-title { font-size: 14px; font-weight: 900; color: #fff; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
-.balance-box { background: var(--card); border: 1.5px solid #1e293b; border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-.balance-box-title { font-size: 12px; font-weight: 800; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; }
-.balance-box-val { font-size: 28px; font-weight: 900; color: var(--text); }
-.bottom-nav { height: 60px; background: var(--bg); border-top: 1px solid #047857; display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; z-index: 1000; padding-bottom: env(safe-area-inset-bottom); }
-.nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 10px; font-weight: 700; gap: 4px; transition: 0.2s; }
-.nav-item.active { color: #facc15; }
-.nav-icon { font-size: 20px; }
-@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-</style>
-</head>
-<body>
-
-<div id="toast" onclick="this.style.display='none'">Error message here</div>
-
-<div class="main-content-area">
-  <div class="header-btns">
-    <span style="font-weight:900;color:#facc15;font-size:16px;">Abisinya Bingo</span>
-    <div style="display:flex; gap:8px;">
-      <button id="mute-btn" onclick="toggleMute()" style="background:var(--card-light);border:1px solid #334155;color:#fff;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:14px;">🔊</button>
-      <button onclick="toggleLang()" style="background:var(--card-light);border:1px solid #334155;color:#fff;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:bold;">🌐 <span id="current-lang-display">AM</span></button>
-    </div>
-  </div>
-
-  <div id="page-ticket" style="flex:1; display:flex; flex-direction:column;">
-    <div class="top-dashboard">
-      <div class="dash-card"><span class="dash-label" id="lbl-wallet">Wallet</span><span class="dash-value wallet"><span id="wallet-display">0.00</span></span></div>
-      <div class="dash-card"><span class="dash-label" id="lbl-stake">Stake</span><span class="dash-value">10 ብር</span></div>
-      <div class="dash-card"><span class="dash-label" id="lbl-selected">Selected</span><span class="dash-value" id="taken-cards-badge">0</span></div>
-      <div class="dash-card"><span class="dash-label" id="lbl-time">Time</span><span class="dash-value timer" id="timer-container"><span id="timer-val">30</span>s</span></div>
-    </div>
-    
-    <div class="grid-container" id="number-grid"></div>
-    
-    <div class="preview-section">
-      <div class="preview-title" id="lbl-preview">YOUR CARDS</div>
-      <div id="preview-container"><div style="text-align:center;color:var(--text-muted);font-size:11px;padding:6px;">No cards</div></div>
-    </div>
-  </div>
-
-  <div id="page-live" class="hidden">
-    <div id="game-over-overlay" class="hidden">
-      <div class="game-over-box">
-        <div class="game-over-title">🎉 BINGO! 🎉</div>
-        <div class="winner-name-big" id="winner-name-badge">--</div>
-        <div class="pattern-display" id="modal-pattern">Pattern</div>
-        <div class="prize-display" id="modal-prize-val">0 ETB</div>
-        <div id="modal-winning-card-container"></div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:12px;">Closing in <span id="modal-countdown">5</span>s</div>
-      </div>
-    </div>
-    
-    <div id="spectator-banner" class="spectator-banner hidden">
-      👀 Waiting for 2+ players to start. You are spectating.
-    </div>
-
-    <div class="stats-header">
-      <div><span class="stat-label" id="lbl-prize">PRIZE</span><span class="stat-value" id="prize-pool-val">0</span></div>
-      <div><span class="stat-label" id="lbl-players">PLAYERS</span><span class="stat-value" id="players-val">0</span></div>
-      <div><span class="stat-label" id="lbl-stake2">STAKE</span><span class="stat-value">10</span></div>
-      <div><span class="stat-label" id="lbl-call">CALL</span><span class="stat-value" id="call-count">0</span></div>
-    </div>
-    <div class="game-main-layout">
-      <div class="bingo-board" id="bingo-board"></div>
-      <div class="right-panel">
-        <div class="current-call-box">
-          <div class="current-call-title" id="lbl-call-title">Current Call</div>
-          <div class="current-call-number" id="current-call-display">--</div>
-        </div>
-        
-        <div style="display:flex; justify-content:space-between; gap:6px;">
-          <button id="daub-toggle-btn" onclick="toggleDaubMode()" style="flex:1; padding:10px; border-radius:10px; border:none; font-weight:900; background:var(--primary); color:#fff; cursor:pointer; font-size:13px;">🤖 Auto</button>
-        </div>
-
-        <div class="live-cards-container" id="live-cards-container"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SIMPLIFIED WALLET PAGE -->
-  <div id="page-wallet" class="page-inner-content hidden">
-    <div class="sec-title" id="lbl-balances">YOUR BALANCES</div>
-    
-    <div class="balance-box">
-      <div class="balance-box-title">🎮 PLAY BALANCE</div>
-      <div class="balance-box-val" id="wallet-page-val" style="color:#facc15;">0.00</div>
-    </div>
-    
-    <div class="balance-box">
-      <div class="balance-box-title">🏆 WIN BALANCE</div>
-      <div class="balance-box-val" id="win-wallet-display" style="color:var(--success);">0.00</div>
-    </div>
-    
-    <div style="background:rgba(30, 41, 59, 0.5); border-radius:12px; padding:16px; text-align:center; margin-top:20px; font-size:13px; color:var(--text-muted); line-height:1.5;">
-      💸 <b>To withdraw your winnings, please use the official Telegram Bot and type /withdraw.</b>
-    </div>
-  </div>
-
-  <div id="page-history" class="page-inner-content hidden">
-    <div class="sec-title" id="lbl-history">HISTORY</div>
-    <div id="history-list" style="display:flex;flex-direction:column;gap:10px;"></div>
-  </div>
-  
-  <div id="page-profile" class="page-inner-content hidden">
-    <div class="sec-title" id="lbl-profile">PROFILE</div>
-    <div style="background:var(--card);padding:16px;border-radius:14px;border:1px solid #334155;">
-       <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Name: <span id="profile-name-val" style="color:#fff;font-weight:bold;float:right;"></span></div>
-       <div style="font-size:13px;color:var(--text-muted);">ID: <span id="profile-id-val" style="color:#fff;font-weight:bold;float:right;"></span></div>
-    </div>
-  </div>
-  
-  <div id="page-rank" class="page-inner-content hidden">
-    <div class="sec-title" id="lbl-rank">TOP WINNERS</div>
-    <div id="leaderboard-list" style="display:flex;flex-direction:column;gap:10px;"></div>
-  </div>
-</div>
-
-<nav class="bottom-nav">
-  <button class="nav-item active" id="nav-btn-ticket" onclick="switchTab('ticket')"><span class="nav-icon">🎮</span><span id="nav-lbl-play">PLAY</span></button>
-  <button class="nav-item" id="nav-btn-wallet" onclick="switchTab('wallet')"><span class="nav-icon">💳</span><span id="nav-lbl-wallet">WALLET</span></button>
-  <button class="nav-item" id="nav-btn-history" onclick="switchTab('history')"><span class="nav-icon">📜</span><span id="nav-lbl-history">HISTORY</span></button>
-  <button class="nav-item" id="nav-btn-rank" onclick="switchTab('rank')"><span class="nav-icon">🏆</span><span id="nav-lbl-rank">RANK</span></button>
-  <button class="nav-item" id="nav-btn-profile" onclick="switchTab('profile')"><span class="nav-icon">👤</span><span id="nav-lbl-profile">PROFILE</span></button>
-</nav>
-
-<script>
-const tg = window.Telegram?.WebApp;
-if (tg) tg.expand();
-
-/* ─── Toast System ────────────────────────────────────────── */
-let toastTimeout;
-function showToast(msg, isSuccess = false) {
-  const t = document.getElementById('toast');
-  t.innerText = msg;
-  
-  // Green for success, Red for errors
-  if (isSuccess) {
-    t.style.background = 'rgba(34, 197, 94, 0.95)';
-    t.style.border = '1px solid rgba(255,255,255,0.4)';
-  } else {
-    t.style.background = 'rgba(239, 68, 68, 0.95)';
-    t.style.border = '1px solid rgba(255,255,255,0.2)';
+function seedFrom(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
   }
-  
-  t.style.display = 'block';
-  clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(() => { t.style.display = 'none'; }, 4000);
+  return h >>> 0;
 }
-
-/* ─── Audio Engine ────────────────────────────────────────── */
-let isMuted = false;
-function toggleMute() {
-  isMuted = !isMuted;
-  document.getElementById('mute-btn').innerText = isMuted ? '🔇' : '🔊';
-}
-function playCallSound(num) {
-  if (isMuted) return;
-  const audio = new Audio(`/audio/call_${num}.mp3`);
-  audio.play().catch(e => {
-    const prefix = num <= 15 ? 'B' : num <= 30 ? 'I' : num <= 45 ? 'N' : num <= 60 ? 'G' : 'O';
-    const fallback = new Audio(`/audio/${prefix}${num}.mp3`);
-    fallback.play().catch(err => console.log('Audio missing', num));
-  });
-}
-
-/* ─── Translations ────────────────────────────────────────── */
-const I18N = {
-  am: { wallet:"ባላንስ", stake:"ውርርድ", selected:"የተመረጡ", time:"ጊዜ", preview:"የተመረጡ ካርቴላዎች", noCards:"ካርቴላ የለም", prize:"ሽልማት", players:"ተጫዋቾች", call:"ጥሪ", currentCall:"የአሁኑ ጥሪ", patternRow:"ረድፍ", patternCol:"አምድ", patternDiag1:"ሰያፍ", patternDiag2:"ሰያፍ", patternCorners:"4 ማዕዘን", balances:"የእርስዎ ባላንስ", wdNote:"ገንዘብ ማውጣት በቴሌግራም ቦት (/withdraw) በኩል ይከናወናል።", history:"ታሪክ", rank:"ደረጃ", profile:"መገለጫ", navPlay:"ቢንጎ", navWallet:"ባላንስ", navHistory:"ታሪክ", navRank:"ደረጃ", navProfile:"መገለጫ" },
-  en: { wallet:"Wallet", stake:"Stake", selected:"Selected", time:"Time", preview:"YOUR CARDS", noCards:"No cards", prize:"PRIZE", players:"PLAYERS", call:"CALL", currentCall:"Current Call", patternRow:"Row", patternCol:"Col", patternDiag1:"Diagonal", patternDiag2:"Diagonal", patternCorners:"4 Corners", balances:"YOUR BALANCES", wdNote:"Withdrawals are processed via the Telegram Bot (/withdraw).", history:"HISTORY", rank:"RANK", profile:"PROFILE", navPlay:"BINGO", navWallet:"WALLET", navHistory:"HISTORY", navRank:"RANK", navProfile:"PROFILE" },
-  ti: { wallet:"ባላንስ", stake:"ውርርድ", selected:"ዝተመርጹ", time:"ግዜ", preview:"ዝተመርጹ ካርቴላታት", noCards:"ካርቴላ የለን", prize:"ሽልማት", players:"ተጻወትቲ", call:"ጻውዒት", currentCall:"ናይ ሕጂ ጻውዒት", patternRow:"ሪጅ", patternCol:"ኣምድ", patternDiag1:"ሰያፍ", patternDiag2:"ሰያፍ", patternCorners:"4 ኩርናዕ", balances:"ባላንስካ", wdNote:"ገንዘብ ምውጻእ ብቴሌግራም ቦት (/withdraw) ይካየድ።", history:"ታሪኽ", rank:"ደረጃ", profile:"መግለጺ", navPlay:"ቢንጎ", navWallet:"ባላንስ", navHistory:"ታሪኽ", navRank:"ደረጃ", navProfile:"መግለጺ" },
-  om: { wallet:"Baalaansii", stake:"Waliigaltee", selected:"Filatame", time:"Yeroo", preview:"KAARDII KEE", noCards:"Kaardii hin jiru", prize:"Badhaasa", players:"Taphattoota", call:"Waamicha", currentCall:"Waamicha Ammaa", patternRow:"Tarree", patternCol:"Utubaa", patternDiag1:"Qarqara", patternDiag2:"Qarqara", patternCorners:"4 Qarqara", balances:"Baalaansii Kee", wdNote:"Maallaqa baasuuf botii Telegram (/withdraw) fayyadamaa.", history:"SEENAA", rank:"SADARKAA", profile:"EENYUMMAA", navPlay:"BINGO", navWallet:"BAALAANSII", navHistory:"SEENAA", navRank:"SADARKAA", navProfile:"EENYUMMAA" }
-};
-let currentLang = 'am';
-try {
-  const tgLang = tg?.initDataUnsafe?.user?.language_code;
-  if (['am','en','ti','om'].includes(tgLang)) currentLang = tgLang;
-  else if (tgLang === 'om' || tgLang === 'or') currentLang = 'om';
-  else currentLang = 'en';
-} catch(e) {}
-
-function applyLanguage() {
-  const dict = I18N[currentLang] || I18N['am'];
-  document.getElementById('current-lang-display').innerText = currentLang.toUpperCase();
-  document.getElementById('lbl-wallet').innerText = dict.wallet;
-  document.getElementById('lbl-stake').innerText = dict.stake;
-  document.getElementById('lbl-selected').innerText = dict.selected;
-  document.getElementById('lbl-time').innerText = dict.time;
-  document.getElementById('lbl-preview').innerText = dict.preview;
-  document.getElementById('lbl-prize').innerText = dict.prize;
-  document.getElementById('lbl-players').innerText = dict.players;
-  document.getElementById('lbl-stake2').innerText = dict.stake;
-  document.getElementById('lbl-call').innerText = dict.call;
-  document.getElementById('lbl-call-title').innerText = dict.currentCall;
-  document.getElementById('lbl-balances').innerText = dict.balances;
-  document.getElementById('lbl-history').innerText = dict.history;
-  document.getElementById('lbl-rank').innerText = dict.rank;
-  document.getElementById('lbl-profile').innerText = dict.profile;
-  document.getElementById('nav-lbl-play').innerText = dict.navPlay;
-  document.getElementById('nav-lbl-wallet').innerText = dict.navWallet;
-  document.getElementById('nav-lbl-history').innerText = dict.navHistory;
-  document.getElementById('nav-lbl-rank').innerText = dict.navRank;
-  document.getElementById('nav-lbl-profile').innerText = dict.navProfile;
-  if (selectedCards.size === 0) document.getElementById('preview-container').innerHTML = `<div style="text-align:center;color:var(--text-muted);font-size:11px;">${dict.noCards}</div>`;
-}
-function toggleLang() {
-  const langs = ['am','en','ti','om'];
-  currentLang = langs[(langs.indexOf(currentLang) + 1) % langs.length];
-  applyLanguage();
-  updatePreview();
-  updateWalletUI();
-}
-
-/* ─── App State ───────────────────────────────────────────── */
-const TG_INIT_DATA = tg?.initData || '';
-const _fetch = window.fetch;
-window.fetch = (url, opts = {}) => {
-  if (typeof url === 'string' && url.includes('/api/')) {
-    opts.headers = opts.headers || {};
-    opts.headers['X-Telegram-Init-Data'] = TG_INIT_DATA;
-  }
-  return _fetch(url, opts);
-};
-
-let userProfile = { id: "0", name: "Player" };
-try {
-  const u = tg?.initDataUnsafe?.user;
-  if (u && u.id) {
-    userProfile.id = String(u.id);
-    userProfile.name = ((u.first_name||'') + ' ' + (u.last_name||'')).trim() || 'Player';
-  }
-} catch(e) {}
-
-let socket = null;
-let currentWallet = 0, currentWinWallet = 0;
-let selectedCards = new Set();
-let cardLayouts = {};
-let calledNumbersSet = new Set();
-let liveInitialized = false;
-let roomPhase = 'idle';
-let isModalShown = false;
-let isAutoMark = true;
-let manualMarks = new Set();
-
-applyLanguage();
-
-function boot() {
-  socket = io({ auth: { initData: TG_INIT_DATA } });
-  socket.on('connect', () => socket.emit('subscribe', { roomId: 'main' }));
-  
-  socket.on('init_state', onInitState);
-  socket.on('taken_cards', (cards) => {
-    refreshGridTakenStatus(cards);
-    updatePrizePool(cards.length);
-  });
-  socket.on('number_called', onNumberCalled);
-  socket.on('phase_change', onPhaseChange);
-  socket.on('timer_tick', (d) => {
-    const el = document.getElementById('timer-val'); if (el) el.innerText = d.remaining;
-    const container = document.getElementById('timer-container');
-    if (d.remaining <= 5 && d.remaining > 0) container.classList.add('urgent');
-    else container.classList.remove('urgent');
-  });
-  socket.on('game_over', onGameOver);
-  socket.on('reset_game', onResetGame);
-  socket.on('card_error', (d) => showToast(d.message || 'Error'));
-  
-  socket.on('waiting_for_players', () => {
-    document.getElementById('spectator-banner').innerText = "⏳ Waiting for at least 2 players to start...";
-    document.getElementById('spectator-banner').classList.remove('hidden');
-  });
-
-  // LISTEN FOR REAL-TIME WALLET UPDATES FROM ADMIN
-  socket.on('wallet_updated', (data) => {
-    loadWallet(); // Refresh balance instantly
-    showToast(data.message, true); // Show green success message
-  });
-
-  buildGrid();
-  loadWallet();
-}
-
-function loadWallet() {
-  fetch('/api/wallet/me').then(r => r.json()).then(d => {
-    if (d.success && d.data) {
-      currentWallet = Number(d.data.play_balance) || 0;
-      currentWinWallet = Number(d.data.win_balance) || 0;
-      updateWalletUI();
+function generateCard(cardNum, roundSeed) {
+  const rng = mulberry32(seedFrom(`${roundSeed}:${cardNum}`));
+  const cols = [];
+  for (let c = 0; c < 5; c++) {
+    const min = c * 15 + 1;
+    const pool = Array.from({ length: 15 }, (_, i) => min + i);
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-  });
+    cols.push(pool.slice(0, 5).sort((a, b) => a - b));
+  }
+  cols[2][2] = 'FREE';
+  return cols;
 }
-
-function updateWalletUI() {
-  ['wallet-display', 'wallet-page-val'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.innerText = currentWallet.toFixed(2);
-  });
-  const w = document.getElementById('win-wallet-display'); if (w) w.innerText = currentWinWallet.toFixed(2);
-}
-
-function onInitState(state) {
-  roomPhase = state.phase;
-  selectedCards = new Set((state.myCards || []).map(Number));
-  cardLayouts = state.cards || {};
-  calledNumbersSet = new Set(state.calledNumbers || []);
-  manualMarks.clear();
-  
-  refreshGridTakenStatus(state.takenCards || []);
-  updatePreview();
-  document.getElementById('taken-cards-badge').innerText = selectedCards.size;
-  document.getElementById('timer-val').innerText = state.remainingTime ?? 30;
-  updatePrizePool((state.takenCards || []).length);
-
-  if (state.calledNumbers?.length) updateCalledNumbersUI(state.calledNumbers);
-  
-  if (state.phase === 'calling' || state.phase === 'gameover') {
-    switchTab('live');
-    ensureLiveGame();
-    updateLiveCardsContainer();
-    if (selectedCards.size === 0) {
-      document.getElementById('spectator-banner').innerText = "👀 You are spectating this round.";
-      document.getElementById('spectator-banner').classList.remove('hidden');
+function checkWin(cardNum, roundSeed, calledNumbers) {
+  const cols = generateCard(cardNum, roundSeed);
+  const called = new Set(calledNumbers);
+  const m = [];
+  for (let r = 0; r < 5; r++) {
+    const row = [];
+    for (let c = 0; c < 5; c++) {
+      const v = cols[c][r];
+      row.push(v === 'FREE' || called.has(v));
     }
-    else document.getElementById('spectator-banner').classList.add('hidden');
-  } else {
-    switchTab('ticket');
+    m.push(row);
   }
+  for (let r = 0; r < 5; r++) if (m[r].every(Boolean)) return { pattern: 'row', index: r, desc: `Row ${r + 1}` };
+  for (let c = 0; c < 5; c++) {
+    let ok = true;
+    for (let r = 0; r < 5; r++) if (!m[r][c]) { ok = false; break; }
+    if (ok) return { pattern: 'col', index: c, desc: `Col ${c + 1}` };
+  }
+  let d1 = true, d2 = true;
+  for (let i = 0; i < 5; i++) {
+    if (!m[i][i]) d1 = false;
+    if (!m[i][4 - i]) d2 = false;
+  }
+  if (d1) return { pattern: 'diag1', desc: 'Diagonal 1' };
+  if (d2) return { pattern: 'diag2', desc: 'Diagonal 2' };
+  if (m[0][0] && m[0][4] && m[4][0] && m[4][4]) return { pattern: 'corners', desc: '4 Corners' };
+  return null;
 }
 
-function onNumberCalled(data) {
-  roomPhase = 'calling';
-  calledNumbersSet.add(data.number);
-  updateCalledNumbersUI(data.allCalled);
-  playCallSound(data.number);
-  
-  if (!liveInitialized) { switchTab('live'); ensureLiveGame(); }
-  updateLiveCardsContainer();
-}
+class Room {
+  constructor(id, config, io) {
+    this.id = id;
+    this.stake = config.stake;
+    this.maxCards = config.maxCards ?? MAX_CARDS;
+    this.io = io;
 
-function onPhaseChange(data) {
-  roomPhase = data.phase;
-  if (data.phase === 'calling') {
-    switchTab('live'); ensureLiveGame(); updateLiveCardsContainer();
-    if (selectedCards.size === 0) {
-      document.getElementById('spectator-banner').innerText = "👀 You are spectating this round.";
-      document.getElementById('spectator-banner').classList.remove('hidden');
-    }
-    else document.getElementById('spectator-banner').classList.add('hidden');
-  } else if (data.phase === 'countdown') {
-    switchTab('ticket');
-    document.getElementById('spectator-banner').classList.add('hidden');
-  }
-}
-
-function onGameOver(data) {
-  if (data.noWinner) return;
-  if (isModalShown) return;
-  isModalShown = true;
-
-  const isMe = data.winners.some(w => String(w.userId) === String(userProfile.id));
-  const names = data.winners.map(w => w.name).join(', ') || 'Player';
-  
-  document.getElementById('game-over-overlay').classList.remove('hidden');
-  document.getElementById('winner-name-badge').innerText = isMe ? '🎉 YOU WON! 🎉' : '🏆 ' + names;
-  
-  const dict = I18N[currentLang];
-  let patStr = data.winDesc;
-  if (data.winType === 'row') patStr = `${dict.patternRow} ${data.winIndex + 1}`;
-  if (data.winType === 'col') patStr = `${dict.patternCol} ${data.winIndex + 1}`;
-  if (data.winType === 'diag1' || data.winType === 'diag2') patStr = dict.patternDiag1;
-  if (data.winType === 'corners') patStr = dict.patternCorners;
-
-  document.getElementById('modal-pattern').innerText = patStr;
-  document.getElementById('modal-prize-val').innerText = data.totalPrize + ' ETB';
-
-  const layout = data.winningCardData || cardLayouts[data.winningCard];
-  const mc = document.getElementById('modal-winning-card-container');
-  if (layout) {
-    let cells = '';
-    for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) {
-      const v = layout[c][r];
-      const isFree = v === 'FREE';
-      const marked = isFree || calledNumbersSet.has(v);
-      let isWin = false;
-      if (data.winType === 'row' && data.winIndex === r) isWin = true;
-      if (data.winType === 'col' && data.winIndex === c) isWin = true;
-      if (data.winType === 'diag1' && r === c) isWin = true;
-      if (data.winType === 'diag2' && r + c === 4) isWin = true;
-      if (data.winType === 'corners' && (r === 0 || r === 4) && (c === 0 || c === 4)) isWin = true;
-      
-      const cls = `modal-cell ${isFree?'free':''} ${marked&&!isFree?'marked':''} ${isWin?'winning-highlight':''}`;
-      cells += `<div class="${cls}">${isFree?'FREE':v}</div>`;
-    }
-    mc.innerHTML = `<div class="modal-matrix">
-      <div class="h-b" style="font-size:10px;padding:4px;">B</div>
-      <div class="h-i" style="font-size:10px;padding:4px;">I</div>
-      <div class="h-n" style="font-size:10px;padding:4px;">N</div>
-      <div class="h-g" style="font-size:10px;padding:4px;">G</div>
-      <div class="h-o" style="font-size:10px;padding:4px;">O</div>
-      ${cells}
-    </div><div class="modal-board-footer">Card #${data.winningCard}</div>`;
-  }
-
-  let cd = 5;
-  const el = document.getElementById('modal-countdown');
-  el.innerText = cd;
-  const interval = setInterval(() => { 
-    cd--; el.innerText = cd; 
-    if (cd <= 0) clearInterval(interval); 
-  }, 1000);
-  
-  setTimeout(() => {
-    document.getElementById('game-over-overlay').classList.add('hidden');
-    isModalShown = false;
-  }, 5000);
-  loadWallet();
-}
-
-function onResetGame() {
-  selectedCards.clear();
-  calledNumbersSet.clear();
-  manualMarks.clear();
-  cardLayouts = {};
-  liveInitialized = false;
-  isModalShown = false;
-  roomPhase = 'idle';
-  
-  document.getElementById('taken-cards-badge').innerText = '0';
-  document.getElementById('current-call-display').innerText = '--';
-  document.getElementById('call-count').innerText = '0';
-  document.getElementById('prize-pool-val').innerText = '0';
-  document.getElementById('players-val').innerText = '0';
-  document.getElementById('live-cards-container').innerHTML = '';
-  document.getElementById('game-over-overlay').classList.add('hidden');
-  document.getElementById('spectator-banner').classList.add('hidden');
-  
-  for (let i = 1; i <= 75; i++) {
-    const c = document.getElementById('cell-' + i); if (c) c.classList.remove('marked');
-  }
-  updatePreview();
-  refreshGridTakenStatus([]);
-  switchTab('ticket');
-  loadWallet();
-}
-
-function buildGrid() {
-  const gc = document.getElementById('number-grid');
-  gc.innerHTML = '';
-  for (let i = 1; i <= 600; i++) {
-    const btn = document.createElement('button');
-    btn.className = 'number-btn';
-    btn.id = 'grid-btn-' + i;
-    btn.innerText = i;
-    btn.onclick = () => toggleCard(i, btn);
-    gc.appendChild(btn);
-  }
-}
-
-function refreshGridTakenStatus(takenNumbers) {
-  const taken = new Set((takenNumbers || []).map(Number));
-  for (let i = 1; i <= 600; i++) {
-    const btn = document.getElementById('grid-btn-' + i);
-    if (!btn) continue;
-    if (selectedCards.has(i)) {
-      btn.className = 'number-btn selected';
-      btn.disabled = false;
-    } else if (taken.has(i)) {
-      btn.className = 'number-btn taken-by-other';
-      btn.disabled = true;
-    } else {
-      btn.className = 'number-btn';
-      btn.disabled = false;
-    }
-  }
-}
-
-async function toggleCard(num, btn) {
-  if (roomPhase === 'calling' || roomPhase === 'gameover') {
-    return showToast("Game is in progress. Please wait for the next round.");
-  }
-  
-  const isDeselect = selectedCards.has(num);
-  
-  if (!isDeselect && currentWallet < 10) {
-    return showToast("Insufficient balance! You need at least 10 ETB to buy a card.");
-  }
-  
-  btn.disabled = true;
-  try {
-    const r = await fetch('/api/game/' + (isDeselect ? 'deselect-card' : 'select-card'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomId: 'main', cardNum: num })
-    });
-    const d = await r.json();
+    this.phase = 'idle';
+    this.roundId = null;
+    this.seed = null;
+    this.seedHash = null;
+    this.calledNumbers = [];
+    this.takenCards = {};
+    this.remainingTime = COUNTDOWN_SECONDS;
+    this.countdownTimer = null;
+    this.callTimer = null;
     
-    if (!d.success) {
-      showToast(d.error || 'Failed'); btn.disabled = false; return;
-    }
+    // Multi-winner tracking
+    this.isEnding = false;
+    this.pendingWinners = [];
     
-    if (isDeselect) {
-      selectedCards.delete(num); delete cardLayouts[num];
-    } else {
-      selectedCards.add(num);
-      if (d.data?.card?.layout) cardLayouts[num] = d.data.card.layout;
-    }
-    
-    if (d.data) {
-      currentWallet = Number(d.data.play_balance);
-      updateWalletUI();
-    }
-    
-    document.getElementById('taken-cards-badge').innerText = selectedCards.size;
-    updatePreview();
-    refreshGridTakenStatus();
-  } catch (e) {
-    showToast('Network error'); btn.disabled = false;
+    setTimeout(() => this.start(), 3000);
   }
-}
 
-function updatePreview() {
-  const c = document.getElementById('preview-container');
-  const dict = I18N[currentLang];
-  if (selectedCards.size === 0) {
-    c.innerHTML = `<div style="text-align:center;color:var(--text-muted);font-size:11px;padding:6px;">${dict.noCards}</div>`;
-    return;
+  broadcast(event, payload) {
+    this.io.to(`room:${this.id}`).emit(event, payload);
   }
-  c.innerHTML = '';
-  selectedCards.forEach(cn => {
-    const layout = cardLayouts[cn];
-    if (!layout) return;
-    let cells = '';
-    for (let r = 0; r < 5; r++) for (let cc = 0; cc < 5; cc++) {
-      const v = layout[cc][r];
-      cells += v === 'FREE' ? '<div class="mini-cell free">FREE</div>' : `<div class="mini-cell">${v}</div>`;
-    }
-    const d = document.createElement('div');
-    d.className = 'card-preview-card';
-    d.innerHTML = `<div class="card-preview-header">CARD ${cn}</div><div class="mini-matrix">${cells}</div>`;
-    c.appendChild(d);
-  });
-}
 
-function ensureLiveGame() { buildBingoBoard(); liveInitialized = true; }
-
-function buildBingoBoard() {
-  const b = document.getElementById('bingo-board');
-  b.innerHTML = '';
-  ['B','I','N','G','O'].forEach((char) => {
-    const d = document.createElement('div'); d.className = 'h-' + char.toLowerCase(); d.innerText = char; b.appendChild(d);
-  });
-  for (let row = 1; row <= 15; row++) for (let col = 0; col < 5; col++) {
-    const num = col * 15 + row;
-    const cell = document.createElement('div');
-    cell.className = 'board-cell' + (calledNumbersSet.has(num) ? ' marked' : '');
-    cell.id = 'cell-' + num;
-    cell.innerText = num;
-    b.appendChild(cell);
+  snapshot() {
+    return {
+      roomId: this.id, stake: this.stake, phase: this.phase,
+      calledNumbers: this.calledNumbers,
+      takenCards: Object.keys(this.takenCards).map(Number),
+      remainingTime: this.remainingTime, seedHash: this.seedHash,
+      players: new Set(Object.values(this.takenCards).map(String)).size
+    };
   }
-}
 
-function updateCalledNumbersUI(allCalled) {
-  if (!allCalled?.length) return;
-  const last = allCalled[allCalled.length - 1];
-  const pfx = last <= 15 ? 'B' : last <= 30 ? 'I' : last <= 45 ? 'N' : last <= 60 ? 'G' : 'O';
-  document.getElementById('current-call-display').innerText = pfx + '-' + last;
-  document.getElementById('call-count').innerText = allCalled.length;
-  allCalled.forEach(n => {
-    const cell = document.getElementById('cell-' + n);
-    if (cell) cell.classList.add('marked');
-  });
-}
+  async start() {
+    if (this.phase !== 'idle') return;
+    this.phase = 'countdown';
+    this.roundId = crypto.randomBytes(8).toString('hex');
+    this.seed = crypto.randomBytes(32).toString('hex');
+    this.seedHash = crypto.createHash('sha256').update(this.seed).digest('hex');
+    this.calledNumbers = [];
+    this.takenCards = {};
+    this.remainingTime = COUNTDOWN_SECONDS;
+    this.isEnding = false;
+    this.pendingWinners = [];
 
-function toggleDaubMode() {
-  isAutoMark = !isAutoMark;
-  const btn = document.getElementById('daub-toggle-btn');
-  if (isAutoMark) {
-    btn.innerText = "🤖 Auto";
-    btn.style.background = "var(--primary)";
-  } else {
-    btn.innerText = "🖐️ Manual";
-    btn.style.background = "var(--warning)";
-  }
-  updateLiveCardsContainer();
-}
+    await Round.create({
+      roundId: this.roundId, roomId: this.id, phase: 'countdown',
+      seed: this.seed, seedHash: this.seedHash, cards: [], calledNumbers: [], winners: [], startedAt: new Date()
+    }).catch(() => {});
 
-function handleCellClick(cardNum, val) {
-  if (isAutoMark) return;
-  if (!calledNumbersSet.has(val)) return;
-  
-  const key = `${cardNum}-${val}`;
-  if (manualMarks.has(key)) manualMarks.delete(key);
-  else manualMarks.add(key);
-  
-  updateLiveCardsContainer();
-}
+    this.broadcast('phase_change', { phase: 'countdown', roomId: this.id, seedHash: this.seedHash });
+    this.broadcast('timer_tick', { remaining: this.remainingTime });
 
-function claimBingo(cardNum) {
-  socket.emit('claim_bingo', { cardNum });
-}
-
-function updateLiveCardsContainer() {
-  const c = document.getElementById('live-cards-container');
-  c.innerHTML = '';
-  if (selectedCards.size === 0) return;
-  
-  selectedCards.forEach(cn => {
-    const layout = cardLayouts[cn];
-    if (!layout) return;
-    let cells = '';
-    for (let r = 0; r < 5; r++) for (let cc = 0; cc < 5; cc++) {
-      const v = layout[cc][r];
-      const isFree = v === 'FREE';
-      
-      let isMarked = false;
-      if (isFree) isMarked = true;
-      else if (isAutoMark) isMarked = calledNumbersSet.has(v);
-      else isMarked = manualMarks.has(`${cn}-${v}`);
-      
-      const cls = `interactive-cell ${isFree?'free':''} ${isMarked&&!isFree?'marked-cell':''}`;
-      if (isFree) {
-        cells += `<div class="${cls}">FREE</div>`;
-      } else {
-        cells += `<div class="${cls}" onclick="handleCellClick(${cn}, ${v})">${v}</div>`;
+    this.countdownTimer = setInterval(() => {
+      this.remainingTime--;
+      this.broadcast('timer_tick', { remaining: this.remainingTime });
+      if (this.remainingTime <= 0) {
+        clearInterval(this.countdownTimer);
+        this.checkStartConditions();
       }
+    }, 1000);
+  }
+
+  checkStartConditions() {
+    const uniquePlayers = new Set(Object.values(this.takenCards).map(String)).size;
+    if (uniquePlayers < 2) {
+      this.remainingTime = 15; 
+      this.broadcast('waiting_for_players', {});
+      this.broadcast('timer_tick', { remaining: this.remainingTime });
+      this.countdownTimer = setInterval(() => {
+        this.remainingTime--;
+        this.broadcast('timer_tick', { remaining: this.remainingTime });
+        if (this.remainingTime <= 0) {
+          clearInterval(this.countdownTimer);
+          this.checkStartConditions();
+        }
+      }, 1000);
+      return;
     }
-    const d = document.createElement('div');
-    d.className = 'interactive-card-view';
-    d.innerHTML = `
-      <div class="card-preview-header">CARD ${cn}</div>
-      <div class="interactive-matrix">${cells}</div>
-      <button class="bingo-btn" onclick="claimBingo(${cn})">CLAIM BINGO!</button>
-    `;
-    c.appendChild(d);
-  });
+    this.enterCalling();
+  }
+
+  enterCalling() {
+    this.phase = 'calling';
+    this.broadcast('phase_change', { phase: 'calling', roomId: this.id });
+    Round.updateOne({ roundId: this.roundId }, { $set: { phase: 'calling' } }).catch(() => {});
+    
+    this.callTimer = setInterval(() => this.callNumber(), 4000);
+  }
+
+  async callNumber() {
+    if (this.phase !== 'calling') return;
+    if (this.calledNumbers.length >= 75) { await this.end([]); return; }
+
+    let n;
+    do { n = Math.floor(Math.random() * 75) + 1; } while (this.calledNumbers.includes(n));
+    this.calledNumbers.push(n);
+
+    this.broadcast('number_called', { number: n, allCalled: this.calledNumbers });
+    Round.updateOne({ roundId: this.roundId }, { $set: { calledNumbers: this.calledNumbers } }).catch(() => {});
+  }
+
+  async claimBingo(userId, cardNum) {
+    if (this.phase !== 'calling' || this.isEnding && this.pendingWinners.length === 0) return { success: false, msg: "Game is ending" };
+    
+    if (String(this.takenCards[cardNum]) !== String(userId)) {
+      return { success: false, msg: "This card does not belong to you!" };
+    }
+
+    // Check if this user is already in the pending winners list
+    if (this.pendingWinners.find(w => w.userId === String(userId) && w.cardNum === cardNum)) {
+      return { success: true };
+    }
+
+    const win = checkWin(cardNum, this.seed, this.calledNumbers);
+    if (!win) return { success: false, msg: "No valid Bingo pattern found!" };
+
+    const user = await User.findOne({ id: String(userId) });
+    this.pendingWinners.push({ userId: String(userId), cardNum, ...win, name: user?.name || 'Player' });
+    
+    // If this is the first claim, start a 2.5-second window for other winners
+    if (!this.isEnding) {
+      this.isEnding = true;
+      this.io.to(`room:${this.id}`).emit('bingo_claimed', { message: 'Bingo claimed! Verifying...' });
+      
+      setTimeout(() => {
+        this.end(this.pendingWinners);
+      }, 2500);
+    }
+
+    return { success: true };
+  }
+
+  async end(winners) {
+    if (this.phase === 'gameover' || this.phase === 'idle') return;
+    if (this.countdownTimer) clearInterval(this.countdownTimer);
+    if (this.callTimer) clearInterval(this.callTimer);
+    this.phase = 'gameover';
+
+    const cardsInPlay = Object.keys(this.takenCards).length;
+    const totalPot = cardsInPlay * this.stake;
+    // Deduct 20% for the House/Owner
+    const totalPrize = winners.length > 0 ? Math.floor(totalPot * 0.8) : 0;
+    const rake = totalPot - totalPrize;
+    const perWinner = winners.length > 0 ? Math.floor(totalPrize / winners.length) : 0;
+
+    for (const w of winners) {
+      w.prize = perWinner;
+      if (perWinner > 0) await User.updateOne({ id: w.userId }, { $inc: { win_balance: perWinner, total_wins: 1 } });
+    }
+
+    const playerIds = [...new Set(Object.values(this.takenCards).map(String))];
+    if (playerIds.length > 0) await User.updateMany({ id: { $in: playerIds } }, { $inc: { total_games: 1 } });
+
+    await Round.updateOne({ roundId: this.roundId }, {
+      $set: {
+        phase: 'settled', endedAt: new Date(), settledAt: new Date(),
+        winners: winners.map(w => ({ userId: w.userId, name: w.name, cardNum: w.cardNum, prize: w.prize, pattern: w.desc })),
+        totalPrize, rake
+      }
+    }).catch(() => {});
+
+    this.broadcast('game_over', {
+      roomId: this.id, winners, noWinner: winners.length === 0, totalPrize,
+      winningCard: winners[0]?.cardNum, winDesc: winners[0]?.desc,
+      winType: winners[0]?.pattern, winIndex: winners[0]?.index
+    });
+
+    setTimeout(() => this.reset(), POST_GAME_SECONDS * 1000);
+  }
+
+  reset() {
+    this.phase = 'idle';
+    this.roundId = null; this.seed = null; this.seedHash = null;
+    this.calledNumbers = []; this.takenCards = {};
+    this.remainingTime = COUNTDOWN_SECONDS;
+    this.isEnding = false;
+    this.pendingWinners = [];
+    this.broadcast('reset_game', { roomId: this.id });
+    setTimeout(() => this.start(), 5000);
+  }
 }
 
-function updatePrizePool(cardsInPlay) {
-  const pool = cardsInPlay * 8;
-  document.getElementById('prize-pool-val').innerText = pool;
-  document.getElementById('players-val').innerText = cardsInPlay;
+class GameManager {
+  constructor(io) {
+    this.io = io;
+    this.rooms = new Map();
+    this.addRoom('main', { stake: 10, maxCards: 50 });
+  }
+  addRoom(id, cfg) { this.rooms.set(id, new Room(id, cfg, this.io)); }
+  get(id) { return this.rooms.get(id); }
+  list() { return [...this.rooms.values()].map(r => r.snapshot()); }
 }
 
-function switchTab(tabName) {
-  ['ticket', 'profile', 'wallet', 'rank', 'history', 'live'].forEach(t => {
-    const el = document.getElementById('page-' + t); if (el) el.classList.add('hidden');
-  });
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-  
-  document.getElementById('page-' + tabName).classList.remove('hidden');
-  const nb = document.getElementById('nav-btn-' + (tabName === 'live' ? 'ticket' : tabName));
-  if (nb) nb.classList.add('active');
-  
-  if (tabName === 'wallet' || tabName === 'profile') loadWallet();
-  if (tabName === 'history') loadHistory();
-  if (tabName === 'rank') loadLeaderboard();
-}
-
-async function loadHistory() {
-  const c = document.getElementById('history-list');
-  c.innerHTML = 'Loading...';
-  const r = await fetch('/api/wallet/history');
-  const d = await r.json();
-  c.innerHTML = '';
-  if (!d.data?.length) return c.innerHTML = 'No history.';
-  d.data.forEach(txn => {
-    const div = document.createElement('div');
-    div.style.cssText = 'background:var(--card);padding:12px;border-radius:10px;display:flex;justify-content:space-between;border:1px solid #334155;';
-    div.innerHTML = `<span>${txn.type === 'deposit' ? '💰' : '💸'} ${txn.type.toUpperCase()}</span>
-                     <span style="color:#facc15;font-weight:bold;">${txn.amount} ETB</span>`;
-    c.appendChild(div);
-  });
-}
-
-async function loadLeaderboard() {
-  const c = document.getElementById('leaderboard-list');
-  c.innerHTML = 'Loading...';
-  const r = await fetch('/api/leaderboard');
-  const d = await r.json();
-  c.innerHTML = '';
-  d.data.forEach((u, i) => {
-    const div = document.createElement('div');
-    div.style.cssText = 'background:var(--card);padding:12px;border-radius:10px;display:flex;justify-content:space-between;border:1px solid #334155;';
-    div.innerHTML = `<span>#${i+1} ${u.name}</span><span style="color:#facc15;font-weight:bold;">${u.win_balance} ETB</span>`;
-    c.appendChild(div);
-  });
-}
-
-boot();
-</script>
-</body>
-</html>
+module.exports = { GameManager, generateCard, checkWin };

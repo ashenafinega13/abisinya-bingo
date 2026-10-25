@@ -82,6 +82,8 @@ tr:hover { background: rgba(255,255,255,0.02); }
         <i class="fas fa-arrow-up"></i> Withdrawals
         <span class="badge-count" id="wd-badge">0</span>
     </div>
+    <div class="menu-item" onclick="switchPage('financials', this)"><i class="fas fa-coins"></i> Game Owner Revenue</div>
+    <div class="menu-item" onclick="switchPage('winners', this)"><i class="fas fa-trophy"></i> Winners List</div>
     <div class="menu-item" onclick="switchPage('game', this)"><i class="fas fa-gamepad"></i> Game Control</div>
     <div class="menu-item" style="color: var(--danger); margin-top: auto; border-top: 1px solid var(--border);" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
 </div>
@@ -137,6 +139,36 @@ tr:hover { background: rgba(255,255,255,0.02); }
             </div>
         </div>
 
+        <!-- GAME OWNER FINANCIALS PAGE -->
+        <div id="page-financials" class="page">
+            <h2 style="margin-bottom: 20px;">Game Owner Revenue</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-title">Total Rake (20% House Cut)</div>
+                    <div class="stat-value" id="stat-rake" style="color: var(--primary);">0 ETB</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Total Paid to Winners</div>
+                    <div class="stat-value" id="stat-payouts" style="color: var(--success);">0 ETB</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Total Rounds Played</div>
+                    <div class="stat-value" id="stat-rounds">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- WINNERS LIST PAGE -->
+        <div id="page-winners" class="page">
+            <h2 style="margin-bottom: 20px;">User Winnings</h2>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>Name</th><th>User ID</th><th>Total Wins</th><th>Winning Balance</th></tr></thead>
+                    <tbody id="winners-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- GAME CONTROL PAGE -->
         <div id="page-game" class="page">
             <h2 style="margin-bottom: 20px;">Live Game Control</h2>
@@ -187,6 +219,8 @@ function switchPage(pageId, el) {
     if (pageId === 'users') loadUsers();
     if (pageId === 'deposits') loadTxns('deposit');
     if (pageId === 'withdrawals') loadTxns('withdrawal');
+    if (pageId === 'financials') loadFinancials();
+    if (pageId === 'winners') loadWinners();
 }
 
 function loadDashboard() {
@@ -216,6 +250,30 @@ function loadDashboard() {
         } else {
             wdBadge.style.display = 'none';
         }
+    });
+}
+
+function loadFinancials() {
+    fetch('/api/admin/financials').then(r => r.json()).then(d => {
+        if (!d.success) return;
+        document.getElementById('stat-rake').innerText = d.data.totalRake + ' ETB';
+        document.getElementById('stat-payouts').innerText = d.data.totalPayouts + ' ETB';
+        document.getElementById('stat-rounds').innerText = d.data.totalRounds;
+    });
+}
+
+function loadWinners() {
+    fetch('/api/admin/financials').then(r => r.json()).then(d => {
+        if (!d.success) return;
+        const tbody = document.getElementById('winners-table-body');
+        tbody.innerHTML = d.data.winners.map(w => `
+            <tr>
+                <td>${w.name}</td>
+                <td><code style="font-size:11px;">${w.id}</code></td>
+                <td style="color:var(--primary); font-weight:bold;">${w.total_wins}</td>
+                <td style="color:var(--success); font-weight:bold;">${w.win_balance.toFixed(2)} ETB</td>
+            </tr>
+        `).join('');
     });
 }
 
@@ -296,7 +354,6 @@ async function sendBroadcast() {
     if (d.success) { alert(`Sent to ${d.sent} users`); document.getElementById('bc-message').value = ''; }
 }
 
-// Auto refresh every 5 seconds for dashboard stats and badges
 setInterval(() => {
     const now = new Date();
     document.getElementById('current-time').innerText = now.toLocaleTimeString();

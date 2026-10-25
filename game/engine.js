@@ -69,7 +69,6 @@ class Room {
   constructor(id, config, io) {
     this.id = id;
     this.stake = config.stake;
-    this.prizePerCard = Math.floor(config.stake * 0.8);
     this.maxCards = config.maxCards ?? MAX_CARDS;
     this.io = io;
 
@@ -82,7 +81,10 @@ class Room {
     this.remainingTime = COUNTDOWN_SECONDS;
     this.countdownTimer = null;
     this.callTimer = null;
+    
+    // Multi-winner tracking
     this.isEnding = false;
+    this.pendingWinners = [];
     
     setTimeout(() => this.start(), 3000);
   }
@@ -111,6 +113,7 @@ class Room {
     this.takenCards = {};
     this.remainingTime = COUNTDOWN_SECONDS;
     this.isEnding = false;
+    this.pendingWinners = [];
 
     await Round.create({
       roundId: this.roundId, roomId: this.id, phase: 'countdown',
@@ -133,7 +136,7 @@ class Room {
   checkStartConditions() {
     const uniquePlayers = new Set(Object.values(this.takenCards).map(String)).size;
     if (uniquePlayers < 2) {
-      this.remainingTime = 15; // Wait 15s and check again
+      this.remainingTime = 15; 
       this.broadcast('waiting_for_players', {});
       this.broadcast('timer_tick', { remaining: this.remainingTime });
       this.countdownTimer = setInterval(() => {
@@ -167,25 +170,36 @@ class Room {
 
     this.broadcast('number_called', { number: n, allCalled: this.calledNumbers });
     Round.updateOne({ roundId: this.roundId }, { $set: { calledNumbers: this.calledNumbers } }).catch(() => {});
-    
-    // Note: Auto-bingo logic is removed. We wait for a player to click the BINGO button.
   }
 
   async claimBingo(userId, cardNum) {
-    if (this.phase !== 'calling' || this.isEnding) return { success: false, msg: "Game is not active" };
+    if (this.phase !== 'calling' || this.isEnding && this.pendingWinners.length === 0) return { success: false, msg: "Game is ending" };
     
-    // Check if the card actually belongs to the player
     if (String(this.takenCards[cardNum]) !== String(userId)) {
       return { success: false, msg: "This card does not belong to you!" };
+    }
+
+    // Check if this user is already in the pending winners list
+    if (this.pendingWinners.find(w => w.userId === String(userId) && w.cardNum === cardNum)) {
+      return { success: true };
     }
 
     const win = checkWin(cardNum, this.seed, this.calledNumbers);
     if (!win) return { success: false, msg: "No valid Bingo pattern found!" };
 
-    this.isEnding = true;
     const user = await User.findOne({ id: String(userId) });
+    this.pendingWinners.push({ userId: String(userId), cardNum, ...win, name: user?.name || 'Player' });
     
-    await this.end([{ userId: String(userId), cardNum, ...win, name: user?.name || 'Player' }]);
+    // If this is the first claim, start a 2.5-second window for other winners
+    if (!this.isEnding) {
+      this.isEnding = true;
+      this.io.to(`room:${this.id}`).emit('bingo_claimed', { message: 'Bingo claimed! Verifying...' });
+      
+      setTimeout(() => {
+        this.end(this.pendingWinners);
+      }, 2500);
+    }
+
     return { success: true };
   }
 
@@ -197,7 +211,8 @@ class Room {
 
     const cardsInPlay = Object.keys(this.takenCards).length;
     const totalPot = cardsInPlay * this.stake;
-    const totalPrize = winners.length > 0 ? cardsInPlay * this.prizePerCard : 0;
+    // Deduct 20% for the House/Owner
+    const totalPrize = winners.length > 0 ? Math.floor(totalPot * 0.8) : 0;
     const rake = totalPot - totalPrize;
     const perWinner = winners.length > 0 ? Math.floor(totalPrize / winners.length) : 0;
 
@@ -231,6 +246,8 @@ class Room {
     this.roundId = null; this.seed = null; this.seedHash = null;
     this.calledNumbers = []; this.takenCards = {};
     this.remainingTime = COUNTDOWN_SECONDS;
+    this.isEnding = false;
+    this.pendingWinners = [];
     this.broadcast('reset_game', { roomId: this.id });
     setTimeout(() => this.start(), 5000);
   }
