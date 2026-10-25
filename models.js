@@ -5,7 +5,7 @@ const UserSchema = new mongoose.Schema({
   name: String,
   username: String,
   phone: String,
-  play_balance: { type: Number, default: 20 },
+  play_balance: { type: Number, default: 20 }, // 20 ETB Welcome Bonus
   win_balance:  { type: Number, default: 0 },
   total_games:  { type: Number, default: 0 },
   total_wins:   { type: Number, default: 0 },
@@ -17,14 +17,14 @@ const UserSchema = new mongoose.Schema({
 
 const TransactionSchema = new mongoose.Schema({
   id: { type: String, unique: true, index: true },
-  type: { type: String, index: true },
+  type: { type: String, index: true }, // deposit | withdrawal
   user_id: { type: String, index: true },
   user_name: String,
   amount: Number,
-  method: String,
+  method: String, // Telebirr or CBE
   reference: String,
   phone: String,
-  status: { type: String, index: true },
+  status: { type: String, index: true }, // pending | approved | rejected
   created: String,
   notified: { type: Boolean, default: false }
 }, { collection: 'transactions' });

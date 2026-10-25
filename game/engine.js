@@ -159,7 +159,7 @@ class Room {
     this.broadcast('phase_change', { phase: 'calling', roomId: this.id });
     Round.updateOne({ roundId: this.roundId }, { $set: { phase: 'calling' } }).catch(() => {});
     
-    this.callTimer = setInterval(() => this.callNumber(), 4000);
+    this.callTimer = setInterval(() => this.callNumber(), 4000); // 4 seconds per call
   }
 
   async callNumber() {
@@ -191,6 +191,7 @@ class Room {
     const user = await User.findOne({ id: String(userId) });
     this.pendingWinners.push({ userId: String(userId), cardNum, ...win, name: user?.name || 'Player' });
     
+    // If this is the first claim, start a 2.5-second window for other winners
     if (!this.isEnding) {
       this.isEnding = true;
       this.io.to(`room:${this.id}`).emit('bingo_claimed', { message: 'Bingo claimed! Verifying...' });
@@ -211,6 +212,8 @@ class Room {
 
     const cardsInPlay = Object.keys(this.takenCards).length;
     const totalPot = cardsInPlay * this.stake;
+    
+    // Deduct 20% for the House/Owner
     const totalPrize = winners.length > 0 ? Math.floor(totalPot * 0.8) : 0;
     const rake = totalPot - totalPrize;
     const perWinner = winners.length > 0 ? Math.floor(totalPrize / winners.length) : 0;
