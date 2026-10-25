@@ -16,6 +16,9 @@ load_dotenv()
 # ── Config ─────────────────────────────────────────────────────
 BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 WEB_APP_URL = os.getenv('WEB_APP_URL') or os.getenv('WEBAPP_URL', 'https://example.com')
+WEB_APP_URL = os.getenv('WEB_APP_URL') or os.getenv('WEBAPP_URL', 'https://example.com')
+if WEB_APP_URL != 'https://example.com':
+    WEB_APP_URL = WEB_APP_URL + "?v=4" # <--- FORCES TELEGRAM TO CLEAR CACHE
 MONGODB_URI = os.getenv('MONGODB_URI')
 ADMIN_IDS = [int(x) for x in os.getenv('ADMIN_ID', '5925033073').split(',') if x.strip()]
 
