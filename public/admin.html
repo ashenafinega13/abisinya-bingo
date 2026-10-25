@@ -1,447 +1,280 @@
 <!DOCTYPE html>
-<html lang="am">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Abisinya Bingo - Admin</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<title>Admin Dashboard - Abisinya Bingo</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-:root { --primary: #f59e0b; --bg: #0f172a; --card: #1e293b; --text: #fff; --danger: #ef4444; --success: #22c55e; }
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+:root { --primary: #f59e0b; --bg: #0f172a; --card: #1e293b; --text: #fff; --danger: #ef4444; --success: #22c55e; --border: #334155; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
 body { background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
-#sidebar { width: 250px; background: var(--card); padding: 20px 0; border-right: 1px solid #334155; z-index: 100; transition: 0.3s; flex-shrink: 0; overflow-y: auto; }
-.logo { padding: 0 20px 20px; border-bottom: 1px solid #334155; margin-bottom: 20px; font-size: 20px; font-weight: bold; color: var(--primary); }
-.menu-item { padding: 15px 20px; display: flex; align-items: center; gap: 12px; cursor: pointer; color: #94a3b8; font-size: 14px; font-weight: 600; }
-.menu-item:hover, .menu-item.active { background: #334155; color: #fff; border-left: 4px solid var(--primary); }
+
+/* Sidebar */
+#sidebar { width: 250px; background: var(--card); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 100; transition: 0.3s; }
+.logo { padding: 20px; font-size: 20px; font-weight: 900; color: var(--primary); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.menu-item { padding: 15px 20px; display: flex; align-items: center; gap: 12px; cursor: pointer; color: #94a3b8; font-weight: 600; transition: 0.2s; border-left: 4px solid transparent; }
+.menu-item:hover, .menu-item.active { background: rgba(255,255,255,0.05); color: #fff; border-left-color: var(--primary); }
+.menu-item i { width: 20px; text-align: center; }
+
+/* Main Content */
 #main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-.top-bar { height: 60px; background: var(--card); display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid #334155; gap: 15px; }
-.top-bar button { background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; display: none; }
-.page-container { flex: 1; padding: 20px; overflow-y: auto; }
-.page { display: none; }
+.top-bar { height: 60px; background: var(--card); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; justify-content: space-between; }
+.mobile-menu { display: none; background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; }
+.content-area { flex: 1; padding: 20px; overflow-y: auto; }
+.page { display: none; animation: fadeIn 0.3s; }
 .page.active { display: block; }
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
-.stat-card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #334155; transition: 0.2s; }
-.stat-card.clickable { cursor: pointer; }
-.stat-card.clickable:hover { border-color: var(--primary); }
-.stat-title { font-size: 13px; color: #94a3b8; text-transform: uppercase; font-weight: bold; margin-bottom: 8px; }
-.stat-value { font-size: 24px; font-weight: bold; color: var(--primary); }
-table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; margin-top: 10px; }
-th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #334155; font-size: 14px; }
-th { background: #0f172a; color: #94a3b8; font-weight: bold; }
-.badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }
-.badge.pending { background: #f59e0b; color: #000; }
-.badge.approved { background: #22c55e; color: #fff; }
-.badge.rejected { background: #ef4444; color: #fff; }
-.btn { padding: 10px 16px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: #fff; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-primary { background: #3b82f6; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Stats Cards */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
+.stat-card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
+.stat-title { font-size: 12px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 8px; }
+.stat-value { font-size: 26px; font-weight: 900; color: var(--primary); }
+
+/* Tables */
+.table-container { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
+th { background: #0f172a; color: #94a3b8; font-weight: 700; text-transform: uppercase; font-size: 11px; }
+tr:hover { background: rgba(255,255,255,0.02); }
+
+/* Badges & Buttons */
+.badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.badge.pending { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b; }
+.badge.approved { background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid #22c55e; }
+.badge.rejected { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }
+.btn { padding: 8px 16px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; color: #fff; font-size: 12px; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; }
 .btn-success { background: var(--success); }
+.btn-success:hover { background: #16a34a; }
 .btn-danger { background: var(--danger); }
-.btn-warning { background: #f59e0b; color: #000; }
-.form-control { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px; outline: none; font-size: 14px; }
-.room-card { background: var(--card); border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
-.room-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
-.room-title { font-size: 20px; font-weight: 900; }
-.room-stake { font-size: 13px; color: #94a3b8; margin-top: 4px; }
-.room-status { text-align: right; }
-.room-phase-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px; }
-.room-phase-value { font-size: 18px; font-weight: 900; }
-.phase-idle { color: #94a3b8; }
-.phase-countdown { color: #60a5fa; }
-.phase-calling { color: #facc15; }
-.phase-gameover { color: #22c55e; }
-.room-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
-.room-stat { background: #0f172a; padding: 10px; border-radius: 8px; text-align: center; }
-.room-stat-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px; }
-.room-stat-value { font-size: 18px; font-weight: 900; color: #facc15; }
-.room-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.room-controls select { padding: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 6px; font-size: 13px; }
-.info-note { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; font-size: 12px; color: #94a3b8; margin-top: 12px; line-height: 1.5; }
+.btn-danger:hover { background: #dc2626; }
+.btn-primary { background: #3b82f6; }
+.btn-primary:hover { background: #2563eb; }
+
+/* Game Controls */
+.game-controls { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; gap: 15px; flex-wrap: wrap; align-items: center; }
+.form-control { padding: 10px; background: #0f172a; border: 1px solid var(--border); color: #fff; border-radius: 8px; outline: none; font-size: 14px; }
+
 @media (max-width: 768px) {
-  #sidebar { position: fixed; left: -250px; height: 100%; }
-  #sidebar.open { left: 0; }
-  .top-bar button { display: block; }
-  .room-stats { grid-template-columns: repeat(3, 1fr); }
+    #sidebar { position: fixed; left: -250px; height: 100%; }
+    #sidebar.open { left: 0; }
+    .mobile-menu { display: block; }
+    .stats-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
 
-<div id="dashboard-content" style="display: flex; width: 100%; height: 100%;">
-    <div id="sidebar">
-        <div class="logo"><i class="fas fa-dice"></i> Admin Panel</div>
-        <div class="menu-item active" onclick="switchPage('dashboard', this)"><i class="fas fa-home"></i> Dashboard</div>
-        <div class="menu-item" onclick="switchPage('rooms', this)"><i class="fas fa-gamepad"></i> Game Rooms</div>
-        <div class="menu-item" onclick="switchPage('players', this)"><i class="fas fa-users"></i> Players</div>
-        <div class="menu-item" onclick="switchPage('transactions', this)"><i class="fas fa-exchange-alt"></i> Transactions</div>
-        <div class="menu-item" onclick="switchPage('broadcast', this)"><i class="fas fa-bullhorn"></i> Broadcast</div>
-        <div class="menu-item" style="color: #ef4444; border-top: 1px solid #334155; margin-top: 10px;" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
+<div id="sidebar">
+    <div class="logo"><i class="fas fa-dice"></i> Abisinya Admin</div>
+    <div class="menu-item active" onclick="switchPage('dashboard', this)"><i class="fas fa-chart-pie"></i> Dashboard</div>
+    <div class="menu-item" onclick="switchPage('users', this)"><i class="fas fa-users"></i> Users</div>
+    <div class="menu-item" onclick="switchPage('deposits', this)"><i class="fas fa-arrow-down"></i> Deposits</div>
+    <div class="menu-item" onclick="switchPage('withdrawals', this)"><i class="fas fa-arrow-up"></i> Withdrawals</div>
+    <div class="menu-item" onclick="switchPage('game', this)"><i class="fas fa-gamepad"></i> Game Control</div>
+    <div class="menu-item" style="color: var(--danger); margin-top: auto; border-top: 1px solid var(--border);" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
+</div>
+
+<div id="main-content">
+    <div class="top-bar">
+        <button class="mobile-menu" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fas fa-bars"></i></button>
+        <div style="font-weight: bold;">Dashboard Overview</div>
+        <div style="font-size: 12px; color: #94a3b8;" id="current-time"></div>
     </div>
 
-    <div id="main-content">
-        <div class="top-bar">
-            <button onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fas fa-bars"></i></button>
-            <h3 style="font-size: 16px;">Abisinya Bingo Admin</h3>
+    <div class="content-area">
+        <!-- DASHBOARD PAGE -->
+        <div id="page-dashboard" class="page active">
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-title">Total Users</div><div class="stat-value" id="stat-users">0</div></div>
+                <div class="stat-card"><div class="stat-title">Total Deposits</div><div class="stat-value" id="stat-deposits" style="color: var(--success);">0 ETB</div></div>
+                <div class="stat-card"><div class="stat-title">Total Withdrawals</div><div class="stat-value" id="stat-withdrawals" style="color: var(--danger);">0 ETB</div></div>
+                <div class="stat-card"><div class="stat-title">Pending Requests</div><div class="stat-value" id="stat-pending">0</div></div>
+            </div>
         </div>
-        <div class="page-container">
 
-            <!-- Dashboard -->
-            <div id="page-dashboard" class="page active">
-                <h2 style="margin-bottom: 20px;">Dashboard Overview</h2>
-                <div class="stats-grid">
-                    <div class="stat-card clickable" onclick="switchPage('players', document.querySelectorAll('.menu-item')[2])">
-                        <div class="stat-title">Total Players</div>
-                        <div class="stat-value" id="stat-players">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-title">Total Deposits</div>
-                        <div class="stat-value" id="stat-deposits">0 ETB</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-title">Total Withdrawals</div>
-                        <div class="stat-value" id="stat-withdrawals">0 ETB</div>
-                    </div>
-                    <div class="stat-card clickable" onclick="switchPage('transactions', document.querySelectorAll('.menu-item')[3])">
-                        <div class="stat-title">Pending Requests</div>
-                        <div class="stat-value" id="stat-pending">0</div>
-                    </div>
-                </div>
-
-                <h3 style="margin: 25px 0 12px; font-size: 16px;">Rooms at a glance</h3>
-                <div id="dashboard-rooms" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;"></div>
+        <!-- USERS PAGE -->
+        <div id="page-users" class="page">
+            <h2 style="margin-bottom: 20px;">User Management</h2>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>ID</th><th>Name</th><th>Username</th><th>Phone</th><th>Play Bal</th><th>Win Bal</th><th>Games</th><th>Wins</th></tr></thead>
+                    <tbody id="users-table-body"></tbody>
+                </table>
             </div>
-
-            <!-- Rooms -->
-            <div id="page-rooms" class="page">
-                <h2 style="margin-bottom: 20px;">Game Room Control</h2>
-                <div class="info-note">
-                    <b>Auto-flow:</b> Each room auto-starts a round 5s after the first player subscribes. New rounds auto-schedule after settlement.
-                    Use the controls below to force-start, force-stop (which refunds all purchased cards), manually call a number, or adjust auto-call speed.
-                </div>
-                <div id="rooms-container" style="margin-top: 16px;"></div>
-            </div>
-
-            <!-- Players -->
-            <div id="page-players" class="page">
-                <h2 style="margin-bottom: 20px;">Player List</h2>
-                <div style="overflow-x: auto;">
-                    <table>
-                        <thead><tr><th>Name</th><th>ID</th><th>Username</th><th>Phone</th><th>Play Bal</th><th>Win Bal</th><th>Games</th><th>Wins</th></tr></thead>
-                        <tbody id="players-table-body"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Transactions -->
-            <div id="page-transactions" class="page">
-                <h2 style="margin-bottom: 20px;">Transactions</h2>
-                <div style="overflow-x: auto;">
-                    <table>
-                        <thead><tr><th>User</th><th>Type</th><th>Amount</th><th>Ref/Phone</th><th>Status</th><th>Actions</th></tr></thead>
-                        <tbody id="txn-table-body"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Broadcast -->
-            <div id="page-broadcast" class="page">
-                <h2 style="margin-bottom: 20px;">Send Broadcast</h2>
-                <div style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #334155;">
-                    <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #94a3b8;">Message (HTML allowed)</label>
-                    <textarea id="bc-message" class="form-control" rows="6" placeholder="Enter message here..."></textarea>
-                    <button class="btn btn-primary" style="margin-top: 12px;" onclick="sendBroadcast()"><i class="fas fa-paper-plane"></i> Send to All Users</button>
-                </div>
-                <div class="info-note">
-                    Messages are sent with a 📢 <b>ማስታወቂያ</b> prefix. Messages are dispatched at ~25/sec to stay under Telegram's rate limit.
-                </div>
-            </div>
-
         </div>
+
+        <!-- DEPOSITS PAGE -->
+        <div id="page-deposits" class="page">
+            <h2 style="margin-bottom: 20px;">Deposit Requests</h2>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>User</th><th>Amount</th><th>Method</th><th>Reference</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody id="deposits-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- WITHDRAWALS PAGE -->
+        <div id="page-withdrawals" class="page">
+            <h2 style="margin-bottom: 20px;">Withdrawal Requests</h2>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>User</th><th>Amount</th><th>Phone</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody id="withdrawals-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- GAME CONTROL PAGE -->
+        <div id="page-game" class="page">
+            <h2 style="margin-bottom: 20px;">Live Game Control</h2>
+            <div class="game-controls">
+                <button class="btn btn-success" onclick="startGame()"><i class="fas fa-play"></i> Start Game</button>
+                <button class="btn btn-danger" onclick="stopGame()"><i class="fas fa-stop"></i> Stop & Refund</button>
+                <button class="btn btn-primary" onclick="callNextNumber()"><i class="fas fa-arrow-right"></i> Force Next Number</button>
+                <button class="btn btn-primary" id="auto-btn" onclick="toggleAuto()"><i class="fas fa-robot"></i> Auto: OFF</button>
+            </div>
+            <div style="margin-top: 20px; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+                <h3 style="margin-bottom: 10px;">Broadcast Message</h3>
+                <textarea id="bc-message" class="form-control" rows="3" style="width: 100%; margin-bottom: 10px;" placeholder="Enter message for all users..."></textarea>
+                <button class="btn btn-primary" onclick="sendBroadcast()"><i class="fas fa-paper-plane"></i> Send Broadcast</button>
+            </div>
+        </div>
+
     </div>
 </div>
 
 <script>
-const ADMIN_TOKEN_KEY = 'abisinya_admin_token';
-
-function getAdminToken() { return localStorage.getItem(ADMIN_TOKEN_KEY); }
-
-if (!getAdminToken()) {
-    window.location.href = '/admin-login.html';
-}
+const TOKEN_KEY = 'abisinya_admin_token';
+function getToken() { return localStorage.getItem(TOKEN_KEY); }
+if (!getToken()) window.location.href = '/admin-login.html';
 
 const _fetch = window.fetch;
 window.fetch = (url, opts = {}) => {
     if (typeof url === 'string' && url.includes('/api/admin/') && !url.includes('/login')) {
         opts.headers = opts.headers || {};
-        opts.headers['X-Admin-Token'] = getAdminToken();
+        opts.headers['X-Admin-Token'] = getToken();
     }
     return _fetch(url, opts).then(res => {
-        if (res.status === 401) {
-            localStorage.removeItem(ADMIN_TOKEN_KEY);
-            window.location.href = '/admin-login.html';
-        }
+        if (res.status === 401) { localStorage.removeItem(TOKEN_KEY); window.location.href = '/admin-login.html'; }
         return res;
     });
 };
 
-function logout() {
-    localStorage.removeItem(ADMIN_TOKEN_KEY);
-    window.location.href = '/admin-login.html';
-}
+function logout() { localStorage.removeItem(TOKEN_KEY); window.location.href = '/admin-login.html'; }
 
-function switchPage(pageId, element) {
+let autoOn = false;
+function switchPage(pageId, el) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
-    document.getElementById(`page-${pageId}`).classList.add('active');
-    if (element) element.classList.add('active');
-    if (pageId === 'transactions') loadTransactions();
-    if (pageId === 'players') loadPlayers();
-    if (pageId === 'rooms') loadRooms();
-    if (pageId === 'dashboard') loadStats();
+    document.getElementById('page-' + pageId).classList.add('active');
+    if (el) el.classList.add('active');
     if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+
+    if (pageId === 'dashboard') loadDashboard();
+    if (pageId === 'users') loadUsers();
+    if (pageId === 'deposits') loadTxns('deposit');
+    if (pageId === 'withdrawals') loadTxns('withdrawal');
 }
 
-/* ─── Dashboard ──────────────────────────────────────────────── */
-async function loadStats() {
-    try {
-        const r = await fetch('/api/admin/dashboard');
-        const d = await r.json();
+function loadDashboard() {
+    fetch('/api/admin/dashboard').then(r => r.json()).then(d => {
         if (!d.success) return;
-        document.getElementById('stat-players').innerText = d.data.totalPlayers;
+        document.getElementById('stat-users').innerText = d.data.totalPlayers;
         document.getElementById('stat-deposits').innerText = d.data.totalDeposits + ' ETB';
         document.getElementById('stat-withdrawals').innerText = d.data.totalWithdrawals + ' ETB';
-        document.getElementById('stat-pending').innerText = d.data.pendingDeposits + d.data.pendingWithdrawals;
-        renderDashboardRooms(d.data.rooms);
-    } catch (e) { console.error(e); }
-}
-
-function renderDashboardRooms(rooms) {
-    const c = document.getElementById('dashboard-rooms');
-    c.innerHTML = '';
-    rooms.forEach(r => {
-        const div = document.createElement('div');
-        div.style.cssText = 'background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px;cursor:pointer;';
-        div.onclick = () => switchPage('rooms', document.querySelectorAll('.menu-item')[1]);
-        div.innerHTML = `
-            <div style="font-size:14px;font-weight:900;margin-bottom:4px;">${roomLabel(r.roomId)}</div>
-            <div style="display:flex;justify-content:space-between;font-size:12px;color:#94a3b8;margin-bottom:6px;">
-                <span>Stake ${r.stake} ETB</span>
-                <span class="phase-${r.phase}" style="font-weight:900;">${r.phase.toUpperCase()}</span>
-            </div>
-            <div style="font-size:11px;color:#facc15;font-weight:900;">${r.takenCards.length} cards · ${r.players} players</div>
-        `;
-        c.appendChild(div);
+        document.getElementById('stat-pending').innerText = (d.data.pendingDeposits + d.data.pendingWithdrawals);
     });
 }
 
-/* ─── Rooms ──────────────────────────────────────────────────── */
-async function loadRooms() {
-    try {
-        const r = await fetch('/api/admin/rooms');
-        const d = await r.json();
-        if (d.success) renderRooms(d.data);
-    } catch (e) { console.error(e); }
-}
-
-function roomLabel(id) {
-    return { bronze: '🥉 Bronze', silver: '🥈 Silver', gold: '🥇 Gold' }[id] || id;
-}
-
-function renderRooms(rooms) {
-    const c = document.getElementById('rooms-container');
-    c.innerHTML = '';
-    rooms.forEach(r => {
-        const div = document.createElement('div');
-        div.className = 'room-card';
-        const phase = r.phase;
-        const canStart = phase === 'idle';
-        const canStop = phase !== 'idle';
-        const canCall = phase === 'calling';
-
-        div.innerHTML = `
-            <div class="room-header">
-                <div>
-                    <div class="room-title">${roomLabel(r.roomId)}</div>
-                    <div class="room-stake">Stake: ${r.stake} ETB/card · Prize: ${Math.floor(r.stake * 0.8)} ETB/card · Max ${r.roomId === 'gold' ? 2 : 3} cards/player</div>
-                </div>
-                <div class="room-status">
-                    <div class="room-phase-label">Status</div>
-                    <div class="room-phase-value phase-${phase}">${phase.toUpperCase()}</div>
-                </div>
-            </div>
-            <div class="room-stats">
-                <div class="room-stat">
-                    <div class="room-stat-label">Cards Taken</div>
-                    <div class="room-stat-value">${r.takenCards.length}</div>
-                </div>
-                <div class="room-stat">
-                    <div class="room-stat-label">Players</div>
-                    <div class="room-stat-value">${r.players}</div>
-                </div>
-                <div class="room-stat">
-                    <div class="room-stat-label">Calls</div>
-                    <div class="room-stat-value">${r.calledNumbers.length}/75</div>
-                </div>
-            </div>
-            <div class="room-controls">
-                <button class="btn btn-success" onclick="roomStart('${r.roomId}')" ${canStart ? '' : 'disabled'}>▶ Start</button>
-                <button class="btn btn-danger" onclick="roomStop('${r.roomId}')" ${canStop ? '' : 'disabled'}>■ Stop</button>
-                <button class="btn btn-primary" onclick="roomCall('${r.roomId}')" ${canCall ? '' : 'disabled'}>↦ Next Number</button>
-                <button class="btn ${r.autoOn ? 'btn-success' : 'btn-warning'}" onclick="roomAuto('${r.roomId}', ${!r.autoOn})">
-                    🤖 Auto: ${r.autoOn ? 'ON' : 'OFF'}
-                </button>
-                <select onchange="roomSpeed('${r.roomId}', this.value)">
-                    <option value="3" ${r.callInterval === 3 ? 'selected' : ''}>3s / call</option>
-                    <option value="5" ${r.callInterval === 5 ? 'selected' : ''}>5s / call</option>
-                    <option value="7" ${r.callInterval === 7 ? 'selected' : ''}>7s / call</option>
-                </select>
-            </div>
-        `;
-        c.appendChild(div);
-    });
-}
-
-async function roomStart(id) {
-    if (!confirm(`Start a new round in ${roomLabel(id)}?`)) return;
-    await fetch(`/api/admin/rooms/${id}/start`, { method: 'POST' });
-    loadRooms();
-}
-
-async function roomStop(id) {
-    if (!confirm(`Stop ${roomLabel(id)}? All cards in this room will be refunded.`)) return;
-    await fetch(`/api/admin/rooms/${id}/stop`, { method: 'POST' });
-    loadRooms();
-}
-
-async function roomCall(id) {
-    const r = await fetch(`/api/admin/rooms/${id}/call`, { method: 'POST' });
-    const d = await r.json();
-    if (!d.success) alert('Cannot call — check room phase');
-    loadRooms();
-}
-
-async function roomAuto(id, autoOn) {
-    await fetch(`/api/admin/rooms/${id}/auto`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ autoOn })
-    });
-    loadRooms();
-}
-
-async function roomSpeed(id, interval) {
-    await fetch(`/api/admin/rooms/${id}/auto`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ interval: Number(interval) })
-    });
-}
-
-/* ─── Players ────────────────────────────────────────────────── */
-async function loadPlayers() {
-    try {
-        const r = await fetch('/api/admin/users');
-        const d = await r.json();
+function loadUsers() {
+    fetch('/api/admin/users').then(r => r.json()).then(d => {
         if (!d.success) return;
-        const tbody = document.getElementById('players-table-body');
-        tbody.innerHTML = '';
-        if (!d.data.length) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#94a3b8;">No players yet</td></tr>';
-            return;
-        }
-        d.data.forEach(u => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${u.name || '-'}</td>
+        const tbody = document.getElementById('users-table-body');
+        tbody.innerHTML = d.data.map(u => `
+            <tr>
                 <td><code style="font-size:11px;">${u.id}</code></td>
-                <td>${u.username || '-'}</td>
+                <td>${u.name || '-'}</td>
+                <td>@${u.username || '-'}</td>
                 <td>${u.phone || '-'}</td>
-                <td style="color:#facc15;font-weight:bold;">${(u.play_balance || 0).toFixed(2)}</td>
-                <td style="color:#22c55e;font-weight:bold;">${(u.win_balance || 0).toFixed(2)}</td>
+                <td style="color:var(--primary); font-weight:bold;">${u.play_balance.toFixed(2)}</td>
+                <td style="color:var(--success); font-weight:bold;">${u.win_balance.toFixed(2)}</td>
                 <td>${u.total_games || 0}</td>
                 <td>${u.total_wins || 0}</td>
-            `;
-            tbody.appendChild(tr);
-        });
-    } catch (e) { console.error(e); }
+            </tr>
+        `).join('');
+    });
 }
 
-/* ─── Transactions ───────────────────────────────────────────── */
-async function loadTransactions() {
-    try {
-        const r = await fetch('/api/admin/transactions');
-        const d = await r.json();
+function loadTxns(type) {
+    fetch('/api/admin/transactions?type=' + type).then(r => r.json()).then(d => {
         if (!d.success) return;
-        const tbody = document.getElementById('txn-table-body');
-        tbody.innerHTML = '';
-        if (!d.data.length) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;">No transactions</td></tr>';
-            return;
-        }
-        d.data.forEach(txn => {
-            const typeStr = txn.type === 'deposit' ? '📥 Deposit' : '📤 Withdraw';
-            const ref = txn.type === 'deposit' ? (txn.reference || '-') : (txn.phone || '-');
-            const actions = txn.status === 'pending'
-                ? `<button class="btn btn-success" onclick="actionTxn('${txn.id}', 'approve')" style="padding:6px 10px;font-size:11px;"><i class="fas fa-check"></i></button>
-                   <button class="btn btn-danger" onclick="actionTxn('${txn.id}', 'reject')" style="padding:6px 10px;font-size:11px;"><i class="fas fa-times"></i></button>`
-                : '-';
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${txn.user_name || '-'}</td>
-                <td>${typeStr}</td>
-                <td style="font-weight:bold;color:var(--primary);">${txn.amount} ETB</td>
-                <td>${ref}</td>
-                <td><span class="badge ${txn.status}">${txn.status}</span></td>
-                <td>${actions}</td>
+        const tbody = document.getElementById(type + 's-table-body');
+        tbody.innerHTML = d.data.map(t => {
+            let actionHtml = '-';
+            if (t.status === 'pending') {
+                actionHtml = `
+                    <button class="btn btn-success" onclick="actionTxn('${t.id}', 'approve')"><i class="fas fa-check"></i> Approve</button>
+                    <button class="btn btn-danger" onclick="actionTxn('${t.id}', 'reject')" style="margin-left:5px;"><i class="fas fa-times"></i> Reject</button>
+                `;
+            }
+            let ref = type === 'deposit' ? t.reference : t.phone;
+            return `
+                <tr>
+                    <td>${t.user_name}</td>
+                    <td style="font-weight:bold; color:var(--primary);">${t.amount} ETB</td>
+                    <td>${ref || '-'}</td>
+                    <td>${t.method || '-'}</td>
+                    <td><span class="badge ${t.status}">${t.status}</span></td>
+                    <td>${actionHtml}</td>
+                </tr>
             `;
-            tbody.appendChild(tr);
-        });
-    } catch (e) { console.error(e); }
+        }).join('');
+    });
 }
 
 async function actionTxn(id, action) {
     if (!confirm(`Are you sure you want to ${action} this transaction?`)) return;
-    try {
-        const r = await fetch(`/api/admin/transactions/${id}/${action}`, { method: 'POST' });
-        const d = await r.json();
-        if (d.success) {
-            alert(`Transaction ${action}d`);
-            loadTransactions();
-            loadStats();
-        } else {
-            alert(d.error || 'Failed');
-        }
-    } catch (e) { console.error(e); }
+    const res = await fetch(`/api/admin/transactions/${id}/${action}`, { method: 'POST' });
+    const d = await res.json();
+    if (d.success) {
+        alert(`Transaction ${action}d!`);
+        loadDashboard();
+        const currentPage = document.querySelector('.menu-item.active').innerText.trim();
+        if (currentPage === 'Deposits') loadTxns('deposit');
+        if (currentPage === 'Withdrawals') loadTxns('withdrawal');
+    } else {
+        alert(d.error || 'Failed');
+    }
 }
 
-/* ─── Broadcast ──────────────────────────────────────────────── */
+async function startGame() { await fetch('/api/admin/rooms/main/start', { method: 'POST' }); alert('Game Started'); }
+async function stopGame() { await fetch('/api/admin/rooms/main/stop', { method: 'POST' }); alert('Game Stopped & Refunded'); }
+async function callNextNumber() { await fetch('/api/admin/rooms/main/call', { method: 'POST' }); }
+function toggleAuto() {
+    autoOn = !autoOn;
+    document.getElementById('auto-btn').innerHTML = autoOn ? '<i class="fas fa-robot"></i> Auto: ON' : '<i class="fas fa-robot"></i> Auto: OFF';
+    fetch('/api/admin/rooms/main/auto', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ autoOn }) });
+}
 async function sendBroadcast() {
-    const msg = document.getElementById('bc-message').value.trim();
-    if (!msg) return alert('Enter a message');
-    if (!confirm('Send this message to all users?')) return;
-    try {
-        const r = await fetch('/api/admin/broadcast', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: msg })
-        });
-        const d = await r.json();
-        if (d.success) {
-            alert(`Sent to ${d.sent} users`);
-            document.getElementById('bc-message').value = '';
-        } else {
-            alert('Failed to send');
-        }
-    } catch (e) { alert('Network error'); }
+    const msg = document.getElementById('bc-message').value;
+    if (!msg) return alert('Enter message');
+    const res = await fetch('/api/admin/broadcast', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ message: msg }) });
+    const d = await res.json();
+    if (d.success) { alert(`Sent to ${d.sent} users`); document.getElementById('bc-message').value = ''; }
 }
 
-/* ─── Bootstrap ──────────────────────────────────────────────── */
-loadStats();
-setInterval(loadStats, 5000);
+// Auto refresh every 5 seconds
 setInterval(() => {
-    const roomsPage = document.getElementById('page-rooms');
-    if (roomsPage.classList.contains('active')) loadRooms();
-}, 3000);
+    const now = new Date();
+    document.getElementById('current-time').innerText = now.toLocaleTimeString();
+    const active = document.querySelector('.page.active').id;
+    if (active === 'page-dashboard') loadDashboard();
+}, 5000);
+
+loadDashboard();
 </script>
 </body>
 </html>
