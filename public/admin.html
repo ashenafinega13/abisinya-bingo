@@ -13,9 +13,13 @@ body { background: var(--bg); color: var(--text); display: flex; height: 100vh; 
 /* Sidebar */
 #sidebar { width: 250px; background: var(--card); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 100; transition: 0.3s; }
 .logo { padding: 20px; font-size: 20px; font-weight: 900; color: var(--primary); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
-.menu-item { padding: 15px 20px; display: flex; align-items: center; gap: 12px; cursor: pointer; color: #94a3b8; font-weight: 600; transition: 0.2s; border-left: 4px solid transparent; }
+.menu-item { padding: 15px 20px; display: flex; align-items: center; gap: 12px; cursor: pointer; color: #94a3b8; font-weight: 600; transition: 0.2s; border-left: 4px solid transparent; position: relative; }
 .menu-item:hover, .menu-item.active { background: rgba(255,255,255,0.05); color: #fff; border-left-color: var(--primary); }
 .menu-item i { width: 20px; text-align: center; }
+
+/* Notification Badges */
+.badge-count { background: var(--danger); color: #fff; font-size: 11px; font-weight: 900; padding: 2px 6px; border-radius: 10px; margin-left: auto; display: none; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
 /* Main Content */
 #main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -70,8 +74,14 @@ tr:hover { background: rgba(255,255,255,0.02); }
     <div class="logo"><i class="fas fa-dice"></i> Abisinya Admin</div>
     <div class="menu-item active" onclick="switchPage('dashboard', this)"><i class="fas fa-chart-pie"></i> Dashboard</div>
     <div class="menu-item" onclick="switchPage('users', this)"><i class="fas fa-users"></i> Users</div>
-    <div class="menu-item" onclick="switchPage('deposits', this)"><i class="fas fa-arrow-down"></i> Deposits</div>
-    <div class="menu-item" onclick="switchPage('withdrawals', this)"><i class="fas fa-arrow-up"></i> Withdrawals</div>
+    <div class="menu-item" onclick="switchPage('deposits', this)">
+        <i class="fas fa-arrow-down"></i> Deposits
+        <span class="badge-count" id="dep-badge">0</span>
+    </div>
+    <div class="menu-item" onclick="switchPage('withdrawals', this)">
+        <i class="fas fa-arrow-up"></i> Withdrawals
+        <span class="badge-count" id="wd-badge">0</span>
+    </div>
     <div class="menu-item" onclick="switchPage('game', this)"><i class="fas fa-gamepad"></i> Game Control</div>
     <div class="menu-item" style="color: var(--danger); margin-top: auto; border-top: 1px solid var(--border);" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
 </div>
@@ -90,7 +100,7 @@ tr:hover { background: rgba(255,255,255,0.02); }
                 <div class="stat-card"><div class="stat-title">Total Users</div><div class="stat-value" id="stat-users">0</div></div>
                 <div class="stat-card"><div class="stat-title">Total Deposits</div><div class="stat-value" id="stat-deposits" style="color: var(--success);">0 ETB</div></div>
                 <div class="stat-card"><div class="stat-title">Total Withdrawals</div><div class="stat-value" id="stat-withdrawals" style="color: var(--danger);">0 ETB</div></div>
-                <div class="stat-card"><div class="stat-title">Pending Requests</div><div class="stat-value" id="stat-pending">0</div></div>
+                <div class="stat-card"><div class="stat-title">Pending Requests</div><div class="stat-value" id="stat-pending" style="color: var(--primary);">0</div></div>
             </div>
         </div>
 
@@ -185,7 +195,27 @@ function loadDashboard() {
         document.getElementById('stat-users').innerText = d.data.totalPlayers;
         document.getElementById('stat-deposits').innerText = d.data.totalDeposits + ' ETB';
         document.getElementById('stat-withdrawals').innerText = d.data.totalWithdrawals + ' ETB';
-        document.getElementById('stat-pending').innerText = (d.data.pendingDeposits + d.data.pendingWithdrawals);
+        
+        const totalPending = d.data.pendingDeposits + d.data.pendingWithdrawals;
+        document.getElementById('stat-pending').innerText = totalPending;
+
+        // Update Sidebar Badges
+        const depBadge = document.getElementById('dep-badge');
+        const wdBadge = document.getElementById('wd-badge');
+
+        if (d.data.pendingDeposits > 0) {
+            depBadge.innerText = d.data.pendingDeposits;
+            depBadge.style.display = 'inline-block';
+        } else {
+            depBadge.style.display = 'none';
+        }
+
+        if (d.data.pendingWithdrawals > 0) {
+            wdBadge.innerText = d.data.pendingWithdrawals;
+            wdBadge.style.display = 'inline-block';
+        } else {
+            wdBadge.style.display = 'none';
+        }
     });
 }
 
@@ -241,10 +271,10 @@ async function actionTxn(id, action) {
     const d = await res.json();
     if (d.success) {
         alert(`Transaction ${action}d!`);
-        loadDashboard();
+        loadDashboard(); // This will update the badges
         const currentPage = document.querySelector('.menu-item.active').innerText.trim();
-        if (currentPage === 'Deposits') loadTxns('deposit');
-        if (currentPage === 'Withdrawals') loadTxns('withdrawal');
+        if (currentPage.includes('Deposits')) loadTxns('deposit');
+        if (currentPage.includes('Withdrawals')) loadTxns('withdrawal');
     } else {
         alert(d.error || 'Failed');
     }
@@ -266,12 +296,11 @@ async function sendBroadcast() {
     if (d.success) { alert(`Sent to ${d.sent} users`); document.getElementById('bc-message').value = ''; }
 }
 
-// Auto refresh every 5 seconds
+// Auto refresh every 5 seconds for dashboard stats and badges
 setInterval(() => {
     const now = new Date();
     document.getElementById('current-time').innerText = now.toLocaleTimeString();
-    const active = document.querySelector('.page.active').id;
-    if (active === 'page-dashboard') loadDashboard();
+    loadDashboard();
 }, 5000);
 
 loadDashboard();

@@ -54,16 +54,14 @@ async function bootRecovery() {
         await User.updateOne({ id: w.userId }, { $inc: { win_balance: perWinner, total_wins: 1 } });
       }
       await Round.updateOne({ _id: r._id }, { $set: { phase: 'settled', settledAt: new Date() } });
-      console.log(`[boot] settled orphaned round ${r.roundId}`);
     } else {
       const byUser = {};
       for (const c of r.cards) byUser[c.userId] = (byUser[c.userId] || 0) + 1;
-      const stake = r.roomId === 'bronze' ? 10 : r.roomId === 'silver' ? 25 : 50;
+      const stake = 10;
       for (const [uid, count] of Object.entries(byUser)) {
         await User.updateOne({ id: uid }, { $inc: { play_balance: count * stake } });
       }
       await Round.updateOne({ _id: r._id }, { $set: { phase: 'crashed', settledAt: new Date() } });
-      console.log(`[boot] refunded crashed round ${r.roundId} (${r.cards.length} cards)`);
     }
   }
 }
@@ -128,8 +126,16 @@ app.post('/api/admin/transactions/:id/approve', requireAdmin, async (req, res) =
     { new: true }
   );
   if (!txn) return res.status(409).json({ success: false, error: 'Already processed' });
-  if (txn.type === 'deposit')
+  
+  if (txn.type === 'deposit') {
     await User.updateOne({ id: String(txn.user_id) }, { $inc: { play_balance: txn.amount } });
+    // Send real-time notification to the user
+    io.to(`user:${txn.user_id}`).emit('wallet_updated', { 
+      type: 'deposit', 
+      amount: txn.amount,
+      message: `✅ Deposit Approved! +${txn.amount} ETB added.`
+    });
+  }
   await AuditLog.create({ ts: new Date(), actor: 'admin', action: 'txn_approve', detail: { id: txn.id, type: txn.type } }).catch(() => {});
   res.json({ success: true });
 });
@@ -141,8 +147,16 @@ app.post('/api/admin/transactions/:id/reject', requireAdmin, async (req, res) =>
     { new: true }
   );
   if (!txn) return res.status(409).json({ success: false, error: 'Already processed' });
-  if (txn.type === 'withdrawal')
+  
+  if (txn.type === 'withdrawal') {
     await User.updateOne({ id: String(txn.user_id) }, { $inc: { win_balance: txn.amount } });
+  }
+  // Send real-time notification to the user
+  io.to(`user:${txn.user_id}`).emit('wallet_updated', { 
+    type: 'rejected', 
+    amount: txn.amount,
+    message: `❌ Your ${txn.type} request was rejected.`
+  });
   await AuditLog.create({ ts: new Date(), actor: 'admin', action: 'txn_reject', detail: { id: txn.id, type: txn.type } }).catch(() => {});
   res.json({ success: true });
 });
@@ -296,11 +310,16 @@ io.use((socket, next) => {
 });
 
 io.on('connection', socket => {
+  // Join a personal room so admin can send real-time wallet updates
+  socket.join(`user:${socket.userId}`);
+
   socket.on('subscribe', ({ roomId }) => {
     const room = gameManager.get(roomId);
     if (!room) return;
     socket.leaveAll();
     socket.join(`room:${roomId}`);
+    // Re-join user room since leaveAll() removes it
+    socket.join(`user:${socket.userId}`); 
 
     const myCards = Object.entries(room.takenCards)
       .filter(([, uid]) => String(uid) === socket.userId)
