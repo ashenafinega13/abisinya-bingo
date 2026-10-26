@@ -404,7 +404,9 @@ if (tg) tg.expand();
 // ==========================================
 // VERCEL -> RENDER CONNECTION
 // ==========================================
-const BACKEND_URL = 'https://abisinya-bingo-server.onrender.com'; // Make sure this matches your Render URL
+const BACKEND_URL = 'https://abisinya-bingo-server.onrender.com'; 
+const MIN_LOAD_TIME = 3500; // Minimum loading screen time (3.5 seconds)
+const appStartTime = Date.now();
 
 let toastTimeout;
 function showToast(msg, isSuccess = false) {
@@ -509,9 +511,9 @@ let manualMarks = new Set();
 let hasShownWelcomeBonus = false;
 let allTransactions = [];
 
-applyLanguage();
-
-// LOADING SCREEN ANIMATION LOGIC
+// ==========================================
+// LOADING SCREEN LOGIC
+// ==========================================
 let loadingSeconds = 0;
 const loadingTexts = [
   "Waking up the game server...",
@@ -526,10 +528,38 @@ const loadingInterval = setInterval(() => {
   if (loadingSeconds === 25) txt.innerText = loadingTexts[2];
   if (loadingSeconds === 40) txt.innerText = loadingTexts[3];
   
-  // Update progress bar up to 99%
   const pct = Math.min((loadingSeconds / 50) * 100, 99);
   document.getElementById('loading-progress').style.width = pct + '%';
 }, 1000);
+
+let isSocketConnected = false;
+let isDataLoaded = false;
+let hasHiddenLoader = false;
+
+function checkLoadingComplete() {
+  if (hasHiddenLoader) return;
+  if (!isSocketConnected || !isDataLoaded) return;
+
+  const elapsedTime = Date.now() - appStartTime;
+  const timeRemaining = Math.max(0, MIN_LOAD_TIME - elapsedTime);
+
+  // Wait for the minimum time so the user can see the animation
+  setTimeout(() => {
+    if (hasHiddenLoader) return;
+    hasHiddenLoader = true;
+    
+    clearInterval(loadingInterval);
+    document.getElementById('loading-progress').style.width = '100%';
+    
+    // Fade out overlay
+    setTimeout(() => {
+      document.getElementById('loading-overlay').style.opacity = '0';
+      setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 500);
+    }, 300);
+  }, timeRemaining);
+}
+
+applyLanguage();
 
 function boot() {
   document.getElementById('profile-name-val').innerText = userProfile.name;
@@ -545,22 +575,22 @@ function boot() {
   socket = io(BACKEND_URL, { auth: { initData: TG_INIT_DATA } });
   
   socket.on('connect', () => {
-    clearInterval(loadingInterval);
-    document.getElementById('loading-progress').style.width = '100%';
-    setTimeout(() => {
-      document.getElementById('loading-overlay').style.opacity = '0';
-      setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 500);
-    }, 300);
-
+    isSocketConnected = true;
     socket.emit('subscribe', { roomId: 'main' });
     loadWallet();
+    checkLoadingComplete();
   });
 
   socket.on('connect_error', (err) => {
     document.querySelector('.loading-status').innerText = "Connection lost. Retrying...";
   });
   
-  socket.on('init_state', onInitState);
+  socket.on('init_state', (state) => {
+    isDataLoaded = true;
+    onInitState(state);
+    checkLoadingComplete();
+  });
+
   socket.on('taken_cards', (cards) => {
     refreshGridTakenStatus(cards);
     updatePrizePool(cards.length);
