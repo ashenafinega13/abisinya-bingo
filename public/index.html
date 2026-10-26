@@ -568,23 +568,33 @@ function boot() {
 }
 
 function loadWallet() {
-  fetch('/api/wallet/me').then(r => r.json()).then(d => {
-    if (d.success && d.data) {
-      currentWallet = Number(d.data.play_balance) || 0;
-      currentWinWallet = Number(d.data.win_balance) || 0;
-      const totalGames = Number(d.data.total_games) || 0;
-      
-      // FIX 1: CHECK LOCALSTORAGE BEFORE SHOWING TOAST
-      if (currentWallet === 20 && totalGames === 0 && !hasShownWelcomeBonus) {
-        hasShownWelcomeBonus = true;
-        localStorage.setItem('abisinya_welcome_bonus_shown', 'true');
-        setTimeout(() => showToast("🎁 Welcome! You have a 20 ETB bonus for 2 games.", true), 1000);
+  // cache: 'no-store' forces Telegram to fetch fresh data, ignoring the old "0" cache
+  fetch('/api/wallet/me', { cache: 'no-store' })
+    .then(r => {
+      if (!r.ok) throw new Error("Server waking up");
+      return r.json();
+    })
+    .then(d => {
+      if (d.success && d.data) {
+        currentWallet = Number(d.data.play_balance) || 0;
+        currentWinWallet = Number(d.data.win_balance) || 0;
+        const totalGames = Number(d.data.total_games) || 0;
+        
+        if (currentWallet === 20 && totalGames === 0 && !hasShownWelcomeBonus) {
+          hasShownWelcomeBonus = true;
+          localStorage.setItem('abisinya_welcome_bonus_shown', 'true');
+          setTimeout(() => showToast("🎁 Welcome! You have a 20 ETB bonus for 2 games.", true), 1000);
+        }
+        
+        updateWalletUI();
+        updateProfileXP(totalGames);
       }
-      
-      updateWalletUI();
-      updateProfileXP(totalGames);
-    }
-  }).catch(e => console.error("Wallet fetch error", e));
+    })
+    .catch(e => {
+      console.log("Wallet fetch error, retrying in 3s...", e);
+      // Retry after 3 seconds if server is waking up
+      setTimeout(loadWallet, 3000);
+    });
 }
 
 function updateWalletUI() {
