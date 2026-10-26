@@ -17,14 +17,14 @@ load_dotenv()
 BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 WEB_APP_URL = os.getenv('WEB_APP_URL') or os.getenv('WEBAPP_URL', 'https://example.com')
 if WEB_APP_URL != 'https://example.com':
-    WEB_APP_URL = WEB_APP_URL + "?v=5" # Cache buster
+    WEB_APP_URL = WEB_APP_URL + "?v=5"
 
 MONGODB_URI = os.getenv('MONGODB_URI')
 ADMIN_IDS = [int(x) for x in os.getenv('ADMIN_ID', '5925033073').split(',') if x.strip()]
 
 MIN_WITHDRAW = 100
 MIN_DEPOSIT = 10
-REFERRAL_BONUS = 20      # <--- CHANGED TO 20 BIRR
+REFERRAL_BONUS = 20
 WELCOME_BONUS = 20
 TELEBIRR_NUMBER = "0968940123"
 CBE_NUMBER = "1000390803005"
@@ -54,7 +54,6 @@ def ensure_user(message):
     if not user:
         u = message.from_user
         full_name = f"{u.first_name or ''} {u.last_name or ''}".strip() or f"Player {uid}"
-        # NEW USERS GET 20 ETB WELCOME BONUS
         user = {
             "id": uid, "name": full_name, "username": u.username or "",
             "phone": "", "play_balance": 20.0, "win_balance": 0.0, 
@@ -84,7 +83,7 @@ def setup_bot_menu():
         bot.set_chat_menu_button(menu_button=types.MenuButtonCommands())
     except: pass
 
-# Translations - Updated 30 ETB to 20 ETB
+# Translations
 T = {
     'am': {'welcome': "🎉 እንኳን ወደ Abisinya Bingo በደህና መጡ!", 'name': "ስም", 'id': "መለያ", 'balance': "ባላንስ", 'choose_below': "ከታች ካሉት አማራጮች ይምረጡ 👇", 'play': "🎯 Abisinya Bingo ይጫወቱ", 'deposit': "💰 ገንዘብ ማስገባት", 'withdraw': "💸 ገንዘብ ማውጣት", 'balance_btn': "🏦 ባላንስ ማየት", 'invite': "👥 ጓደኛ መጋበዝ", 'history': "📜 ታሪክ", 'support': "💬 ድጋፍ", 'register': "🔢 መመዝገብ", 'language': "🌐 ቋንቋ", 'help': "ℹ️ እርዳታ", 'leaderboard': "🏆 ደረጃ", 'your_balance': "የእርስዎ ባላንስ", 'play_bal': "🎮 Play", 'win_bal': "🏆 Win", 'total': "💰 ጠቅላላ", 'share_contact': "📱 ግንኙነት አጋራ", 'share_contact_prompt': "ከታች ያለውን <b>📱 ግንኙነት አጋራ</b> ቁልፍ ይጫኑ:", 'registered': "✅ በተሳካ ሁኔታ ተመዝግበዋል!", 'already_registered': "✅ አስቀድመው ተመዝግበዋል!", 'deposit_choose': "💳 የክፍያ ዘዴ ይምረጡ፦", 'send_txn': "📝 የTransaction/SMS ጽሑፍ ይላኩ", 'txn_example': "ለምሳሌ: <code>TB123456789 500</code>", 'deposit_sent': "✅ የገቢ ጥያቄ ተልኳል!", 'play_below': "👇 ጨዋታውን ለመጀመር ከታች ያለውን ሜኑ ይጫኑ:", 'withdraw_choose': "💸 የወጭ ዘዴ ይምረጡ:", 'to_self': "👤 ወደ ራስዎ", 'to_other': "👥 ወደ ሌላ ቁጥር", 'insufficient': "❌ Insufficient Balance", 'min_withdraw': "ዝቅተኛው የወጭ መጠን: {amt} ETB", 'wd_approved_req': "✅ Your withdrawal {amt} birr request approved", 'send_amount': "💰 የሚወጣውን መጠን ይላኩ (ቢያንስ {min} ETB):", 'send_phone': "📱 የቴሌብር ቁጥር ይላኩ:", 'invalid_amount': "❌ ትክክለኛ ቁጥር ያስገቡ።", 'invalid_phone': "❌ ትክክለኛ ቁጥር ያስገቡ።", 'unknown': "❓ ያልተለየ ትዕዛዝ።\n/start ይጫኑ።", 'pick_lang': "🌐 ቋንቋ ይምረጡ", 'lang_changed': "🇪🇹 ቋንቋ ወደ አማርኛ ተቀይሯል።", 'your_history': "የ{name} ታሪክ", 'deposits': "💰 ገቢዎች:", 'withdrawals': "💸 ወጮች:", 'no_txn': "📭 እስካሁን ግብይት የለም።", 'leaderboard_title': "🏆 ከፍተኛ አሸናፊዎች", 'no_winners': "📭 እስካሁን ማንም አልተመዘገበም።", 'support_msg': "ለእርዳታ ያግኙን", 'invite_msg': "👥 ጓደኞችዎን ይጋብዙ!", 'invite_bonus': "✨ ለእያንዳንዱ ጓደኛ <b>20 ETB</b> ያግኙ!", 'your_link': "🔗 የእርስዎ ሊንክ:", 'txn_ref': "የTransaction ቁጥር:", 'txn_pending': "⏳ Admin እስኪያጸድቅ ይጠብቁ።", 'not_registered': "❌ መጀመሪያ ማስመዝገብ ያስፈልጋል!", 'registered_phone': "📱 የተመዘገበ ስልክ:", 'help_title': "📋 የእርዳታ ማዕከል", 'help_list': "/start - ቦቱን ጀምር\n/play - ቢንጎ ተጫወት\n/balance - ባላንስ ተመልከት\n/deposit - ገንዘብ አስገባ\n/withdraw - ገንዘብ አውጣ\n/register - ስልክ አስመዝግብ\n/invite - ጓደኛ ጋብዝ\n/history - ታሪክ", 'welcome_bonus': "🎁 <b>እንኳን ደህና መጡ! ለመጀመሪያዎቹ 2 ጨዋታዎችዎ 20 ብር ቦነስ ተሰጥቶዎታል።</b>", 'withdraw_rules': "⚠️ <b>ማስታወሻ:</b> ቦነስ ገንዘብ ማውጣት አይቻልም። ዝቅተኛው የወጭ መጠን 100 ETB ነው።", 'ref_credited': "🎉 <b>አዲስ ጓደኛ ጋብዘዋል!</b>\n\n+{bonus} ETB ተጨምሯል።"},
     'en': {'welcome': "🎉 Welcome to Abisinya Bingo!", 'name': "Name", 'id': "ID", 'balance': "Balance", 'choose_below': "Choose below 👇", 'play': "🎯 Play Bingo", 'deposit': "💰 Deposit", 'withdraw': "💸 Withdraw", 'balance_btn': "🏦 Balance", 'invite': "👥 Invite", 'history': "📜 History", 'support': "💬 Support", 'register': "🔢 Register", 'language': "🌐 Language", 'help': "ℹ️ Help", 'leaderboard': "🏆 Rank", 'your_balance': "Balance", 'play_bal': "🎮 Play", 'win_bal': "🏆 Win", 'total': "💰 Total", 'share_contact': "📱 Share Contact", 'share_contact_prompt': "Tap <b>📱 Share Contact</b>:", 'registered': "✅ Registered!", 'already_registered': "✅ Already registered!", 'deposit_choose': "💳 Choose method:", 'send_txn': "📝 Send TXN text", 'txn_example': "Ex: <code>TB123456789 500</code>", 'deposit_sent': "✅ Deposit sent!", 'play_below': "👇 Tap the Menu below:", 'withdraw_choose': "💸 Withdraw method:", 'to_self': "👤 Self", 'to_other': "👥 Other", 'insufficient': "❌ Insufficient", 'min_withdraw': "Min: {amt} ETB", 'wd_approved_req': "✅ Withdrawal {amt} birr approved", 'send_amount': "💰 Amount (min {min} ETB):", 'send_phone': "📱 Telebirr phone:", 'invalid_amount': "❌ Invalid number.", 'invalid_phone': "❌ Invalid phone.", 'unknown': "❓ Unknown.\n/start", 'pick_lang': "🌐 Choose Language", 'lang_changed': "🇬🇧 English set.", 'your_history': "{name}'s History", 'deposits': "💰 Deposits:", 'withdrawals': "💸 Withdrawals:", 'no_txn': "📭 No transactions.", 'leaderboard_title': "🏆 Top Winners", 'no_winners': "📭 No one yet.", 'support_msg': "Contact us", 'invite_msg': "👥 Invite!", 'invite_bonus': "✨ Get <b>20 ETB</b>!", 'your_link': "🔗 Link:", 'txn_ref': "TXN ID:", 'txn_pending': "⏳ Pending...", 'not_registered': "❌ Register first!", 'registered_phone': "📱 Phone:", 'help_title': "📋 Help Center", 'help_list': "/start - Start\n/play - Play Bingo\n/balance - Balance\n/deposit - Deposit\n/withdraw - Withdraw\n/register - Register\n/invite - Invite\n/history - History", 'welcome_bonus': "🎁 <b>Welcome! You received a 20 ETB bonus for your first 2 games.</b>", 'withdraw_rules': "⚠️ <b>Note:</b> Bonus funds cannot be withdrawn. Minimum withdrawal is 100 ETB.", 'ref_credited': "🎉 <b>New friend joined!</b>\n\n+{bonus} ETB credited."},
@@ -101,8 +100,12 @@ class _HealthHandler(BaseHTTPRequestHandler):
 
 def _start_health_server():
     port = int(os.getenv('PORT', '8080'))
-    try: HTTPServer(('0.0.0.0', port), _HealthHandler).serve_forever()
-    except Exception as e: print(f"Health server error: {e}")
+    print(f"Health server binding to port {port}...")
+    try:
+        server = HTTPServer(('0.0.0.0', port), _HealthHandler)
+        server.serve_forever()
+    except Exception as e:
+        print(f"Health server error: {e}")
 
 threading.Thread(target=_start_health_server, daemon=True).start()
 
@@ -163,7 +166,6 @@ def send_welcome(message):
     args = message.text.split()
     
     is_referral = False
-    # REFERRAL LOGIC
     if len(args) > 1 and not user.get('referred_by') and not user.get('referral_credited'):
         ref_code = args[1].strip()
         if ref_code and ref_code != uid:
