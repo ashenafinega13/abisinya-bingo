@@ -9,63 +9,29 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
 :root {
-  --bg: #064e3b;
-  --card: rgba(15, 23, 42, 0.85);
-  --card-light: #1e293b;
-  --text: #fff;
-  --text-muted: #94a3b8;
-  --primary: #3b82f6;
-  --success: #10b981;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  --gold: #facc15;
-  --silver: #cbd5e1;
-  --bronze: #d97706;
-  --platinum: #8b5cf6;
+  --bg: #064e3b; --card: rgba(15, 23, 42, 0.85); --card-light: #1e293b; --text: #fff;
+  --text-muted: #94a3b8; --primary: #3b82f6; --success: #10b981; --danger: #ef4444;
+  --warning: #f59e0b; --gold: #facc15; --silver: #cbd5e1; --bronze: #d97706; --platinum: #8b5cf6;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); width: 100vw; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background-image: radial-gradient(circle at top, #0f172a 0%, #064e3b 100%); }
 .hidden { display: none !important; }
 .main-content-area { flex: 1; overflow: hidden; display: flex; flex-direction: column; position: relative; }
 
-/* =========================================
-   NEW ANIMATED LOADING SCREEN
-   ========================================= */
-#loading-overlay {
-  position: fixed; inset: 0; background: radial-gradient(circle at center, #0f172a 0%, #064e3b 100%);
-  z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  text-align: center; padding: 20px; transition: opacity 0.5s ease;
-}
-.loader-ball {
-  width: 90px; height: 90px; border-radius: 50%;
-  background: linear-gradient(135deg, #facc15, #b45309);
-  box-shadow: 0 0 40px rgba(250, 204, 21, 0.5);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 36px; font-weight: 900; color: #fff;
-  animation: bounce 1.5s ease-in-out infinite, spin 4s linear infinite;
-  margin-bottom: 25px;
-}
+#loading-overlay { position: fixed; inset: 0; background: radial-gradient(circle at center, #0f172a 0%, #064e3b 100%); z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; transition: opacity 0.5s ease; }
+.loader-ball { width: 90px; height: 90px; border-radius: 50%; background: linear-gradient(135deg, #facc15, #b45309); box-shadow: 0 0 40px rgba(250, 204, 21, 0.5); display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 900; color: #fff; animation: bounce 1.5s ease-in-out infinite, spin 4s linear infinite; margin-bottom: 25px; }
 @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-25px); } }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 @keyframes pulseTitle { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.05); } 100% { opacity: 1; transform: scale(1); } }
-
 .welcome-title { font-size: 32px; font-weight: 900; color: var(--gold); text-shadow: 0 2px 15px rgba(250,204,21,0.6); margin-bottom: 10px; animation: pulseTitle 2s infinite; letter-spacing: 1px; }
 .welcome-subtitle { font-size: 14px; color: #cbd5e1; font-weight: 600; margin-bottom: 30px; }
 .loading-status { color: var(--text-muted); font-size: 14px; font-weight: 700; margin-top: 15px; min-height: 20px; transition: 0.3s; }
 .progress-bar { width: 220px; height: 8px; background: #334155; border-radius: 4px; margin-top: 15px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
 .progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #facc15); width: 0%; transition: width 0.5s ease; border-radius: 4px; }
 
-/* Toast */
-#toast {
-  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-  background: rgba(16, 185, 129, 0.95); color: #fff; padding: 12px 24px;
-  border-radius: 12px; font-weight: 700; z-index: 9999; display: none;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; width: 90%; max-width: 320px;
-  backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); animation: slideDown 0.3s ease-out;
-}
+#toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(16, 185, 129, 0.95); color: #fff; padding: 12px 24px; border-radius: 12px; font-weight: 700; z-index: 9999; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; width: 90%; max-width: 320px; backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); animation: slideDown 0.3s ease-out; }
 @keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 20px; opacity: 1; } }
 
-/* Header & Dashboard */
 .header-btns { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(10px); }
 .top-dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px; background: var(--card); border-bottom: 1px solid #334155; }
 .dash-card { background: rgba(30, 41, 59, 0.6); border: 1px solid #334155; border-radius: 12px; padding: 10px 4px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
@@ -75,7 +41,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .dash-value.timer { color: var(--primary); }
 .dash-value.timer.urgent { color: var(--danger); animation: pulse 1s infinite; }
 
-/* Ticket Grid */
 #page-ticket { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
 .grid-container { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; overflow-y: scroll; -webkit-overflow-scrolling: touch; margin: 8px; padding: 8px; background: #f8fafc; border-radius: 16px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); flex: 1; min-height: 0; }
 .number-btn { background: #fff; color: #0f172a; border: 1px solid #cbd5e1; padding: 8px 0; font-size: 14px; font-weight: 900; border-radius: 8px; cursor: pointer; transition: 0.1s; }
@@ -83,7 +48,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .number-btn.selected { background: var(--primary) !important; color: #fff !important; border-color: #2563eb; box-shadow: 0 0 10px rgba(59,130,246,0.5); }
 .number-btn.taken-by-other { background: var(--success) !important; color: #fff !important; border-color: #059669; cursor: not-allowed; opacity: 0.9; }
 
-/* Preview */
 .preview-section { background: var(--card); border-radius: 16px 16px 0 0; padding: 12px; margin: 0 8px; height: 22vh; overflow-y: auto; box-shadow: 0 -4px 10px rgba(0,0,0,0.2); flex-shrink: 0; border: 1px solid #334155; border-bottom: none; }
 .preview-title { text-align: center; font-size: 11px; color: var(--text-muted); margin-bottom: 8px; font-weight: 800; letter-spacing: 1px; }
 .card-preview-card { background: rgba(15, 23, 42, 0.6); border-radius: 10px; padding: 8px; margin-bottom: 8px; border: 1px solid #334155; }
@@ -92,7 +56,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .mini-cell { background: rgba(30, 41, 59, 0.8); text-align: center; padding: 6px 0; font-size: 11px; font-weight: 800; color: #fff; border-radius: 4px; }
 .mini-cell.free { background: var(--primary); font-size: 9px; }
 
-/* Live Page */
 #page-live { width: 100%; height: 100%; display: flex; flex-direction: column; padding: 8px; position: relative; }
 .spectator-banner { background: var(--warning); color: #000; font-weight: 900; text-align: center; padding: 10px; border-radius: 10px; margin-bottom: 8px; font-size: 13px; animation: pulse 2s infinite; }
 .stats-header { display: flex; justify-content: space-between; background: var(--card); padding: 12px 8px; border-radius: 12px; margin-bottom: 8px; border: 1px solid #334155; }
@@ -110,7 +73,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .current-call-number { background: var(--primary); color: #fff; font-size: 32px; font-weight: 900; display: inline-block; padding: 6px 20px; border-radius: 50px; box-shadow: 0 4px 12px rgba(59,130,246,0.4); }
 .live-cards-container { background: var(--card); border: 1px solid #334155; border-radius: 12px; padding: 8px; flex: 1; overflow-y: auto; }
 
-/* Interactive Card */
 .interactive-card-view { background: rgba(30, 41, 59, 0.6); border-radius: 10px; padding: 10px; margin-bottom: 10px; border: 1px solid #334155; }
 .interactive-matrix { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 10px; }
 .interactive-cell { background: #334155; text-align: center; padding: 12px 0; font-size: 14px; font-weight: 900; color: #fff; border-radius: 6px; cursor: pointer; transition: 0.1s; border: 1px solid #475569; }
@@ -119,7 +81,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .bingo-btn { background: linear-gradient(135deg, #ef4444, #b91c1c); color: #fff; border: none; width: 100%; padding: 14px; font-size: 18px; font-weight: 900; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 15px rgba(239,68,68,0.5); animation: pulse 1.5s infinite; }
 .bingo-btn:active { transform: scale(0.97); }
 
-/* Winner Modal */
 #game-over-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.92); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; padding: 10px; overflow: hidden; }
 .game-over-box { background: linear-gradient(180deg, var(--card-light) 0%, var(--card) 100%); width: 95%; max-width: 360px; border-radius: 20px; padding: 24px 16px; text-align: center; border: 3px solid var(--gold); position: relative; z-index: 103; box-shadow: 0 0 50px rgba(250,204,21,0.3); animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
@@ -134,18 +95,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .modal-cell.winning-highlight { background: var(--success) !important; box-shadow: 0 0 10px var(--success); color: #000; }
 .modal-board-footer { text-align: center; font-size: 13px; color: var(--text-muted); margin-top: 8px; font-weight: bold; }
 
-/* Shared Pages */
 .page-inner-content { width: 100%; height: 100%; display: flex; flex-direction: column; padding: 16px; background: var(--bg); overflow-y: auto; padding-bottom: 80px; }
 .sec-title { font-size: 16px; font-weight: 900; color: #fff; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; }
 
-/* Bottom Nav */
 .bottom-nav { height: 65px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border-top: 1px solid #334155; display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; z-index: 1000; padding-bottom: env(safe-area-inset-bottom); position: absolute; bottom: 0; width: 100%; }
 .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 10px; font-weight: 700; gap: 4px; transition: 0.2s; }
 .nav-item.active { color: var(--gold); }
 .nav-icon { font-size: 22px; }
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
-/* PROFILE */
 .profile-header { display: flex; align-items: center; gap: 16px; background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid #334155; margin-bottom: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
 .profile-avatar { width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 900; color: #fff; border: 3px solid #334155; box-shadow: 0 0 15px rgba(59,130,246,0.4); flex-shrink: 0; background-size: cover; background-position: center; }
 .profile-info h2 { font-size: 20px; font-weight: 900; margin-bottom: 4px; }
@@ -161,7 +119,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .level-bar-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--success)); border-radius: 10px; transition: width 0.5s ease; }
 .level-footer { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--text-muted); font-weight: 700; }
 
-/* RANK */
 .rank-tabs { display: flex; background: var(--card); border-radius: 12px; padding: 4px; margin-bottom: 16px; border: 1px solid #334155; }
 .rank-tab { flex: 1; text-align: center; padding: 10px; font-size: 13px; font-weight: 800; color: var(--text-muted); border-radius: 8px; cursor: pointer; transition: 0.2s; }
 .rank-tab.active { background: #334155; color: var(--gold); }
@@ -178,18 +135,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .tier-silver { background: rgba(203, 213, 225, 0.2); color: #cbd5e1; border: 1px solid #cbd5e1; }
 .tier-gold { background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid #fbbf24; }
 .tier-platinum { background: rgba(139, 92, 246, 0.2); color: #a78bfa; border: 1px solid #a78bfa; }
-
 .sticky-user-rank { position: fixed; bottom: 65px; left: 0; right: 0; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); padding: 12px 16px; border-top: 1px solid var(--gold); border-bottom: 1px solid var(--gold); display: flex; align-items: center; gap: 12px; z-index: 999; }
 .sticky-user-rank .rank-pos { color: var(--gold); }
 .sticky-user-rank .rank-item { border: none; padding: 0; background: transparent; }
 
-/* WALLET */
 .wallet-balance-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 24px; border-radius: 20px; text-align: center; border: 1px solid #334155; box-shadow: 0 10px 30px rgba(0,0,0,0.3); margin-bottom: 20px; position: relative; overflow: hidden; }
 .wallet-balance-card::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 60%); pointer-events: none; }
 .wallet-balance-title { font-size: 12px; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
 .wallet-balance-amount { font-size: 42px; font-weight: 900; color: #fff; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .wallet-balance-amount span { font-size: 16px; color: var(--text-muted); }
-
 .wallet-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
 .wallet-btn { background: var(--card); border: 1px solid #334155; padding: 12px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; transition: 0.2s; }
 .wallet-btn:active { transform: scale(0.95); }
@@ -198,12 +152,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .wallet-btn.deposit i { color: var(--success); }
 .wallet-btn.withdraw i { color: var(--warning); }
 .wallet-btn.swap i { color: #8b5cf6; }
-
 .txn-filters { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
 .txn-filters::-webkit-scrollbar { display: none; }
 .txn-filter { padding: 8px 16px; border-radius: 20px; background: var(--card); border: 1px solid #334155; color: var(--text-muted); font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap; }
 .txn-filter.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-
 .txn-list { display: flex; flex-direction: column; gap: 10px; }
 .txn-card { background: var(--card); padding: 16px; border-radius: 14px; border: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; }
 .txn-left { display: flex; align-items: center; gap: 12px; }
@@ -223,7 +175,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 </head>
 <body>
 
-<!-- NEW LOADING OVERLAY -->
 <div id="loading-overlay">
   <div class="loader-ball">B</div>
   <div class="welcome-title">Abyssinia Bingo</div>
@@ -243,7 +194,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
   </div>
 
-  <!-- TICKET PAGE -->
   <div id="page-ticket">
     <div class="top-dashboard">
       <div class="dash-card"><span class="dash-label" id="lbl-wallet">Wallet</span><span class="dash-value wallet"><span id="wallet-display">0.00</span></span></div>
@@ -260,7 +210,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
   </div>
 
-  <!-- LIVE PAGE -->
   <div id="page-live" class="hidden">
     <div id="game-over-overlay" class="hidden">
       <div class="game-over-box">
@@ -300,7 +249,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
   </div>
 
-  <!-- PROFILE PAGE -->
   <div id="page-profile" class="page-inner-content hidden">
     <div class="profile-header">
       <div class="profile-avatar" id="profile-avatar">A</div>
@@ -329,7 +277,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
   </div>
 
-  <!-- RANK PAGE -->
   <div id="page-rank" class="page-inner-content hidden">
     <div class="rank-tabs">
       <div class="rank-tab active" onclick="switchRankTab('global', this)">Global</div>
@@ -350,7 +297,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
   </div>
 
-  <!-- WALLET PAGE -->
   <div id="page-wallet" class="page-inner-content hidden">
     <div class="wallet-balance-card">
       <div class="wallet-balance-title">Total Balance</div>
@@ -401,11 +347,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 const tg = window.Telegram?.WebApp;
 if (tg) tg.expand();
 
-// ==========================================
-// VERCEL -> RENDER CONNECTION
-// ==========================================
 const BACKEND_URL = 'https://abisinya-bingo-server.onrender.com'; 
-const MIN_LOAD_TIME = 3500; // Minimum loading screen time (3.5 seconds)
+const MIN_LOAD_TIME = 3000; 
+const MAX_LOAD_TIME = 6000; // Force hide loading after 6 seconds max
 const appStartTime = Date.now();
 
 let toastTimeout;
@@ -508,33 +452,48 @@ let roomPhase = 'idle';
 let isModalShown = false;
 let isAutoMark = true;
 let manualMarks = new Set();
-let hasShownWelcomeBonus = false;
 let allTransactions = [];
 
-// ==========================================
+// FIX 1: SAVE BONUS TOAST TO LOCALSTORAGE SO IT ONLY SHOWS ONCE
+let hasShownWelcomeBonus = localStorage.getItem('abisinya_welcome_bonus_shown') === 'true';
+
 // LOADING SCREEN LOGIC
-// ==========================================
 let loadingSeconds = 0;
-const loadingTexts = [
-  "Waking up the game server...",
-  "Almost there, please wait...",
-  "Connecting to Abyssinia Bingo...",
-  "Just a few more seconds..."
-];
+const loadingTexts = ["Waking up the game server...", "Almost there, please wait...", "Connecting to Abyssinia Bingo...", "Just a few more seconds..."];
 const loadingInterval = setInterval(() => {
   loadingSeconds++;
   const txt = document.querySelector('.loading-status');
-  if (loadingSeconds === 12) txt.innerText = loadingTexts[1];
-  if (loadingSeconds === 25) txt.innerText = loadingTexts[2];
-  if (loadingSeconds === 40) txt.innerText = loadingTexts[3];
+  if (loadingSeconds === 3) txt.innerText = loadingTexts[1];
+  if (loadingSeconds === 5) txt.innerText = loadingTexts[2];
   
-  const pct = Math.min((loadingSeconds / 50) * 100, 99);
+  const pct = Math.min((loadingSeconds / 6) * 100, 99);
   document.getElementById('loading-progress').style.width = pct + '%';
+  
+  // FIX 2: FORCE HIDE AFTER 6 SECONDS MAX
+  if (loadingSeconds >= 6) {
+    forceHideLoader();
+  }
 }, 1000);
 
 let isSocketConnected = false;
 let isDataLoaded = false;
 let hasHiddenLoader = false;
+
+function forceHideLoader() {
+  if (hasHiddenLoader) return;
+  hasHiddenLoader = true;
+  clearInterval(loadingInterval);
+  document.getElementById('loading-progress').style.width = '100%';
+  
+  setTimeout(() => {
+    document.getElementById('loading-overlay').style.opacity = '0';
+    setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 500);
+  }, 300);
+
+  if (!isSocketConnected) {
+    showToast("Connecting to server... Please wait.", true);
+  }
+}
 
 function checkLoadingComplete() {
   if (hasHiddenLoader) return;
@@ -543,19 +502,8 @@ function checkLoadingComplete() {
   const elapsedTime = Date.now() - appStartTime;
   const timeRemaining = Math.max(0, MIN_LOAD_TIME - elapsedTime);
 
-  // Wait for the minimum time so the user can see the animation
   setTimeout(() => {
-    if (hasHiddenLoader) return;
-    hasHiddenLoader = true;
-    
-    clearInterval(loadingInterval);
-    document.getElementById('loading-progress').style.width = '100%';
-    
-    // Fade out overlay
-    setTimeout(() => {
-      document.getElementById('loading-overlay').style.opacity = '0';
-      setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 500);
-    }, 300);
+    forceHideLoader();
   }, timeRemaining);
 }
 
@@ -582,7 +530,7 @@ function boot() {
   });
 
   socket.on('connect_error', (err) => {
-    document.querySelector('.loading-status').innerText = "Connection lost. Retrying...";
+    if (!hasHiddenLoader) document.querySelector('.loading-status').innerText = "Connection lost. Retrying...";
   });
   
   socket.on('init_state', (state) => {
@@ -607,7 +555,7 @@ function boot() {
   socket.on('reset_game', onResetGame);
   socket.on('card_error', (d) => showToast(d.message || 'Error'));
   socket.on('waiting_for_players', () => {
-    document.getElementById('spectator-banner').innerText = "⏳ Waiting for at least 2 players to start...";
+    document.getElementById('spectator-banner').innerText = "⏳ Waiting for 2+ cards to be selected...";
     document.getElementById('spectator-banner').classList.remove('hidden');
   });
 
@@ -626,8 +574,10 @@ function loadWallet() {
       currentWinWallet = Number(d.data.win_balance) || 0;
       const totalGames = Number(d.data.total_games) || 0;
       
+      // FIX 1: CHECK LOCALSTORAGE BEFORE SHOWING TOAST
       if (currentWallet === 20 && totalGames === 0 && !hasShownWelcomeBonus) {
         hasShownWelcomeBonus = true;
+        localStorage.setItem('abisinya_welcome_bonus_shown', 'true');
         setTimeout(() => showToast("🎁 Welcome! You have a 20 ETB bonus for 2 games.", true), 1000);
       }
       

@@ -13,7 +13,6 @@ function mulberry32(seed) {
     return ((h ^ (h >>> 14)) >>> 0) / 4294967296;
   };
 }
-
 function seedFrom(str) {
   let h = 2166136261;
   for (let i = 0; i < str.length; i++) {
@@ -22,7 +21,6 @@ function seedFrom(str) {
   }
   return h >>> 0;
 }
-
 function generateCard(cardNum, roundSeed) {
   const rng = mulberry32(seedFrom(`${roundSeed}:${cardNum}`));
   const cols = [];
@@ -38,7 +36,6 @@ function generateCard(cardNum, roundSeed) {
   cols[2][2] = 'FREE';
   return cols;
 }
-
 function checkWin(cardNum, roundSeed, calledNumbers) {
   const cols = generateCard(cardNum, roundSeed);
   const called = new Set(calledNumbers);
@@ -101,7 +98,7 @@ class Room {
       calledNumbers: this.calledNumbers,
       takenCards: Object.keys(this.takenCards).map(Number),
       remainingTime: this.remainingTime, seedHash: this.seedHash,
-      players: new Set(Object.values(this.takenCards).map(String)).size
+      players: Object.keys(this.takenCards).length
     };
   }
 
@@ -136,8 +133,10 @@ class Room {
   }
 
   checkStartConditions() {
-    const uniquePlayers = new Set(Object.values(this.takenCards).map(String)).size;
-    if (uniquePlayers < 2) {
+    // CHECK TOTAL CARDS INSTEAD OF UNIQUE PLAYERS
+    const totalCards = Object.keys(this.takenCards).length;
+    
+    if (totalCards < 2) {
       this.remainingTime = 15; 
       this.broadcast('waiting_for_players', {});
       this.broadcast('timer_tick', { remaining: this.remainingTime });
@@ -159,7 +158,7 @@ class Room {
     this.broadcast('phase_change', { phase: 'calling', roomId: this.id });
     Round.updateOne({ roundId: this.roundId }, { $set: { phase: 'calling' } }).catch(() => {});
     
-    this.callTimer = setInterval(() => this.callNumber(), 4000); // 4 seconds per call
+    this.callTimer = setInterval(() => this.callNumber(), 4000);
   }
 
   async callNumber() {
@@ -191,7 +190,6 @@ class Room {
     const user = await User.findOne({ id: String(userId) });
     this.pendingWinners.push({ userId: String(userId), cardNum, ...win, name: user?.name || 'Player' });
     
-    // If this is the first claim, start a 2.5-second window for other winners
     if (!this.isEnding) {
       this.isEnding = true;
       this.io.to(`room:${this.id}`).emit('bingo_claimed', { message: 'Bingo claimed! Verifying...' });
@@ -213,7 +211,6 @@ class Room {
     const cardsInPlay = Object.keys(this.takenCards).length;
     const totalPot = cardsInPlay * this.stake;
     
-    // Deduct 20% for the House/Owner
     const totalPrize = winners.length > 0 ? Math.floor(totalPot * 0.8) : 0;
     const rake = totalPot - totalPrize;
     const perWinner = winners.length > 0 ? Math.floor(totalPrize / winners.length) : 0;
