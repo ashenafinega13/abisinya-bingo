@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Abisinya Bingo</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
 :root {
   --bg: #064e3b;
@@ -17,7 +18,7 @@
   --success: #10b981;
   --danger: #ef4444;
   --warning: #f59e0b;
-  --gold: #fbbf24;
+  --gold: #facc15;
   --silver: #cbd5e1;
   --bronze: #d97706;
   --platinum: #8b5cf6;
@@ -26,6 +27,33 @@
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); width: 100vw; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background-image: radial-gradient(circle at top, #0f172a 0%, #064e3b 100%); }
 .hidden { display: none !important; }
 .main-content-area { flex: 1; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+
+/* =========================================
+   NEW ANIMATED LOADING SCREEN
+   ========================================= */
+#loading-overlay {
+  position: fixed; inset: 0; background: radial-gradient(circle at center, #0f172a 0%, #064e3b 100%);
+  z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 20px; transition: opacity 0.5s ease;
+}
+.loader-ball {
+  width: 90px; height: 90px; border-radius: 50%;
+  background: linear-gradient(135deg, #facc15, #b45309);
+  box-shadow: 0 0 40px rgba(250, 204, 21, 0.5);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px; font-weight: 900; color: #fff;
+  animation: bounce 1.5s ease-in-out infinite, spin 4s linear infinite;
+  margin-bottom: 25px;
+}
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-25px); } }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+@keyframes pulseTitle { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.05); } 100% { opacity: 1; transform: scale(1); } }
+
+.welcome-title { font-size: 32px; font-weight: 900; color: var(--gold); text-shadow: 0 2px 15px rgba(250,204,21,0.6); margin-bottom: 10px; animation: pulseTitle 2s infinite; letter-spacing: 1px; }
+.welcome-subtitle { font-size: 14px; color: #cbd5e1; font-weight: 600; margin-bottom: 30px; }
+.loading-status { color: var(--text-muted); font-size: 14px; font-weight: 700; margin-top: 15px; min-height: 20px; transition: 0.3s; }
+.progress-bar { width: 220px; height: 8px; background: #334155; border-radius: 4px; margin-top: 15px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #facc15); width: 0%; transition: width 0.5s ease; border-radius: 4px; }
 
 /* Toast */
 #toast {
@@ -195,6 +223,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 </head>
 <body>
 
+<!-- NEW LOADING OVERLAY -->
+<div id="loading-overlay">
+  <div class="loader-ball">B</div>
+  <div class="welcome-title">Abyssinia Bingo</div>
+  <div class="welcome-subtitle">The Ultimate Bingo Experience</div>
+  <div class="loading-status">Waking up the game server...</div>
+  <div class="progress-bar"><div class="progress-fill" id="loading-progress"></div></div>
+</div>
+
 <div id="toast" onclick="this.style.display='none'">Error message here</div>
 
 <div class="main-content-area">
@@ -360,11 +397,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <button class="nav-item" id="nav-btn-profile" onclick="switchTab('profile')"><span class="nav-icon">👤</span><span id="nav-lbl-profile">PROFILE</span></button>
 </nav>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
 <script>
 const tg = window.Telegram?.WebApp;
 if (tg) tg.expand();
+
+// ==========================================
+// VERCEL -> RENDER CONNECTION
+// ==========================================
+const BACKEND_URL = 'https://abisinya-bingo-server.onrender.com'; // Make sure this matches your Render URL
 
 let toastTimeout;
 function showToast(msg, isSuccess = false) {
@@ -383,10 +423,10 @@ function toggleMute() {
 }
 function playCallSound(num) {
   if (isMuted) return;
-  const audio = new Audio(`/audio/call_${num}.mp3`);
+  const audio = new Audio(`${BACKEND_URL}/audio/call_${num}.mp3`);
   audio.play().catch(e => {
     const prefix = num <= 15 ? 'B' : num <= 30 ? 'I' : num <= 45 ? 'N' : num <= 60 ? 'G' : 'O';
-    const fallback = new Audio(`/audio/${prefix}${num}.mp3`);
+    const fallback = new Audio(`${BACKEND_URL}/audio/${prefix}${num}.mp3`);
     fallback.play().catch(err => console.log('Audio missing', num));
   });
 }
@@ -435,6 +475,9 @@ function toggleLang() {
 const TG_INIT_DATA = tg?.initData || '';
 const _fetch = window.fetch;
 window.fetch = (url, opts = {}) => {
+  if (typeof url === 'string' && url.startsWith('/api/')) {
+    url = BACKEND_URL + url;
+  }
   if (typeof url === 'string' && url.includes('/api/')) {
     opts.headers = opts.headers || {};
     opts.headers['X-Telegram-Init-Data'] = TG_INIT_DATA;
@@ -468,6 +511,26 @@ let allTransactions = [];
 
 applyLanguage();
 
+// LOADING SCREEN ANIMATION LOGIC
+let loadingSeconds = 0;
+const loadingTexts = [
+  "Waking up the game server...",
+  "Almost there, please wait...",
+  "Connecting to Abyssinia Bingo...",
+  "Just a few more seconds..."
+];
+const loadingInterval = setInterval(() => {
+  loadingSeconds++;
+  const txt = document.querySelector('.loading-status');
+  if (loadingSeconds === 12) txt.innerText = loadingTexts[1];
+  if (loadingSeconds === 25) txt.innerText = loadingTexts[2];
+  if (loadingSeconds === 40) txt.innerText = loadingTexts[3];
+  
+  // Update progress bar up to 99%
+  const pct = Math.min((loadingSeconds / 50) * 100, 99);
+  document.getElementById('loading-progress').style.width = pct + '%';
+}, 1000);
+
 function boot() {
   document.getElementById('profile-name-val').innerText = userProfile.name;
   document.getElementById('profile-id-val').innerText = `ID: ${userProfile.id}`;
@@ -479,10 +542,22 @@ function boot() {
     avatarEl.innerText = userProfile.name.charAt(0).toUpperCase();
   }
 
-  socket = io({ auth: { initData: TG_INIT_DATA } });
+  socket = io(BACKEND_URL, { auth: { initData: TG_INIT_DATA } });
+  
   socket.on('connect', () => {
+    clearInterval(loadingInterval);
+    document.getElementById('loading-progress').style.width = '100%';
+    setTimeout(() => {
+      document.getElementById('loading-overlay').style.opacity = '0';
+      setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 500);
+    }, 300);
+
     socket.emit('subscribe', { roomId: 'main' });
-    loadWallet(); // Re-fetch on reconnect
+    loadWallet();
+  });
+
+  socket.on('connect_error', (err) => {
+    document.querySelector('.loading-status').innerText = "Connection lost. Retrying...";
   });
   
   socket.on('init_state', onInitState);
@@ -512,7 +587,6 @@ function boot() {
   });
 
   buildGrid();
-  loadWallet();
 }
 
 function loadWallet() {
