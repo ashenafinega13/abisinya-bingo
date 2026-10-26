@@ -15,6 +15,7 @@ const { GameManager, generateCard } = require('./game/engine');
 const { verifyTelegramInitData, requireTelegramUser, requireAdmin } = require('./auth');
 
 const app = express();
+app.set('trust proxy', 1); // Trust Render's reverse proxy for accurate rate limiting
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 const PORT = process.env.PORT || 3000;
